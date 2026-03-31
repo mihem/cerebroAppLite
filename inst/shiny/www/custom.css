@@ -1,0 +1,321 @@
+:root {
+  --primary-color: #5b7c99;
+  --primary-light: #7a9bb8;
+  --primary-dark: #3d5a73;
+  --accent-color: #8b9dc3;
+  --success-color: #6b9080;
+  --warning-color: #e9c46a;
+  --danger-color: #e07a5f;
+  --background-color: #f7f8fa;
+  --card-background: #ffffff;
+  --text-primary: #2d3748;
+  --text-secondary: #718096;
+  --border-color: #e2e8f0;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --sidebar-bg-start: #2d3748;
+  --sidebar-bg-end: #1a202c;
+  --header-bg-start: #2d3748;
+  --header-bg-end: #1a202c;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 0;
+}
+
+h1 {
+  font-size: 28px;
+}
+h2 {
+  font-size: 24px;
+}
+h3 {
+  font-size: 20px;
+}
+h4 {
+  font-size: 16px;
+}
+h5 {
+  font-size: 14px;
+}
+h6 {
+  font-size: 12px;
+}
+
+p {
+  margin-bottom: 15px;
+}
+
+a {
+  color: var(--primary-color);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-dark);
+}
+
+.main-header {
+  background: linear-gradient(135deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
+  box-shadow: var(--shadow-md);
+  border-bottom: none;
+}
+
+.main-header .logo {
+  color: white !important;
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+
+.skin-blue .main-header .navbar {
+  background: transparent;
+}
+
+.skin-blue .main-header .logo {
+  background: transparent;
+  color: white !important;
+}
+
+.skin-blue .main-header .logo:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a {
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a > .fa,
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a > .glyphicon,
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a > .ion {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a:hover > .fa,
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a:hover > .glyphicon,
+.skin-blue .main-header .navbar-custom-menu > .navbar-nav > li > a:hover > .ion {
+  color: white;
+}
+
+.skin-blue .main-header .navbar .dropdown-menu {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.skin-blue .main-header .navbar .dropdown-menu > li > a {
+  color: var(--text-primary);
+}
+
+.skin-blue .main-header .navbar .dropdown-menu > li > a:hover {
+  background: rgba(91, 124, 153, 0.1);
+  color: var(--primary-color);
+}
+
+.skin-blue .main-sidebar {
+  background: linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.skin-blue .sidebar-menu > li.header {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  padding: 12px 20px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.skin-blue .sidebar-menu > li > a {
+  color: rgba(255, 255, 255, 0.8);
+  border-left: 3px solid transparent;
+  transition: all 0.3s ease;
+  padding: 12px 20px;
+  font-size: 14px;
+}
+
+.skin-blue .sidebar-menu > li > a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.skin-blue .sidebar-menu > li.active > a {
+  background: rgba(91, 124, 153, 0.2);
+  color: white;
+  border-left-color: #5b7c99;
+}
+
+.skin-blue .sidebar-menu > li > a > .fa,
+.skin-blue .sidebar-menu > li > a > .glyphicon,
+.skin-blue .sidebar-menu > li > a > .ion {
+  color: rgba(255, 255, 255, 0.6);
+  width: 20px;
+  text-align: center;
+  margin-right: 10px;
+}
+
+.skin-blue .sidebar-menu > li.active > a > .fa,
+.skin-blue .sidebar-menu > li.active > a > .glyphicon,
+.skin-blue .sidebar-menu > li.active > a > .ion {
+  color: #5b7c99;
+}
+
+.skin-blue .sidebar-menu > li > a:hover > .fa,
+.skin-blue .sidebar-menu > li > a:hover > .glyphicon,
+.skin-blue .sidebar-menu > li > a:hover > .ion {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.skin-blue .user-panel {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile Responsiveness for small, long narrow screens */
+@media (max-width: 767px) {
+  /* Adjust main header font size */
+  .main-header .logo {
+    font-size: 20px !important;
+    text-align: left;
+    padding-left: 15px;
+  }
+
+  /* Adjust Sidebar */
+  .main-sidebar {
+    padding-top: 60px; /* Ensure space for header */
+  }
+
+  /* Content Wrapper padding */
+  .content-wrapper,
+  .right-side {
+    padding-top: 20px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  /* Ensure boxes take full width and handle long content */
+  .box {
+    margin-bottom: 15px;
+    width: 100% !important;
+  }
+
+  .box-body {
+    padding: 10px;
+    overflow-x: auto; /* Allow horizontal scroll for wide content like tables */
+  }
+
+  /* Adjust Value Boxes (Stat Cards) */
+  .small-box .icon {
+    display: none; /* Hide large icons on small screens to save space */
+  }
+
+  .small-box h3 {
+    font-size: 24px; /* Smaller font for numbers */
+  }
+
+  .small-box p {
+    font-size: 12px; /* Smaller label */
+  }
+
+  /* Plotly Graphs Responsive Container */
+  .plotly {
+    width: 100% !important;
+    max-width: 100vw;
+  }
+
+  /* DataTables - Force horizontal scrolling */
+  .dataTables_wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Adjust modal dialogs to fit screen */
+  .modal-dialog {
+    width: 95%;
+    margin: 10px auto;
+  }
+
+  /* Adjust input groups and selects */
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  .selectize-input {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  /* Hide Github corner on very small screens to avoid blocking UI */
+  .github-corner {
+    display: none;
+  }
+
+  /* Improve readability */
+  body {
+    font-size: 13px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+  h2 {
+    font-size: 20px;
+  }
+  h3 {
+    font-size: 18px;
+  }
+
+  /* Stack columns in fluidRows */
+  .col-sm-1,
+  .col-sm-2,
+  .col-sm-3,
+  .col-sm-4,
+  .col-sm-5,
+  .col-sm-6,
+  .col-sm-7,
+  .col-sm-8,
+  .col-sm-9,
+  .col-sm-10,
+  .col-sm-11,
+  .col-sm-12 {
+    width: 100% !important;
+    float: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Adjust padding for nested columns if needed */
+  .row {
+    margin-left: -5px;
+    margin-right: -5px;
+  }
+}

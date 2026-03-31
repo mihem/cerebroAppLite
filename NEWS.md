@@ -1,26 +1,64 @@
+# cerebroAppLite 1.6.0
+
+## Major changes
+
+- Unified TCR/BCR immune repertoire module: replaced separate TCR and BCR tabs with a single `immune_repertoire` tab backed by scRepertoire v2
+- Added `immune_repertoire` field to Cerebro R6 class with `getImmuneRepertoire()` / `addImmuneRepertoire()` methods and backward-compatible fallback
+- 19 scRepertoire visualization functions available: Abundance, Diversity, Homeostasis, Length, Proportion, Quant, Rarefaction, Gene usage, vizGenes, percentGenes, percentVJ, AA %, Entropy, Property, K-mer, Compare, Overlap, Scatter, SizeDist
+
+## Minor changes
+
+- Dynamic plot heights based on data dimensions (gene count, group count, facet layout)
+- Facet-aware height calculation with three modes (none / grid / wrap)
+- Chain dropdown grouped by TCR/BCR using optgroups
+- `group.by` parameter wired to all 19 visualization functions with "None" option
+- Rarefaction bootstrap iterations slider (3–50, default 5)
+- Loading spinners on all plot outputs via shinycssloaders
+- Auto-detection of available positionalProperty methods at runtime
+- Multi-sample tabs hidden when only one sample is loaded
+- 3-tier help system: professional panel titles, concise summaries, and detailed modal explanations with structured HTML formatting (section headers, bullet lists, inline bold/color)
+- Example button on each tab showing demo plots from scRepertoire built-in data
+- JS tooltips on tab hover
+
+## Bug fixes
+
+- Fixed clonalScatter crash with single-sample data
+- Fixed "Invalid chain" error in percentGenes/percentVJ by resolving "both" chain
+- Fixed K-mer height calculation (was incorrectly using gene count instead of motif slider)
+
+# cerebroAppLite 1.5.4
+
 # cerebroAppLite 1.5.3
- - several bug fixes so that launchCerebro should work again
+
+- several bug fixes so that launchCerebro should work again
 
 # cerebroAppLite 1.5.2
- - allow plot settings (size, opacity, number of cells to show) to be different in gene expression and overview (useful for large datasets with slow gene expression)
 
-# cerebroAppLite  1.5.1
+- allow plot settings (size, opacity, number of cells to show) to be different in gene expression and overview (useful for large datasets with slow gene expression)
+
+# cerebroAppLite 1.5.1
+
 - remove unused functions in group
 
 # cerebroAppLite 1.5.0
+
 - make compatible with Seuratv5, especially with BPCells Matrix
 
 # cerebroAppLite 1.4.1
+
 - timeout function added. This logs out the user after 600 second of inactivity (can be changed in `shiny_ui.R`). The JS function was taken from https://stackoverflow.com/a/53207050/21417317.
 - add option to show up to 1000 cells in `Main`, which is useful for exports.
 
 # cerebroAppLite 1.4.0
+
 This is the first update of this cerebroApp fork. Its aim is to continue a lightweight version of the excellent cerebroApp with only the main function as the cerebroApp by Roman Hillje is sadly discontinued.
 
 ## Major changes
+
 - remove enriched pathways, extra material, most expressed genes and trajectory functions since the goal of this fork is to continue with a lightweight version
 
 ## Minor changes
+
 - `Load Data` is renamed to `Data info` and `Overview` to `Main`
 - Preferences about WebGL and hover info are now show in the first tab called `Data info`
 - more colorful boxes for the sample information

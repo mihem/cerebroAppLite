@@ -16,6 +16,7 @@ exportFromSCE(
   nGene = "nGene",
   add_all_meta_data = TRUE,
   use_delayed_array = FALSE,
+  format = "qs",
   verbose = FALSE
 )
 }
@@ -59,6 +60,9 @@ package. If set to \code{FALSE} (default), the expression matrix will be
 copied from the input object as is. It is recommended to use a sparse format,
 such as \code{dgCMatrix} from the \code{Matrix} package.}
 
+\item{format}{Format of output file. Can be either \code{"qs"} or
+\code{"rds"}. Defaults to \code{"qs"}.}
+
 \item{verbose}{Set this to \code{TRUE} if you want additional log messages;
 defaults to \code{FALSE}.}
 }
@@ -70,8 +74,8 @@ This function allows to export a \code{SingleCellExperiment} (\code{SCE})
 object to visualize in Cerebro.
 }
 \examples{
-pbmc <- readRDS(system.file("extdata/v1.3/pbmc_SCE.rds",
-  package = "cerebroApp"))
+pbmc <- readRDS(system.file("extdata/pbmc_SCE.rds",
+  package = "cerebroAppLite"))
 exportFromSCE(
   object = pbmc,
   file = 'pbmc_SCE.crb',

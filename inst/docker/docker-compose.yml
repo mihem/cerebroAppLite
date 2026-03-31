@@ -1,0 +1,9 @@
+services:
+  shiny-app:
+    build: .
+    image: cerebro-shiny-app
+    ports:
+      - "{{PORT}}:3838"
+    volumes:
+      - ./logs:/var/log/shiny-server
+    restart: always

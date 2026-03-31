@@ -12,11 +12,13 @@ exportFromSeurat(
   experiment_name,
   organism,
   groups,
+  main_group = NULL,
   cell_cycle = NULL,
   nUMI = "nUMI",
   nGene = "nGene",
   add_all_meta_data = TRUE,
   use_delayed_array = FALSE,
+  format = "qs",
   verbose = FALSE
 )
 }
@@ -40,6 +42,10 @@ bottlenecks in the Cerebro interface.}
 (\code{object@meta.data}), e.g. \code{c("sample","cluster")}; at least one
 must be provided; defaults to \code{NULL}.}
 
+\item{main_group}{The primary grouping variable to use for display in Cerebro;
+must be one of the grouping variables specified in \code{groups}; defaults to
+\code{NULL}.}
+
 \item{cell_cycle}{Names of columns in meta data
 (\code{object@meta.data}) that contain cell cycle information, e.g.
 \code{c("Phase")}; defaults to \code{NULL}.}
@@ -62,6 +68,9 @@ package. If set to \code{FALSE} (default), the expression matrix will be
 copied from the input object as is. It is recommended to use a sparse format,
 such as \code{dgCMatrix} from the \code{Matrix} package.}
 
+\item{format}{Format of output file. Can be either \code{"qs"} or
+\code{"rds"}. Defaults to \code{"qs"}.}
+
 \item{verbose}{Set this to \code{TRUE} if you want additional log messages;
 defaults to \code{FALSE}.}
 }
@@ -71,9 +80,18 @@ No data returned.
 \description{
 This function allows to export a Seurat object to visualize in Cerebro.
 }
+\section{Immune Repertoire}{
+
+If \code{object@misc$immune_repertoire} contains a named list of
+data.frames (one per sample, with scRepertoire columns such as CTgene,
+CTnt, CTaa, CTstrict), it will be automatically exported into the Cerebro
+object via \code{addImmuneRepertoire()}.  Legacy \code{bcr_data} /
+\code{tcr_data} slots are also supported as a fallback.
+}
+
 \examples{
-pbmc <- readRDS(system.file("extdata/v1.3/pbmc_seurat.rds",
-  package = "cerebroApp"))
+pbmc <- readRDS(system.file("extdata/pbmc_seurat.rds",
+  package = "cerebroAppLite"))
 exportFromSeurat(
   object = pbmc,
   file = 'pbmc_Seurat.crb',
