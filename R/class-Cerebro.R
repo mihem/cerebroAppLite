@@ -791,6 +791,15 @@ Cerebro <- R6::R6Class(
     },
 
     #' @description
+    #' Get list of available spatial data entries.
+    #'
+    #' @return
+    #' \code{vector} of spatial data entries that are available.
+    availableSpatial = function() {
+      return(names(self$spatial))
+    },
+
+    #' @description
     #' Add content to extra material field.
     #'
     #' @param category Name of category. At the moment, only \code{tables} and
@@ -1010,7 +1019,8 @@ Cerebro <- R6::R6Class(
           'trajectories:', private$showTrajectories(), '\n',
           'extra material:', private$showExtraMaterial(), '\n',
           'Names of BCR data:', names(self$bcr_data), '\n',
-          'Names of TCR data:', names(self$tcr_data), '\n'
+          'Names of TCR data:', names(self$tcr_data), '\n',
+          'Spatial data:', names(self$spatial), '\n'
         )
       )
     }

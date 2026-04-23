@@ -99,8 +99,68 @@ server <- function(input, output, session) {
           ## if no names, set to NULL
           available_crb_files$names <- NULL
         }
+        ##----------------------------------------------------------------------
+        ## Check for dataset specified in URL (query string or path)
+        ##----------------------------------------------------------------------
+
+        url_dataset <- NULL
+
+        ## 1. Check Query String (?dataset=...)
+        query <- parseQueryString(session$clientData$url_search)
+        if (!is.null(query$dataset)) {
+          url_dataset <- query$dataset
+        }
+
+        ## 2. Check Pathname (e.g. /dataset_name)
+        ## Only if not found in query string
+        if (is.null(url_dataset) && !is.null(session$clientData$url_pathname)) {
+          path_val <- session$clientData$url_pathname
+          ## remove leading slash
+          if (nchar(path_val) > 1) {
+             ## remove leading slash
+             path_val <- substring(path_val, 2)
+             ## remove trailing slash if present
+             path_val <- gsub("/$", "", path_val)
+
+             if (nchar(path_val) > 0) {
+               url_dataset <- path_val
+             }
+          }
+        }
+
+        ## Try to match url_dataset to available files
+        if (!is.null(url_dataset)) {
+
+            ## Case A: Match by Name (if names exist)
+            if (!is.null(available_crb_files$names) && url_dataset %in% available_crb_files$names) {
+                path_to_load <- file_to_load[[url_dataset]]
+            } else {
+                ## Case B: Match by Filename (basename)
+                basenames <- basename(available_crb_files$files)
+                ## Check exact basename match
+                idx <- which(basenames == url_dataset)
+
+                ## If no exact match, check without extension
+                if (length(idx) == 0) {
+                   basenames_no_ext <- tools::file_path_sans_ext(basenames)
+                   idx <- which(basenames_no_ext == url_dataset)
+                }
+
+                if (length(idx) > 0) {
+                    ## pick the first match
+                    path_to_load <- available_crb_files$files[[idx[1]]]
+                }
+            }
+
+            if (path_to_load != '') {
+              print(glue::glue("[{Sys.time()}] Dataset selected via URL: {url_dataset} -> {path_to_load}"))
+            }
+        }
+
         ## if a file is already selected, use it; otherwise use the smallest one by file size
-        if (!is.null(available_crb_files$selected)) {
+        if (path_to_load != '') {
+          ## already set by URL logic, do nothing
+        } else if (!is.null(available_crb_files$selected)) {
           path_to_load <- available_crb_files$selected
         } else {
           ## determine which file to select by default
@@ -159,7 +219,7 @@ server <- function(input, output, session) {
   data_set <- reactive({
     dataset_to_load <- available_crb_files$selected
     req(!is.null(dataset_to_load))
-    
+
     withProgress(message = 'Loading data...', value = 0.5, {
       if (exists(dataset_to_load)) {
         print(glue::glue("[{Sys.time()}] Load from variable: {dataset_to_load}"))
@@ -267,36 +327,36 @@ server <- function(input, output, session) {
   ## Show "Spatial" tab if there are spatial projections in the data set.
   ##--------------------------------------------------------------------------
 
-  output[["sidebar_item_spatial"]] <- renderMenu({
-    req(!is.null(data_set()))
-    menuItem("Spatial", tabName = "spatial", icon = icon("images"))
-  })
-
   show_spatial_tab <- reactive({
     req(!is.null(data_set()))
-    spatial_projections <- grep("^Spatial_", availableProjections(), value = TRUE)
-    if (length(spatial_projections) > 0) {
+    spatial_data <- availableSpatial()
+    message(glue::glue("[{Sys.time()}] spatial_data = {spatial_data}"))
+
+    if (length(spatial_data) > 0) {
       return(TRUE)
     } else {
       return(FALSE)
     }
   })
 
-  observe({
-    shinyjs::toggleElement(
-      id = "sidebar_item_spatial",
-      condition = show_spatial_tab()
-    )
+  ## Use insertUI to dynamically add spatial tab
+  spatial_tab_inserted <- reactiveVal(FALSE)
+  observeEvent(show_spatial_tab(), {
+    message(glue::glue("[{Sys.time()}] show_spatial_tab: {show_spatial_tab()}"))
+    if (show_spatial_tab() && !spatial_tab_inserted()) {
+      insertUI(
+        selector = "#sidebar_item_spatial_placeholder",
+        where = "afterEnd",
+        ui = menuItem("Spatial", tabName = "spatial", icon = icon("images")),
+        immediate = TRUE
+      )
+      spatial_tab_inserted(TRUE)
+    }
   })
 
   ##--------------------------------------------------------------------------##
   ## Show "Marker genes" tab if there are marker genes in the data set.
   ##--------------------------------------------------------------------------
-
-  output[["sidebar_item_marker_genes"]] <- renderMenu({
-    req(!is.null(data_set()))
-    menuItem("Marker genes", tabName = "markerGenes", icon = icon("list-alt"))
-  })
 
   show_marker_genes_tab <- reactive({
     req(!is.null(data_set()))
@@ -310,21 +370,22 @@ server <- function(input, output, session) {
     }
   })
 
-  observe({
-    shinyjs::toggleElement(
-      id = "sidebar_item_marker_genes",
-      condition = show_marker_genes_tab()
-    )
+  marker_genes_tab_inserted <- reactiveVal(FALSE)
+  observeEvent(show_marker_genes_tab(), {
+    if (show_marker_genes_tab() && !marker_genes_tab_inserted()) {
+      insertUI(
+        selector = "#sidebar_item_marker_genes_placeholder",
+        where = "afterEnd",
+        ui = menuItem("Marker genes", tabName = "markerGenes", icon = icon("list-alt")),
+        immediate = TRUE
+      )
+      marker_genes_tab_inserted(TRUE)
+    }
   })
 
   ##--------------------------------------------------------------------------##
   ## Show "BCR" tab if there is BCR data in the data set.
   ##--------------------------------------------------------------------------
-
-  output[["sidebar_item_bcr"]] <- renderMenu({
-    req(!is.null(data_set()))
-    menuItem("BCR", tabName = "bcr", icon = icon("dna"))
-  })
 
   show_bcr_tab <- reactive({
     req(!is.null(data_set()))
@@ -336,21 +397,22 @@ server <- function(input, output, session) {
     }
   })
 
-  observe({
-    shinyjs::toggleElement(
-      id = "sidebar_item_bcr",
-      condition = show_bcr_tab()
-    )
+  bcr_tab_inserted <- reactiveVal(FALSE)
+  observeEvent(show_bcr_tab(), {
+    if (show_bcr_tab() && !bcr_tab_inserted()) {
+      insertUI(
+        selector = "#sidebar_item_bcr_placeholder",
+        where = "afterEnd",
+        ui = menuItem("BCR", tabName = "bcr", icon = icon("dna")),
+        immediate = TRUE
+      )
+      bcr_tab_inserted(TRUE)
+    }
   })
 
   ##--------------------------------------------------------------------------##
   ## Show "TCR" tab if there is TCR data in the data set.
   ##--------------------------------------------------------------------------
-
-  output[["sidebar_item_tcr"]] <- renderMenu({
-    req(!is.null(data_set()))
-    menuItem("TCR", tabName = "tcr", icon = icon("dna"))
-  })
 
   show_tcr_tab <- reactive({
     req(!is.null(data_set()))
@@ -362,21 +424,22 @@ server <- function(input, output, session) {
     }
   })
 
-  observe({
-    shinyjs::toggleElement(
-      id = "sidebar_item_tcr",
-      condition = show_tcr_tab()
-    )
+  tcr_tab_inserted <- reactiveVal(FALSE)
+  observeEvent(show_tcr_tab(), {
+    if (show_tcr_tab() && !tcr_tab_inserted()) {
+      insertUI(
+        selector = "#sidebar_item_tcr_placeholder",
+        where = "afterEnd",
+        ui = menuItem("TCR", tabName = "tcr", icon = icon("dna")),
+        immediate = TRUE
+      )
+      tcr_tab_inserted(TRUE)
+    }
   })
 
   ##--------------------------------------------------------------------------##
   ## Show "Enriched pathways" tab if there are enriched pathways in the data set.
   ##--------------------------------------------------------------------------
-
-  output[["sidebar_item_enriched_pathways"]] <- renderMenu({
-    req(!is.null(data_set()))
-    menuItem("Enriched pathways", tabName = "enrichedPathways", icon = icon("sitemap"))
-  })
 
   show_enriched_pathways_tab <- reactive({
     req(!is.null(data_set()))
@@ -390,27 +453,25 @@ server <- function(input, output, session) {
     }
   })
 
-  observe({
-    shinyjs::toggleElement(
-      id = "sidebar_item_enriched_pathways",
-      condition = show_enriched_pathways_tab()
-    )
+  enriched_pathways_tab_inserted <- reactiveVal(FALSE)
+  observeEvent(show_enriched_pathways_tab(), {
+    if (show_enriched_pathways_tab() && !enriched_pathways_tab_inserted()) {
+      insertUI(
+        selector = "#sidebar_item_enriched_pathways_placeholder",
+        where = "afterEnd",
+        ui = menuItem("Enriched pathways", tabName = "enrichedPathways", icon = icon("sitemap")),
+        immediate = TRUE
+      )
+      enriched_pathways_tab_inserted(TRUE)
+    }
   })
 
   ##--------------------------------------------------------------------------##
   ## Show "Trajectory" tab if there are trajectories in the data set.
   ##--------------------------------------------------------------------------
 
-  ## the tab item needs to be in the `output`
-  output[["sidebar_item_trajectory"]] <- renderMenu({
-    req(!is.null(data_set()))
-    menuItem("Trajectory", tabName = "trajectory", icon = icon("random"))
-  })
-
-  ## this reactive value checks whether the tab should be shown or not
   show_trajectory_tab <- reactive({
     req(!is.null(data_set()))
-    ## if at least one trajectory is present, return TRUE, otherwise FALSE
     if (
       !is.null(getMethodsForTrajectories()) &&
       length(getMethodsForTrajectories()) > 0
@@ -421,32 +482,25 @@ server <- function(input, output, session) {
     }
   })
 
-  ## listen to reactive value defined above and toggle visibility of trajectory
-  ## tab accordingly
-  observe({
-    shinyjs::toggleElement(
-      id = "sidebar_item_trajectory",
-      condition = show_trajectory_tab()
-    )
+  trajectory_tab_inserted <- reactiveVal(FALSE)
+  observeEvent(show_trajectory_tab(), {
+    if (show_trajectory_tab() && !trajectory_tab_inserted()) {
+      insertUI(
+        selector = "#sidebar_item_trajectory_placeholder",
+        where = "afterEnd",
+        ui = menuItem("Trajectory", tabName = "trajectory", icon = icon("random")),
+        immediate = TRUE
+      )
+      trajectory_tab_inserted(TRUE)
+    }
   })
 
   ##--------------------------------------------------------------------------##
   ## Show "Extra material" tab if there is some extra material in the data set.
   ##--------------------------------------------------------------------------##
 
-  ## the tab item needs to be in the `output`
-  output[["sidebar_item_extra_material"]] <- renderMenu({
-    ## require a data set to be loaded
-    req(!is.null(data_set()))
-    menuItem("Extra material", tabName = "extra_material", icon = icon("gift"))
-  })
-
-  ## this reactive value checks whether the tab should be shown or not
   show_extra_material_tab <- reactive({
-    ## require a data set to be loaded
     req(!is.null(data_set()))
-    ## if at least one piece of extra material is present, return TRUE,
-    ## otherwise FALSE
     if (
       !is.null(getExtraMaterialCategories()) &&
       length(getExtraMaterialCategories()) > 0
@@ -456,13 +510,18 @@ server <- function(input, output, session) {
       return(FALSE)
     }
   })
-  ## listen to reactive value defined above and toggle visibility of extra
-  ## material tab accordingly
-  observe({
-    shinyjs::toggleElement(
-      id = "sidebar_item_extra_material",
-      condition = show_extra_material_tab()
-    )
+
+  extra_material_tab_inserted <- reactiveVal(FALSE)
+  observeEvent(show_extra_material_tab(), {
+    if (show_extra_material_tab() && !extra_material_tab_inserted()) {
+      insertUI(
+        selector = "#sidebar_item_extra_material_placeholder",
+        where = "afterEnd",
+        ui = menuItem("Extra material", tabName = "extra_material", icon = icon("gift")),
+        immediate = TRUE
+      )
+      extra_material_tab_inserted(TRUE)
+    }
   })
 
   ##--------------------------------------------------------------------------##

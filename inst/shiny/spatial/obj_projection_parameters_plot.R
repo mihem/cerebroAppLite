@@ -3,8 +3,7 @@
 ##----------------------------------------------------------------------------##
 spatial_projection_parameters_plot_raw <- reactive({
   req(
-    input[["spatial_projection_to_display"]],
-    input[["spatial_projection_to_display"]] %in% availableProjections(),
+    input[["spatial_projection_to_display"]] %in% availableSpatial(),
     input[["spatial_projection_plot_type"]],
     input[["spatial_projection_point_size"]],
     input[["spatial_projection_point_opacity"]],
@@ -79,9 +78,14 @@ spatial_projection_parameters_plot_raw <- reactive({
     }
   }
 
+  spatial_data <- getSpatialData(input[["spatial_projection_to_display"]])
+  n_dimensions <- ncol(spatial_data$coordinates)
+
+  message("[DEBUG] n_dimensions = ", n_dimensions)
+
   parameters <- list(
     projection = input[["spatial_projection_to_display"]],
-    n_dimensions = ncol(getProjection(input[["spatial_projection_to_display"]])),
+    n_dimensions = n_dimensions,
     color_variable = color_variable,
     plot_type = plot_type,
     feature_to_display = feature_to_display,

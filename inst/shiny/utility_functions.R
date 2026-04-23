@@ -894,6 +894,16 @@ getProjection <- function(name) {
     return(data_set()$getProjection(name))
   }
 }
+availableSpatial <- function() {
+  if ( any(grepl('Cerebro', class(data_set()))) ) {
+    return(data_set()$availableSpatial())
+  }
+}
+getSpatialData <- function(name) {
+  if ( any(grepl('Cerebro', class(data_set()))) ) {
+    return(data_set()$getSpatialData(name))
+  }
+}
 getTree <- function(group) {
   if ( any(grepl('Cerebro', class(data_set()))) ) {
     return(data_set()$getTree(group))

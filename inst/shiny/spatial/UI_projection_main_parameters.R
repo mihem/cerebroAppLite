@@ -33,8 +33,8 @@ output[["spatial_projection_main_parameters_UI"]] <- renderUI({
   tagList(
     selectInput(
       "spatial_projection_to_display",
-      label = "Projection",
-      choices = grep("^Spatial_", availableProjections(), value = TRUE)
+      label = "Spatial data",
+      choices = availableSpatial()
     ),
     selectInput(
       "spatial_projection_plot_type",

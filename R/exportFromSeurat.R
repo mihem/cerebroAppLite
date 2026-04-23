@@ -559,19 +559,6 @@ exportFromSeurat <- function(
         # Using .getSpatialData helper which handles Visium, FOV/Xenium, etc.
         spatial_data <- .getSpatialData(object, image = image_name, layer = "data", assay = assay)
 
-        # Add to Cerebro object
-        export$addSpatialData(image_name, spatial_data)
-
-        if ( verbose ) {
-          message(
-            paste0(
-              '[', format(Sys.time(), '%H:%M:%S'), '] ',
-              'Added spatial data: ', image_name,
-              ' (', nrow(spatial_data$coordinates), ' cells)'
-            )
-          )
-        }
-
         # Also add coordinates as a projection for compatibility with existing visualization functions
         coords_df <- spatial_data$coordinates
 
@@ -590,19 +577,24 @@ exportFromSeurat <- function(
         }
 
         if ( length(proj_cols) == 2 ) {
-          projection_df <- coords_df[, proj_cols, drop = FALSE]
-          projection_name <- paste0("Spatial_", image_name)
-
-          export$addProjection(projection_name, projection_df)
-
+          coords_df <- coords_df[, proj_cols, drop = FALSE]
           if ( verbose ) {
-            message(
-              paste0(
-                '[', format(Sys.time(), '%H:%M:%S'), '] ',
-                'Added spatial projection: ', projection_name
-              )
-            )
+            message(paste0('[', format(Sys.time(), '%H:%M:%S'), '] ', 'Added spatial projection: ', image_name))
           }
+        }
+        spatial_data$coordinates <- coords_df
+
+        # Add to Cerebro object
+        export$addSpatialData(image_name, spatial_data)
+
+        if ( verbose ) {
+          message(
+            paste0(
+              '[', format(Sys.time(), '%H:%M:%S'), '] ',
+              'Added spatial data: ', image_name,
+              ' (', nrow(spatial_data$coordinates), ' cells)'
+            )
+          )
         }
       }, error = function(e) {
         if ( verbose ) {
@@ -615,13 +607,6 @@ exportFromSeurat <- function(
         }
       })
     }
-    message(
-      paste0(
-        '[', format(Sys.time(), '%H:%M:%S'), '] ',
-        'Expression data shape: ', paste(dim(expression_data), collapse = 'x')
-      )
-    )
-    expression_data <- spatial_data$expression
   }
 
   ##--------------------------------------------------------------------------##

@@ -104,6 +104,8 @@ dedent <- function(string) {
 #' @param users_pass Character vector. Passwords for additional users. Default is NULL.
 #' @param auth_passphrase Character. Passphrase for encrypting credentials database.
 #'   Default is "123123".
+#' @param auth_style Character. Authentication UI style: "custom" for modern custom login
+#'   or "shinymanager" for shinymanager package. Default is "custom".
 #' @param crb_pick_smallest_file Logical. If TRUE, the smallest file is selected by default.
 #'   Default is TRUE.
 #' @param show_upload_ui Logical. If TRUE, shows the file upload UI. Default is TRUE.
@@ -181,14 +183,16 @@ createTraditionalShinyApp <- function(cerebro_data,
                                       users = NULL,
                                       users_pass = NULL,
                                       auth_passphrase = "123123",
+                                      auth_style = "custom",
                                       crb_pick_smallest_file = TRUE,
                                       show_upload_ui = TRUE,
+                                      welcome_message = "Welcome to Cerebro App!",
                                       point_size = list(
-                                        overview_projection_point_size = NULL,
-                                        trajectory_point_size = NULL,
-                                        expression_projection_point_size = NULL,
-                                        spatial_projection_point_size = NULL
-                                      )) {
+                                      overview_projection_point_size = NULL,
+                                      trajectory_point_size = NULL,
+                                      expression_projection_point_size = NULL,
+                                      spatial_projection_point_size = NULL
+                                    )) {
 
   # Validate input parameters ------------------------------------------------##
   if (!all(file.exists(cerebro_data))) {
@@ -372,14 +376,10 @@ createTraditionalShinyApp <- function(cerebro_data,
 
   # Setup authentication (if enabled) ----------------------------------------##
   auth_enabled <- FALSE
+  auth_use_custom <- FALSE
+
   if (enable_auth) {
     if (verbose) cat("Setting up authentication system...\n")
-
-    # Check if shinymanager is available
-    if (!requireNamespace("shinymanager", quietly = TRUE)) {
-      stop("Package 'shinymanager' is required for authentication but not installed.",
-           "Please install it with: install.packages('shinymanager')", call. = FALSE)
-    }
 
     # Validate users and passwords
     if (!is.null(users) && is.null(users_pass)) {
@@ -392,43 +392,92 @@ createTraditionalShinyApp <- function(cerebro_data,
       stop("'users' and 'users_pass' must have the same length.", call. = FALSE)
     }
 
-    # Build users data frame
-    users_list <- list(
-      user = c(admin_user, users),
-      password = c(admin_pass, users_pass),
-      admin = c(TRUE, rep(FALSE, length(users)))
-    )
-    users_df <- do.call(data.frame, c(users_list, stringsAsFactors = FALSE))
+    if (auth_style == "custom") {
+      # Use custom authentication system
+      if (verbose) cat("  Using custom authentication system...\n")
 
-    # Set up credentials database path
-    sqlite_path <- file.path(result_dir, "credentials.sqlite")
+      # Hash function for passwords
+      hash_password <- function(password, salt = auth_passphrase) {
+        digest::digest(paste0(password, salt), algo = "sha256", serialize = FALSE)
+      }
 
-    # Remove existing database if it exists
-    if (file.exists(sqlite_path)) {
-      if (verbose) cat("  Removing existing credentials database...\n")
-      file.remove(sqlite_path)
-    }
+      # Build users data frame with hashed passwords
+      # Handle case where users/users_pass is NULL
+      additional_hashes <- if (!is.null(users_pass) && length(users_pass) > 0) {
+        vapply(users_pass, hash_password, character(1))
+      } else {
+        character(0)
+      }
 
-    # Create credentials database
-    tryCatch({
-      shinymanager::create_db(
-        credentials_data = users_df,
-        sqlite_path = sqlite_path,
-        passphrase = auth_passphrase
+      users_list <- list(
+        user = c(admin_user, users),
+        password_hash = c(hash_password(admin_pass), additional_hashes),
+        admin = c(TRUE, rep(FALSE, length(users)))
       )
+      users_df <- do.call(data.frame, c(users_list, stringsAsFactors = FALSE))
+
+      # Save credentials to RDS file
+      credentials_path <- file.path(result_dir, "credentials.rds")
+      saveRDS(users_df, credentials_path)
+
       auth_enabled <- TRUE
+      auth_use_custom <- TRUE
+
       if (verbose) {
-        info <- file.info(sqlite_path)
-        cat("  Created credentials database:", normalizePath(sqlite_path), "\n")
-        cat("  Database size:", info$size, "bytes\n")
+        cat("  Created credentials file:", normalizePath(credentials_path), "\n")
         cat("  Admin user:", admin_user, "\n")
         if (!is.null(users)) {
           cat("  Additional users:", paste(users, collapse = ", "), "\n")
         }
       }
-    }, error = function(e) {
-      stop("Failed to create credentials database: ", conditionMessage(e), call. = FALSE)
-    })
+
+    } else if (auth_style == "shinymanager") {
+      # Use shinymanager
+      if (!requireNamespace("shinymanager", quietly = TRUE)) {
+        stop("Package 'shinymanager' is required for authentication but not installed.",
+             "Please install it with: install.packages('shinymanager')", call. = FALSE)
+      }
+
+      # Build users data frame
+      users_list <- list(
+        user = c(admin_user, users),
+        password = c(admin_pass, users_pass),
+        admin = c(TRUE, rep(FALSE, length(users)))
+      )
+      users_df <- do.call(data.frame, c(users_list, stringsAsFactors = FALSE))
+
+      # Set up credentials database path
+      sqlite_path <- file.path(result_dir, "credentials.sqlite")
+
+      # Remove existing database if it exists
+      if (file.exists(sqlite_path)) {
+        if (verbose) cat("  Removing existing credentials database...\n")
+        file.remove(sqlite_path)
+      }
+
+      # Create credentials database
+      tryCatch({
+        shinymanager::create_db(
+          credentials_data = users_df,
+          sqlite_path = sqlite_path,
+          passphrase = auth_passphrase
+        )
+        auth_enabled <- TRUE
+        if (verbose) {
+          info <- file.info(sqlite_path)
+          cat("  Created credentials database:", normalizePath(sqlite_path), "\n")
+          cat("  Database size:", info$size, "bytes\n")
+          cat("  Admin user:", admin_user, "\n")
+          if (!is.null(users)) {
+            cat("  Additional users:", paste(users, collapse = ", "), "\n")
+          }
+        }
+      }, error = function(e) {
+        stop("Failed to create credentials database: ", conditionMessage(e), call. = FALSE)
+      })
+    } else {
+      stop("Invalid auth_style. Use 'custom' or 'shinymanager'.", call. = FALSE)
+    }
   }
 
   # Create app.R file ---------------------------------------------------------##
@@ -458,6 +507,7 @@ createTraditionalShinyApp <- function(cerebro_data,
   if (!is.null(spatial_images_flip_y)) cerebro_options[["spatial_images_flip_y"]] <- spatial_images_flip_y
   if (!is.null(spatial_images_scale_x)) cerebro_options[["spatial_images_scale_x"]] <- spatial_images_scale_x
   if (!is.null(spatial_images_scale_y)) cerebro_options[["spatial_images_scale_y"]] <- spatial_images_scale_y
+  if (!is.null(welcome_message)) cerebro_options[["welcome_message"]] <- welcome_message
 
   # Save configuration to RDS
   saveRDS(cerebro_options, file.path(result_dir, "cerebro_config.rds"))
@@ -468,17 +518,131 @@ createTraditionalShinyApp <- function(cerebro_data,
   app_ui_code <- "ui"
   app_server_code <- "server"
 
-  if (auth_enabled) {
+  if (auth_enabled && auth_use_custom) {
+    # Custom authentication system with static preloaded login page
+    auth_code <- glue::glue('
+# Custom Authentication Setup
+source(file.path(cerebro_root, "shiny/auth/login_server.R"))
+
+credentials_path <- file.path(cerebro_root, "credentials.rds")
+auth_salt <- "{auth_passphrase}"
+login_welcome_message <- "{welcome_message}"
+')
+
+    auth_wrapper_code <- glue::glue('
+# Static preloaded login page
+#==============================================================================
+# 静态预加载登录页面
+# 从 shiny/auth/static_login.html 读取，支持 WELCOME_MESSAGE 占位符替换
+#==============================================================================
+static_preload_login_ui <- function(welcome_message = \"\") {{
+  html_path <- file.path(cerebro_root, \"shiny\", \"auth\", \"login_ui_static.html\")
+  if (!file.exists(html_path)) {{
+    stop(\"Static login page not found: \", html_path)
+  }}
+  html_content <- paste(readLines(html_path, warn = FALSE), collapse = \"\\n\")
+  html_content <- gsub(\"\\\\{{\\\\{{WELCOME_MESSAGE\\\\}}\\\\}}\", welcome_message, html_content)
+  HTML(html_content)
+}}
+
+#==============================================================================
+# 主应用
+#==============================================================================
+## Start Shiny App
+login_wrapper_ui <- function() {{
+  fluidPage(
+    shinyjs::useShinyjs(),
+    # 静态预加载登录页 (内联 HTML，立即渲染)
+    static_preload_login_ui(login_welcome_message),
+    # Shiny 动态内容 (登录后渲染)
+    uiOutput(\"main_app_ui\")
+  )
+}}
+
+')
+    app_ui_code <- "login_wrapper_ui()"
+    app_server_code <- glue::glue('function(input, output, session) {{
+  # Authentication state
+  auth_state <- reactiveValues(
+    logged_in = FALSE,
+    user = NULL,
+    admin = FALSE
+  )
+
+  # Load credentials 加载凭据
+  credentials <- tryCatch({{
+    load_credentials(credentials_path)
+  }}, error = function(e) {{
+    message(\"Error loading credentials: \", e$message)
+    data.frame(user = character(), password_hash = character(), admin = logical())
+  }})
+
+  # Handle static page login request  处理静态页面的登录请求
+  observeEvent(input$static_login_request, {{
+    req(input$static_login_request)
+
+    username <- input$static_login_request$username
+    password <- input$static_login_request$password
+
+    # Verify credentials
+    result <- check_user_credentials(username, password, credentials, auth_salt)
+
+    if (result$success) {{
+      # Login successful
+      auth_state$logged_in <- TRUE
+      auth_state$user <- result$user
+      auth_state$admin <- result$admin
+
+      message(sprintf(\"[%s] User %s logged in successfully\", Sys.time(), username))
+
+      # Send success response to frontend
+      session$sendCustomMessage(\"static_login_response\", list(success = TRUE))
+    }} else {{
+      # Login failed
+      message(sprintf(\"[%s] Failed login attempt for user %s\", Sys.time(), username))
+
+      # Send failure response to frontend
+      session$sendCustomMessage(\"static_login_response\", list(
+        success = FALSE,
+        message = result$message
+      ))
+    }}
+  }})
+
+  # Handle logout
+  logout_server(input, session)
+
+  # Render main UI based on login state
+  output$main_app_ui <- renderUI({{
+    if (auth_state$logged_in) {{
+      tagList(
+        logout_button_ui(),
+        div(class = \"app-fade-in\", ui)
+      )
+    }} else {{
+      # Hidden backup login page (in case static page is bypassed)
+      div(style = \"display: none;\")
+    }}
+  }})
+
+  # Run main server logic only when logged in
+  observe({{
+    req(auth_state$logged_in)
+    server(input, output, session)
+  }})
+}}')
+  } else if (auth_enabled && !auth_use_custom) {
+    # shinymanager authentication
     auth_code <- glue::glue('
 # Authentication setup
 library(shinymanager)
 
-credentials_path <- file.path(cerebro_root, "credentials.sqlite")
-auth_passphrase <- "{auth_passphrase}"
+credentials_path <- file.path(cerebro_root, \"credentials.sqlite\")
+auth_passphrase <- \"{auth_passphrase}\"
 
 # Check if credentials database exists
 if (!file.exists(credentials_path)) {{
-  stop("Credentials database not found: ", credentials_path)
+  stop(\"Credentials database not found: \", credentials_path)
 }}
 
 # Initialize credentials check
@@ -499,9 +663,14 @@ secure_ui <- shinymanager::secure_app(ui)
   }
 
   # Generate app.R content
+  shinyjs_lib <- if (auth_enabled && auth_use_custom) "library(shinyjs)" else ""
+  digest_lib <- if (auth_enabled && auth_use_custom) "library(digest)" else ""
+
   app_content <- glue::glue('
 #==============================================================================
-# Cerebro Shiny App Builder - RStudio 自动生成的应用程序
+# Cerebro Shiny App - 静态登录页优化版
+# 用户打开页面立即显示静态登录表单，Shiny 在后台加载
+# 登录验证通过后无缝切换到主应用，无需跳转
 #==============================================================================
 
 library(dplyr)
@@ -510,6 +679,8 @@ library(plotly)
 library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
+{shinyjs_lib}
+{digest_lib}
 
 # 定义结果保存目录
 cerebro_root <- "."
@@ -535,13 +706,14 @@ shiny_options <- list(
   display.mode = "{display_mode}"
 )
 
-{auth_code}
+## Expose data directory for spatial images
+shiny::addResourcePath("data", file.path(cerebro_root, "data"))
+
 ## 加载服务器和界面函数
 source(file.path(cerebro_root, "shiny/shiny_UI.R"))
 source(file.path(cerebro_root, "shiny/shiny_server.R"))
 
-## Expose data directory for spatial images
-shiny::addResourcePath("data", file.path(cerebro_root, "data"))
+{auth_code}
 
 ## Start Shiny App
 {auth_wrapper_code}
@@ -578,7 +750,8 @@ shiny::shinyApp(
     cat("Host:", host, "\n")
     cat("Launch browser:", launch_browser, "\n")
     if (auth_enabled) {
-      cat("Authentication: ENABLED\n")
+      auth_type <- if (auth_use_custom) "CUSTOM (modern UI)" else "SHINYMANAGER"
+      cat("Authentication:", auth_type, "\n")
       cat("  Admin user:", admin_user, "\n")
       if (!is.null(users)) {
         cat("  Additional users:", paste(users, collapse = ", "), "\n")

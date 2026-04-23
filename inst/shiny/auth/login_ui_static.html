@@ -1,0 +1,444 @@
+<div id="static-preload-login" class="static-login-overlay">
+  <style>
+    .static-login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #3d5a73 0%, #5b7c99 50%, #7a9bb8 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      transition:
+        opacity 0.5s ease,
+        visibility 0.5s ease;
+    }
+
+    .static-login-overlay.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .static-login-overlay::before,
+    .static-login-overlay::after {
+      content: '';
+      position: fixed;
+      width: 200%;
+      height: 200%;
+      left: -50%;
+      border-radius: 40%;
+      background: rgba(255, 255, 255, 0.03);
+      z-index: -1;
+    }
+
+    .static-login-overlay::before {
+      bottom: -150%;
+      animation: wave 15s linear infinite;
+    }
+
+    .static-login-overlay::after {
+      bottom: -155%;
+      animation: wave 20s linear infinite reverse;
+      opacity: 0.5;
+    }
+
+    @keyframes wave {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .static-login-card {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      margin: 20px;
+      animation: slideUp 0.6s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .static-login-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .static-login-logo {
+      width: 80px;
+      height: 80px;
+      background: #5b7c99;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      color: white;
+      font-size: 32px;
+    }
+
+    .static-login-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #2d3748;
+      margin: 0 0 10px 0;
+    }
+
+    .static-login-subtitle {
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .static-login-subtitle h2 {
+      font-size: 18px;
+      margin: 0 0 5px 0;
+      color: #2d3748;
+    }
+
+    .static-login-subtitle p {
+      margin: 0;
+    }
+
+    .static-input-group {
+      margin-bottom: 20px;
+    }
+
+    .static-input-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #2d3748;
+      margin-bottom: 8px;
+    }
+
+    .static-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .static-input-icon {
+      position: absolute;
+      left: 15px;
+      color: #5b7c99;
+      width: 16px;
+      text-align: center;
+    }
+
+    .static-input-wrapper input {
+      width: 100%;
+      padding: 12px 15px 12px 45px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .static-input-wrapper input:focus {
+      border-color: #5b7c99;
+      box-shadow: 0 0 0 3px rgba(91, 124, 153, 0.1);
+    }
+
+    .static-input-wrapper input::placeholder {
+      color: #a0aec0;
+    }
+
+    .static-message {
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .static-message.show {
+      display: flex;
+    }
+
+    .static-error {
+      background: rgba(224, 122, 95, 0.1);
+      border: 1px solid #e07a5f;
+      color: #e07a5f;
+    }
+
+    .static-loading {
+      background: rgba(91, 124, 153, 0.1);
+      border: 1px solid #5b7c99;
+      color: #5b7c99;
+    }
+
+    .static-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #7a9bb8;
+      border-top-color: #5b7c99;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .static-login-btn {
+      width: 100%;
+      padding: 14px;
+      background: #5b7c99;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .static-login-btn:hover:not(:disabled) {
+      background: #3d5a73;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(91, 124, 153, 0.4);
+    }
+
+    .static-login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .static-login-footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      color: #718096;
+      font-size: 12px;
+    }
+
+    .shiny-ready-indicator {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 100000;
+    }
+
+    .shiny-ready-indicator.ready {
+      background: rgba(107, 144, 128, 0.9);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e9c46a;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .shiny-ready-indicator.ready .status-dot {
+      background: #6bff6b;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.4;
+      }
+    }
+  </style>
+
+  <div class="static-login-card">
+    <div class="static-login-header">
+      <div class="static-login-logo">🧠</div>
+      <h1 class="static-login-title">Cerebro</h1>
+      <div class="static-login-subtitle">{{WELCOME_MESSAGE}}</div>
+    </div>
+
+    <form id="static-login-form" onsubmit="return false;">
+      <div class="static-input-group">
+        <label for="static_username">Username</label>
+        <div class="static-input-wrapper">
+          <span class="static-input-icon">👤</span>
+          <input type="text" id="static_username" placeholder="Enter your username" autocomplete="username" />
+        </div>
+      </div>
+
+      <div class="static-input-group">
+        <label for="static_password">Password</label>
+        <div class="static-input-wrapper">
+          <span class="static-input-icon">🔒</span>
+          <input type="password" id="static_password" placeholder="Enter your password" autocomplete="current-password" />
+        </div>
+      </div>
+
+      <div id="static-error" class="static-message static-error">
+        <span>⚠️</span>
+        <span id="static-error-text">Error message</span>
+      </div>
+
+      <div id="static-loading" class="static-message static-loading">
+        <div class="static-spinner"></div>
+        <span id="static-loading-text">Verifying...</span>
+      </div>
+
+      <button type="submit" id="static-login-btn" class="static-login-btn">➡️ Sign In</button>
+    </form>
+
+    <div class="static-login-footer">Powered by <strong>cerebroAppLite</strong></div>
+  </div>
+
+  <div id="shiny-ready-indicator" class="shiny-ready-indicator">
+    <div class="status-dot"></div>
+    <span id="shiny-status-text">Loading application...</span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var shinyReady = false;
+    var pendingCredentials = null;
+
+    var overlay = document.getElementById('static-preload-login');
+    var form = document.getElementById('static-login-form');
+    var usernameInput = document.getElementById('static_username');
+    var passwordInput = document.getElementById('static_password');
+    var loginBtn = document.getElementById('static-login-btn');
+    var errorDiv = document.getElementById('static-error');
+    var errorText = document.getElementById('static-error-text');
+    var loadingDiv = document.getElementById('static-loading');
+    var loadingText = document.getElementById('static-loading-text');
+    var indicator = document.getElementById('shiny-ready-indicator');
+    var statusText = document.getElementById('shiny-status-text');
+
+    function showError(msg) {
+      errorText.textContent = msg;
+      errorDiv.classList.add('show');
+      loadingDiv.classList.remove('show');
+      loginBtn.disabled = false;
+    }
+
+    function hideError() {
+      errorDiv.classList.remove('show');
+    }
+
+    function showLoading(msg) {
+      loadingText.textContent = msg || 'Verifying...';
+      loadingDiv.classList.add('show');
+      hideError();
+      loginBtn.disabled = true;
+    }
+
+    function hideLoading() {
+      loadingDiv.classList.remove('show');
+      loginBtn.disabled = false;
+    }
+
+    function checkShinyReady() {
+      if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+        shinyReady = true;
+        indicator.classList.add('ready');
+        statusText.textContent = 'Ready';
+        if (pendingCredentials) {
+          performLogin(pendingCredentials.username, pendingCredentials.password);
+          pendingCredentials = null;
+        }
+      } else {
+        setTimeout(checkShinyReady, 200);
+      }
+    }
+
+    function performLogin(username, password) {
+      showLoading('Authenticating...');
+      Shiny.setInputValue('static_login_request', {
+        username: username,
+        password: password,
+        timestamp: new Date().getTime(),
+      });
+    }
+
+    function setupShinyListener() {
+      Shiny.addCustomMessageHandler('static_login_response', function (response) {
+        if (response.success) {
+          hideLoading();
+          overlay.classList.add('fade-out');
+          setTimeout(function () {
+            overlay.style.display = 'none';
+          }, 500);
+        } else {
+          showError(response.message || 'Invalid username or password');
+        }
+      });
+    }
+
+    function handleSubmit() {
+      var username = usernameInput.value.trim();
+      var password = passwordInput.value;
+      if (!username || !password) {
+        showError('Please enter both username and password');
+        return;
+      }
+      hideError();
+      if (shinyReady) {
+        performLogin(username, password);
+      } else {
+        pendingCredentials = { username: username, password: password };
+        showLoading('Waiting for application...');
+      }
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      handleSubmit();
+    });
+    loginBtn.addEventListener('click', handleSubmit);
+
+    [usernameInput, passwordInput].forEach(function (input) {
+      input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') handleSubmit();
+      });
+    });
+
+    checkShinyReady();
+    $(document).on('shiny:connected', function () {
+      setupShinyListener();
+    });
+  })();
+</script>
