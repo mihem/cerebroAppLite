@@ -7,30 +7,30 @@ const expression_projection_layout_2D = {
     r: 50,
     b: 50,
     t: 50,
-    pad: 4
+    pad: 4,
   },
   xaxis: {
     autorange: true,
     mirror: true,
     showline: true,
     zeroline: false,
-    range: []
+    range: [],
   },
   yaxis: {
     autorange: true,
     mirror: true,
     showline: true,
     zeroline: false,
-    range: []
+    range: [],
   },
   hoverlabel: {
     font: {
-      size: 11
+      size: 11,
     },
     bgcolor: 'lightgrey',
-    align: 'left'
+    align: 'left',
   },
-  shapes: []
+  shapes: [],
 };
 
 // layout for 2D projections with multiple panels
@@ -42,16 +42,16 @@ const expression_projection_layout_2D_multi_panel = {
     r: 50,
     b: 50,
     t: 50,
-    pad: 4
+    pad: 4,
   },
   hoverlabel: {
     font: {
-      size: 11
+      size: 11,
     },
     bgcolor: 'lightgrey',
-    align: 'left'
+    align: 'left',
   },
-  shapes: []
+  shapes: [],
 };
 
 // layout for 3D projections
@@ -63,7 +63,7 @@ const expression_projection_layout_3D = {
     r: 50,
     b: 50,
     t: 50,
-    pad: 4
+    pad: 4,
   },
   scene: {
     xaxis: {
@@ -71,29 +71,29 @@ const expression_projection_layout_3D = {
       mirror: true,
       showline: true,
       zeroline: false,
-      range: []
+      range: [],
     },
     yaxis: {
       autorange: true,
       mirror: true,
       showline: true,
       zeroline: false,
-      range: []
+      range: [],
     },
     zaxis: {
       autorange: true,
       mirror: true,
       showline: true,
-      zeroline: false
+      zeroline: false,
     },
   },
   hoverlabel: {
     font: {
-      size: 11
+      size: 11,
     },
     bgcolor: 'lightgrey',
-    align: 'left'
-  }
+    align: 'left',
+  },
 };
 
 // default structure of input data
@@ -108,54 +108,57 @@ const expression_projection_default_params = {
     line: {},
     x_range: [],
     y_range: [],
-    reset_axes: false
+    reset_axes: false,
   },
   hover: {
     hoverinfo: '',
-    text: []
+    text: [],
   },
   color: {
     scale: '',
-    range: [0, 1]
+    range: [0, 1],
   },
-  trajectory: []
-}
+  trajectory: [],
+};
 
 // update 2D projection with single panel
-shinyjs.expressionProjectionUpdatePlot2D = function(params) {
+shinyjs.expressionProjectionUpdatePlot2D = function (params) {
   params = shinyjs.getParams(params, expression_projection_default_params);
   const data = [];
-  data.push(
-    {
-      x: params.data.x,
-      y: params.data.y,
-      mode: 'markers',
-      type: 'scattergl',
-      marker: {
-        size: params.data.point_size,
-        opacity: params.data.point_opacity,
-        line: params.data.point_line,
-        color: params.data.color,
-        colorscale: params.color.scale,
-        reversescale: true,
-        cauto: false,
-        cmin: params.color.range[0],
-        cmax: params.color.range[1],
-        colorbar: {
-          title: {
-            text: 'Expression',
-            ticks: 'outside',
-            outlinewidth: 1,
-            outlinecolor: 'black'
-          }
-        }
+  data.push({
+    x: params.data.x,
+    y: params.data.y,
+    mode: 'markers',
+    type: 'scattergl',
+    marker: {
+      size: params.data.point_size,
+      opacity: params.data.point_opacity,
+      line: params.data.point_line,
+      color: params.data.color,
+      colorscale: params.color.scale,
+      reversescale: true,
+      cauto: false,
+      cmin: params.color.range[0],
+      cmax: params.color.range[1],
+      colorbar: {
+        title: {
+          text: 'Expression',
+          ticks: 'outside',
+          outlinewidth: 1,
+          outlinecolor: 'black',
+        },
       },
-      hoverinfo: params.hover.hoverinfo,
-      text: params.hover.text,
-      showlegend: false
-    }
-  );
-  const layout_here = Object.assign(expression_projection_layout_2D);
+    },
+    hoverinfo: params.hover.hoverinfo,
+    text: params.hover.text,
+    showlegend: false,
+  });
+  // deep clone layout to prevent global state pollution
+  const layout_here = JSON.parse(JSON.stringify(expression_projection_layout_2D));
+
+  // dynamic uirevision to allow axis resets while preserving zoom state otherwise
+  layout_here.uirevision = params.data.reset_axes ? Date.now().toString() : 'true';
+
   if (params.data.reset_axes) {
     layout_here.xaxis['autorange'] = true;
     layout_here.yaxis['autorange'] = true;
@@ -167,15 +170,20 @@ shinyjs.expressionProjectionUpdatePlot2D = function(params) {
   }
   layout_here.shapes = params.trajectory;
   Plotly.react('expression_projection', data, layout_here);
-}
+};
 
 // update 2D projection with multiple panels
-shinyjs.expressionProjectionUpdatePlot2DMultiPanel = function(params) {
+shinyjs.expressionProjectionUpdatePlot2DMultiPanel = function (params) {
   params = shinyjs.getParams(params, expression_projection_default_params);
   if (Array.isArray(params.data.color)) {
     return null;
   }
-  const layout_here = Object.assign(expression_projection_layout_2D_multi_panel);
+  // deep clone layout
+  const layout_here = JSON.parse(JSON.stringify(expression_projection_layout_2D_multi_panel));
+
+  // dynamic uirevision
+  layout_here.uirevision = params.data.reset_axes ? Date.now().toString() : 'true';
+
   layout_here.shapes = params.trajectory;
   const number_of_genes = Object.keys(params.data.color).length;
   let n_rows = 1;
@@ -193,52 +201,17 @@ shinyjs.expressionProjectionUpdatePlot2DMultiPanel = function(params) {
     n_rows = 3;
     n_cols = 3;
   }
-  layout_here.grid = {rows: n_rows, columns: n_cols, pattern: 'independent'};
+  layout_here.grid = { rows: n_rows, columns: n_cols, pattern: 'independent' };
   layout_here.annotations = [];
-  const data = [];
-  Object.keys(params.data.color).forEach(function(gene, index) {
-    const x_axis = index===0 ? 'xaxis' : `xaxis${index+1}`;
-    const y_axis = index===0 ? 'yaxis' : `yaxis${index+1}`;
-    const x_anchor = `x${index+1}`;
-    const y_anchor = `y${index+1}`;
-    // create trace and add to data array
-    data.push(
-      {
-        x: params.data.x,
-        y: params.data.y,
-        xaxis: x_anchor,
-        yaxis: y_anchor,
-        mode: 'markers',
-        type: 'scattergl',
-        marker: {
-          size: params.data.point_size,
-          opacity: params.data.point_opacity,
-          line: params.data.point_line,
-          color: params.data.color[gene],
-          colorscale: params.color.scale,
-          reversescale: true,
-          cauto: false,
-          cmin: params.color.range[0],
-          cmax: params.color.range[1]
-        },
-        hoverinfo: params.hover.hoverinfo,
-        text: params.hover.text,
-        showlegend: false
-      }
-    );
-    // add colorbar only to first trace
-    if (index===0) {
-      console.log('add colorbar');
-      data[index].marker.colorbar = {
-        title: {
-          text: 'Expression',
-          ticks: 'outside',
-          outlinewidth: 1,
-          outlinecolor: 'black'
-        }
-      }
-    };
-    console.log(data);
+
+  // Use map for cleaner array construction (though we flatten it later or just push to data)
+  // Here we just iterate as before but clean up the logic
+  const data = Object.keys(params.data.color).map(function (gene, index) {
+    const x_axis = index === 0 ? 'xaxis' : `xaxis${index + 1}`;
+    const y_axis = index === 0 ? 'yaxis' : `yaxis${index + 1}`;
+    const x_anchor = `x${index + 1}`;
+    const y_anchor = `y${index + 1}`;
+
     // add X/Y axis attributes to layout
     layout_here[x_axis] = {
       title: gene,
@@ -247,16 +220,16 @@ shinyjs.expressionProjectionUpdatePlot2DMultiPanel = function(params) {
       showline: true,
       zeroline: false,
       range: [],
-      anchor: x_anchor
-    }
+      anchor: x_anchor,
+    };
     layout_here[y_axis] = {
       autorange: true,
       mirror: true,
       showline: true,
       zeroline: false,
       range: [],
-      anchor: y_anchor
-    }
+      anchor: y_anchor,
+    };
     if (params.data.reset_axes) {
       layout_here[x_axis]['autorange'] = true;
       layout_here[y_axis]['autorange'] = true;
@@ -266,45 +239,97 @@ shinyjs.expressionProjectionUpdatePlot2DMultiPanel = function(params) {
       layout_here[y_axis]['autorange'] = false;
       layout_here[y_axis]['range'] = params.data.y_range;
     }
-  });
-  // update plot
-  Plotly.react('expression_projection', data, layout_here);
-}
 
-// update 3D projection
-shinyjs.expressionProjectionUpdatePlot3D = function(params) {
-  params = shinyjs.getParams(params, expression_projection_default_params);
-  const data = [];
-  data.push(
-    {
+    const trace = {
       x: params.data.x,
       y: params.data.y,
-      z: params.data.z,
+      xaxis: x_anchor,
+      yaxis: y_anchor,
       mode: 'markers',
-      type: 'scatter3d',
+      type: 'scattergl',
       marker: {
         size: params.data.point_size,
         opacity: params.data.point_opacity,
         line: params.data.point_line,
-        color: params.data.color,
+        color: params.data.color[gene],
         colorscale: params.color.scale,
         reversescale: true,
         cauto: false,
         cmin: params.color.range[0],
         cmax: params.color.range[1],
-        colorbar: {
-          title: {
-            text: 'Expression',
-            ticks: 'outside',
-            outlinewidth: 1,
-            outlinecolor: 'black'
-          }
-        }
       },
       hoverinfo: params.hover.hoverinfo,
       text: params.hover.text,
-      showlegend: false
+      showlegend: false,
+    };
+
+    // add colorbar only to first trace
+    if (index === 0) {
+      // console.log('add colorbar');
+      trace.marker.colorbar = {
+        title: {
+          text: 'Expression',
+          ticks: 'outside',
+          outlinewidth: 1,
+          outlinecolor: 'black',
+        },
+      };
     }
-  );
-  Plotly.react('expression_projection', data, expression_projection_layout_3D);
-}
+
+    return trace;
+  });
+
+  // update plot
+  Plotly.react('expression_projection', data, layout_here);
+};
+
+// update 3D projection
+shinyjs.expressionProjectionUpdatePlot3D = function (params) {
+  params = shinyjs.getParams(params, expression_projection_default_params);
+  const data = [];
+  data.push({
+    x: params.data.x,
+    y: params.data.y,
+    z: params.data.z,
+    mode: 'markers',
+    type: 'scatter3d',
+    marker: {
+      size: params.data.point_size,
+      opacity: params.data.point_opacity,
+      line: params.data.point_line,
+      color: params.data.color,
+      colorscale: params.color.scale,
+      reversescale: true,
+      cauto: false,
+      cmin: params.color.range[0],
+      cmax: params.color.range[1],
+      colorbar: {
+        title: {
+          text: 'Expression',
+          ticks: 'outside',
+          outlinewidth: 1,
+          outlinecolor: 'black',
+        },
+      },
+    },
+    hoverinfo: params.hover.hoverinfo,
+    text: params.hover.text,
+    showlegend: false,
+  });
+
+  // deep clone layout
+  const layout_here = JSON.parse(JSON.stringify(expression_projection_layout_3D));
+
+  // dynamic uirevision (though 3D plots handle cameras differently, uirevision helps with state)
+  layout_here.uirevision = params.data.reset_axes ? Date.now().toString() : 'true';
+
+  Plotly.react('expression_projection', data, layout_here);
+};
+
+// clear selection
+shinyjs.expressionProjectionClearSelection = function() {
+  const element = document.getElementById('expression_projection');
+  if (element) {
+    Plotly.restyle(element, {selectedpoints: [null]});
+  }
+};

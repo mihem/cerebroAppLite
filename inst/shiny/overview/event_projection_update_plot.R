@@ -4,5 +4,7 @@
 observeEvent(overview_projection_data_to_plot(), {
   req(overview_projection_data_to_plot())
   # message('update_plot')
-  overview_projection_update_plot(overview_projection_data_to_plot())
+  withProgress(message = 'Updating plot...', value = 0, {
+    overview_projection_update_plot(overview_projection_data_to_plot())
+  })
 })

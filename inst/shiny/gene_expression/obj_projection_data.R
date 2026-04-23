@@ -1,5 +1,7 @@
 ##----------------------------------------------------------------------------##
 ## Cell meta data and position in projection.
+## NOTE: This reactive is kept for backward compatibility but is no longer
+## actively used in the optimized reactive chain.
 ##----------------------------------------------------------------------------##
 expression_projection_data <- reactive({
   req(expression_projection_cells_to_show())

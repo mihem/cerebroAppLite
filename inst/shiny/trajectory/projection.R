@@ -319,26 +319,29 @@ output[["trajectory_projection"]] <- plotly::renderPlotly({
     input[["trajectory_point_opacity"]]
   )
 
+  withProgress(message = "Generating trajectory projection...", value = 0, {
+
   ## collect trajectory data
-  trajectory_data <- getTrajectory(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]]
-  )
+  trajectory_data <- trajectory_data_reactive()
 
   ## build data frame with data
   cells_df <- cbind(trajectory_data[["meta"]], getMetaData()) %>%
     dplyr::filter(!is.na(pseudotime))
 
+  incProgress(0.2, detail = "Filtering cells...")
+
   ## available group filters
   group_filters <- names(input)[grepl(names(input), pattern = 'trajectory_projection_group_filter_')]
 
   ## remove cells based on group filters
+  keep_cells <- rep(TRUE, nrow(cells_df))
   for ( i in group_filters ) {
     group <- strsplit(i, split = 'trajectory_projection_group_filter_')[[1]][2]
     if ( group %in% colnames(cells_df) ) {
-      cells_df <- cells_df[which(cells_df[[group]] %in% input[[i]] ),]
+        keep_cells <- keep_cells & (cells_df[[group]] %in% input[[i]])
     }
   }
+  cells_df <- cells_df[keep_cells, ]
 
   ## randomly remove cells (if necessary)
   cells_df <- randomlySubsetCells(cells_df, input[["trajectory_percentage_cells_to_show"]])
@@ -346,11 +349,13 @@ output[["trajectory_projection"]] <- plotly::renderPlotly({
   ## put rows in random order
   cells_df <- cells_df[ sample(1:nrow(cells_df)) , ]
 
+  incProgress(0.4, detail = "Preparing trajectory lines...")
+
   ## convert edges of trajectory into list format to plot with plotly
   trajectory_edges <- trajectory_data[["edges"]]
-  trajectory_lines <- list()
-  for (i in 1:nrow(trajectory_edges) ) {
-    line = list(
+  
+  trajectory_lines <- lapply(seq_len(nrow(trajectory_edges)), function(i) {
+    list(
       type = "line",
       line = list(color = "black"),
       xref = "x",
@@ -360,8 +365,9 @@ output[["trajectory_projection"]] <- plotly::renderPlotly({
       x1 = trajectory_edges$target_dim_1[i],
       y1 = trajectory_edges$target_dim_2[i]
     )
-    trajectory_lines <- c(trajectory_lines, list(line))
-  }
+  })
+
+  incProgress(0.6, detail = "Building plot...")
 
   ## prepare hover info
   hover_info <- buildHoverInfoForProjections(cells_df)
@@ -464,7 +470,7 @@ output[["trajectory_projection"]] <- plotly::renderPlotly({
   } else {
     plot
   }
-
+  })
 })
 
 ##----------------------------------------------------------------------------##

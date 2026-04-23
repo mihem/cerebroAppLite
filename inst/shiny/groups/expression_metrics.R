@@ -58,14 +58,16 @@ output[["groups_nUMI_text"]] <- renderText({
 
 output[["groups_nUMI_plot"]] <- plotly::renderPlotly({
   req(input[["groups_selected_group"]] %in% getGroups())
-  plotlyViolin(
-    table = getMetaData(),
-    metric = "nUMI",
-    coloring_variable = input[["groups_selected_group"]],
-    colors = reactive_colors()[[ input[["groups_selected_group"]] ]],
-    y_title = "Number of transcripts",
-    mode = "integer"
-  )
+  withProgress(message = 'Generating nUMI plot...', value = 0.5, {
+    plotlyViolin(
+      table = getMetaData(),
+      metric = "nUMI",
+      coloring_variable = input[["groups_selected_group"]],
+      colors = reactive_colors()[[ input[["groups_selected_group"]] ]],
+      y_title = "Number of transcripts",
+      mode = "integer"
+    )
+  })
 })
 
 ##----------------------------------------------------------------------------##
@@ -85,14 +87,16 @@ output[["groups_nGene_text"]] <- renderText({
 
 output[["groups_nGene_plot"]] <- plotly::renderPlotly({
   req(input[["groups_selected_group"]] %in% getGroups())
-  plotlyViolin(
-    table = getMetaData(),
-    metric = "nGene",
-    coloring_variable = input[["groups_selected_group"]],
-    colors = reactive_colors()[[ input[["groups_selected_group"]] ]],
-    y_title = "Number of expressed genes",
-    mode = "integer"
-  )
+  withProgress(message = 'Generating nGene plot...', value = 0.5, {
+    plotlyViolin(
+      table = getMetaData(),
+      metric = "nGene",
+      coloring_variable = input[["groups_selected_group"]],
+      colors = reactive_colors()[[ input[["groups_selected_group"]] ]],
+      y_title = "Number of expressed genes",
+      mode = "integer"
+    )
+  })
 })
 
 ##----------------------------------------------------------------------------##
@@ -139,14 +143,16 @@ output[["groups_percent_ribo_text"]] <- renderText({
 
 output[["groups_percent_ribo_plot"]] <- plotly::renderPlotly({
   req(input[["groups_selected_group"]] %in% getGroups())
-  plotlyViolin(
-    table = getMetaData(),
-    metric = "percent_ribo",
-    coloring_variable = input[["groups_selected_group"]],
-    colors = reactive_colors()[[ input[["groups_selected_group"]] ]],
-    y_title = "Percentage of transcripts",
-    mode = "percent"
-  )
+  withProgress(message = 'Generating percent_ribo plot...', value = 0.5, {
+    plotlyViolin(
+      table = getMetaData(),
+      metric = "percent_ribo",
+      coloring_variable = input[["groups_selected_group"]],
+      colors = reactive_colors()[[ input[["groups_selected_group"]] ]],
+      y_title = "Percentage of transcripts",
+      mode = "percent"
+    )
+  })
 })
 
 ##----------------------------------------------------------------------------##

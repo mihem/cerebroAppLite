@@ -5,6 +5,21 @@
 ##----------------------------------------------------------------------------##
 
 ##----------------------------------------------------------------------------##
+## Reactive to fetch enriched pathways data
+##----------------------------------------------------------------------------##
+
+enriched_pathways_data <- reactive({
+  req(
+    input[["enriched_pathways_selected_method"]],
+    input[["enriched_pathways_selected_table"]]
+  )
+  getEnrichedPathways(
+    input[["enriched_pathways_selected_method"]],
+    input[["enriched_pathways_selected_table"]]
+  )
+})
+
+##----------------------------------------------------------------------------##
 ## UI element for output.
 ##----------------------------------------------------------------------------##
 
@@ -124,10 +139,7 @@ output[["enriched_pathways_filter_subgroups_UI"]] <- renderUI({
   )
 
   ## fetch results
-  results_df <- getEnrichedPathways(
-    input[["enriched_pathways_selected_method"]],
-    input[["enriched_pathways_selected_table"]]
-  )
+  results_df <- enriched_pathways_data()
 
   ## don't proceed if input is not a data frame
   req(is.data.frame(results_df))
@@ -179,14 +191,15 @@ output[["enriched_pathways_table"]] <- DT::renderDataTable({
     input[["enriched_pathways_selected_table"]] %in% getGroupsWithEnrichedPathways(input[["enriched_pathways_selected_method"]])
   )
 
+  withProgress(message = "Processing enriched pathways table...", value = 0, {
+
   ## fetch results
-  results_df <- getEnrichedPathways(
-    input[["enriched_pathways_selected_method"]],
-    input[["enriched_pathways_selected_table"]]
-  )
+  results_df <- enriched_pathways_data()
 
   ## don't proceed if input is not a data frame
   req(is.data.frame(results_df))
+
+  incProgress(0.3, detail = "Filtering data...")
 
   ## filter the table for a specific subgroup only if specified by the user
   ## (otherwise show all results)
@@ -203,6 +216,8 @@ output[["enriched_pathways_table"]] <- DT::renderDataTable({
     ## filter table
     results_df <- results_df[ which(results_df[[1]] == input[["enriched_pathways_table_select_group_level"]]) , ]
   }
+
+  incProgress(0.6, detail = "Rendering table...")
 
   ## if the table is empty, e.g. because the filtering of results for a specific
   ## subgroup did not work properly, skip the processing and show and empty
@@ -246,6 +261,7 @@ output[["enriched_pathways_table"]] <- DT::renderDataTable({
       page_length_menu = c(20, 50, 100)
     )
   }
+  })
 })
 
 ##----------------------------------------------------------------------------##

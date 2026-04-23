@@ -66,29 +66,19 @@ output[["crb_file_selector_UI"]] <- renderUI({
       file_choices <- setNames(
         available_crb_files$files,
         sapply(available_crb_files$files, function(f) {
-          ## try to load the file and get experiment_name
-          tryCatch({
-            if (file.exists(f)) {
-              data <- read_cerebro_file(f)
-            } else if (exists(f)) {
+          if (file.exists(f)) {
+            return(basename(f))
+          } else if (exists(f)) {
+            tryCatch({
               data <- get(f)
-            } else {
-              return(f)
-            }
-            ## get experiment_name from the loaded data
-            if (!is.null(data$getExperiment())) {
-              return(data$getExperiment())
-            } else {
-              return(f)
-            }
-          }, error = function(e) {
-            ## if anything goes wrong, fall back to filename or variable name
-            if (file.exists(f)) {
-              basename(f)
-            } else {
-              f  ## if it's a variable name, use as-is
-            }
-          })
+              if (!is.null(data$getExperiment())) {
+                return(data$getExperiment())
+              }
+            }, error = function(e) {})
+            return(f)
+          } else {
+            return(f)
+          }
         })
       )
     }

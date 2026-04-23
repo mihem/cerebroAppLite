@@ -190,7 +190,6 @@ prettifyTable <- function(
   ## - align numerics to the right
   table <- DT::datatable(
       table,
-      autoHideNavigation = TRUE,
       class = "stripe table-bordered table-condensed",
       escape = FALSE,
       extensions = table_extensions,
@@ -483,7 +482,6 @@ prettifyTable <- function(
 prepareEmptyTable <- function(table) {
   DT::datatable(
     table,
-    autoHideNavigation = TRUE,
     class = "stripe table-bordered table-condensed",
     escape = FALSE,
     filter = "none",
@@ -1018,30 +1016,73 @@ getExtraPlot <- function(name) {
 ## Function to read Cerebro files (supports .rds and .qs formats).
 ##----------------------------------------------------------------------------##
 read_cerebro_file <- function(file) {
-  # Try to read as RDS first (backward compatibility)
-  tryCatch({
+  ext <- tools::file_ext(file)
+
+  # Helper to read with qs
+  read_qs <- function(f) {
+    if (requireNamespace("qs", quietly = TRUE)) {
+      # Use 4 threads or available cores, whichever is smaller, but at least 1
+      n_threads <- max(1, min(4, parallel::detectCores()))
+      return(qs::qread(f, nthreads = n_threads))
+    } else {
+      stop("To read qs files, please install the 'qs' package.")
+    }
+  }
+
+  # 1. Trust extension if specific
+  if (tolower(ext) == "qs") {
+    return(read_qs(file))
+  } else if (tolower(ext) == "rds") {
     return(readRDS(file))
-  }, error = function(e_rds) {
-    # If RDS fails, try to read as qs
+  }
+
+  # 2. For .crb or others, try to guess based on magic bytes
+  # Read first 2 bytes to check for Gzip header (1f 8b), which indicates a standard saved RDS
+  is_gzip <- FALSE
+  tryCatch({
+    con <- file(file, "rb")
+    header <- readBin(con, "raw", n = 2)
+    close(con)
+    if (length(header) == 2 && header[1] == 0x1f && header[2] == 0x8b) {
+      is_gzip <- TRUE
+    }
+  }, error = function(e) {
+    # If file reading fails, proceed to fallback logic
+  })
+
+  if (is_gzip) {
+    # If Gzip header found, it's almost certainly an RDS file
+    tryCatch({
+      return(readRDS(file))
+    }, error = function(e_rds) {
+      # Fallback just in case
+      if (requireNamespace("qs", quietly = TRUE)) {
+        tryCatch({
+          return(read_qs(file))
+        }, error = function(e_qs) {
+          stop(paste0("Could not read file.\nRDS error: ", e_rds$message, "\nqs error: ", e_qs$message))
+        })
+      } else {
+        stop(paste0("Could not read file as RDS.\nRDS error: ", e_rds$message))
+      }
+    })
+  } else {
+    # If NOT gzip, it could be qs or uncompressed RDS.
+    # Since qs is the preferred modern format for Cerebro, try qs first if available.
     if (requireNamespace("qs", quietly = TRUE)) {
       tryCatch({
-        return(qs::qread(file))
+        return(read_qs(file))
       }, error = function(e_qs) {
-        stop(
-          paste0(
-            "Could not read file as RDS or qs format.\n",
-            "RDS error: ", e_rds$message, "\n",
-            "qs error: ", e_qs$message
-          )
-        )
+        # Fallback to RDS (e.g. uncompressed RDS)
+        tryCatch({
+          return(readRDS(file))
+        }, error = function(e_rds) {
+          stop(paste0("Could not read file.\nqs error: ", e_qs$message, "\nRDS error: ", e_rds$message))
+        })
       })
     } else {
-      stop(
-        paste0(
-          "Could not read file as RDS. To read qs files, please install the 'qs' package.\n",
-          "RDS error: ", e_rds$message
-        )
-      )
+      # If qs not installed, assume RDS
+      return(readRDS(file))
     }
-  })
+  }
 }

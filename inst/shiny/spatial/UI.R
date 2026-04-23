@@ -24,7 +24,8 @@ tab_spatial <- tabItem(
       "updatePlot3DContinuousSpatial",
       "updatePlot2DCategoricalSpatial",
       "updatePlot3DCategoricalSpatial",
-      "getContainerDimensions"
+      "getContainerDimensions",
+      "spatialClearSelection"
     )
   ),
   uiOutput("spatial_projection_UI"),

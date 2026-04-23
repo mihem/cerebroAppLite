@@ -3,37 +3,47 @@
 ##----------------------------------------------------------------------------##
 spatial_projection_cells_to_show <- reactive({
   req(input[["spatial_projection_percentage_cells_to_show"]])
-  # message('--> trigger "spatial_projection_cells_to_show"')
+  
   groups <- getGroups()
-  ## require group filters UI elements and at least 1 group level to be selected
-  for ( i in groups ) {
-    req(input[[paste0("spatial_projection_group_filter_", i)]])
-  }
-  pct_cells <- input[["spatial_projection_percentage_cells_to_show"]]
+  
+  # Collect all filters first
   group_filters <- list()
-  ## store group filters
   for ( i in groups ) {
-    group_filters[[i]] <- input[[paste0("spatial_projection_group_filter_", i)]]
+    filter_val <- input[[paste0("spatial_projection_group_filter_", i)]]
+    req(filter_val)
+    group_filters[[i]] <- filter_val
   }
+  
+  pct_cells <- input[["spatial_projection_percentage_cells_to_show"]]
   meta_data <- getMetaData()
   req(!is.null(meta_data))
-  cells_df <- meta_data %>%
-    dplyr::mutate(row_id = row_number())
-  ## remove cells based on group filters
+  
+  # Initialize keep vector
+  keep <- rep(TRUE, nrow(meta_data))
+  
+  # Apply filters using vectorized operations
   for ( i in groups ) {
-    ## make sure that group exists in meta data (as column) and that selected
-    ## groups are not NULL, then subset the data frame
-    if ( i %in% colnames(cells_df) ) {
-      cells_df <- cells_df[which(cells_df[[i]] %in% group_filters[[i]] ),]
+    if ( i %in% colnames(meta_data) ) {
+      keep <- keep & (meta_data[[i]] %in% group_filters[[i]])
     }
   }
-  cells_df <- cells_df %>%
-    dplyr::select(cell_barcode, row_id)
-  ## randomly remove cells (if necessary)
-  cells_df <- randomlySubsetCells(cells_df, pct_cells)
-  ## put rows in random order
-  cells_df <- cells_df[ sample(1:nrow(cells_df)) , ]
-  cells_to_show <- cells_df$row_id
-  # message(str(cells_to_show))
+  
+  # Get indices
+  cells_indices <- which(keep)
+  
+  # Randomly subset if needed
+  if ( length(cells_indices) > 0 && pct_cells < 100 ) {
+    n_to_keep <- ceiling(length(cells_indices) * (pct_cells / 100))
+    cells_indices <- sample(cells_indices, n_to_keep)
+  }
+  
+  # Shuffle for plotting order (avoid occlusion bias)
+  # Check if we have cells to show
+  if (length(cells_indices) > 0) {
+    cells_to_show <- sample(cells_indices)
+  } else {
+    cells_to_show <- integer(0)
+  }
+  
   return(cells_to_show)
 })

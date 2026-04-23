@@ -94,10 +94,12 @@ output[["groups_by_other_group_plot"]] <- plotly::renderPlotly({
     input[["groups_selected_group"]] != input[["groups_by_other_group_second_group"]],
     input[["groups_by_other_group_plot_type"]]
   )
-  ##
-  if ( input[["groups_by_other_group_plot_type"]] == "Bar chart" ) {
-    ## calculate table
-    composition_df <- calculateTableAB(
+
+  withProgress(message = 'Generating composition plot...', value = 0.5, {
+    ##
+    if ( input[["groups_by_other_group_plot_type"]] == "Bar chart" ) {
+      ## calculate table
+      composition_df <- calculateTableAB(
       getMetaData(),
       input[[ "groups_selected_group" ]],
       input[[ "groups_by_other_group_second_group" ]],
@@ -135,6 +137,7 @@ output[["groups_by_other_group_plot"]] <- plotly::renderPlotly({
       colors_for_groups = colors_for_groups
     )
   }
+  })
 })
 
 ##----------------------------------------------------------------------------##
@@ -148,31 +151,34 @@ output[["groups_by_other_group_table"]] <- DT::renderDataTable({
     input[[ "groups_by_other_group_second_group" ]],
     input[[ "groups_selected_group" ]] != input[[ "groups_by_other_group_second_group" ]]
   )
-  ## generate table
-  composition_df <- calculateTableAB(
-    getMetaData(),
-    input[[ "groups_selected_group" ]],
-    input[[ "groups_by_other_group_second_group" ]],
-    mode = "wide",
-    percent = input[["groups_by_other_group_show_as_percent"]]
-  )
-  ## get indices of columns that should be formatted as percent
-  if ( input[["groups_by_other_group_show_as_percent"]] == TRUE ) {
-    columns_percentage <- c(3:ncol(composition_df))
-  } else {
-    columns_percentage <- NULL
-  }
-  composition_df %>%
-  dplyr::rename("# of cells" = total_cell_count) %>%
-  prettifyTable(
-    filter = "none",
-    dom = "Brtlip",
-    show_buttons = FALSE,
-    number_formatting = TRUE,
-    color_highlighting = FALSE,
-    hide_long_columns = TRUE,
-    columns_percentage = columns_percentage
-  )
+
+  withProgress(message = 'Generating composition table...', value = 0.5, {
+    ## generate table
+    composition_df <- calculateTableAB(
+      getMetaData(),
+      input[[ "groups_selected_group" ]],
+      input[[ "groups_by_other_group_second_group" ]],
+      mode = "wide",
+      percent = input[["groups_by_other_group_show_as_percent"]]
+    )
+    ## get indices of columns that should be formatted as percent
+    if ( input[["groups_by_other_group_show_as_percent"]] == TRUE ) {
+      columns_percentage <- c(3:ncol(composition_df))
+    } else {
+      columns_percentage <- NULL
+    }
+    composition_df %>%
+    dplyr::rename("# of cells" = total_cell_count) %>%
+    prettifyTable(
+      filter = "none",
+      dom = "Brtlip",
+      show_buttons = FALSE,
+      number_formatting = TRUE,
+      color_highlighting = FALSE,
+      hide_long_columns = TRUE,
+      columns_percentage = columns_percentage
+    )
+  })
 })
 
 ##----------------------------------------------------------------------------##

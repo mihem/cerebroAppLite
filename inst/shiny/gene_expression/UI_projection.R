@@ -124,16 +124,12 @@ output[["expression_projection_UI"]] <- renderUI({
           )
         ),
         tagList(
-          shinycssloaders::withSpinner(
             plotly::plotlyOutput(
               "expression_projection",
               width = "auto",
               height = "85vh"
             ),
-            type = 8,
-            hide.ui = FALSE
-          ),
-          tags$br(),
+            tags$br(),
           htmlOutput("expression_number_of_selected_cells"),
           tags$br(),
           htmlOutput("expression_genes_displayed")

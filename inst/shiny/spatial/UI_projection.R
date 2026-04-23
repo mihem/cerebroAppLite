@@ -64,7 +64,7 @@ output[["spatial_projection_UI"]] <- renderUI({
             style = "margin-right: 3px"
           ),
           #shinyFiles::shinySaveButton(
-           # "spatial_projection_export",
+            # "spatial_projection_export",
             #label = "export to PDF",
             #title = "Export dimensional reduction to PDF file.",
             #filetype = "pdf",
@@ -90,13 +90,26 @@ output[["spatial_projection_UI"]] <- renderUI({
             plotly::plotlyOutput(
               "spatial_projection",
               width = "auto",
-              height = "65vh"
+              height = "calc(100vh - 200px)"
             ),
             type = 8,
             hide.ui = FALSE
           ),
           tags$br(),
-          htmlOutput("spatial_number_of_selected_cells"),
+          fluidRow(
+            column(width = 8,
+              htmlOutput("spatial_number_of_selected_cells")
+            ),
+            column(width = 4, style = "text-align: right;",
+              actionButton(
+                inputId = "spatial_projection_clear_selection",
+                label = "Clear selection",
+                icon = icon("eraser"),
+                class = "btn-xs btn-default",
+                style = "margin-top: 5px;"
+              )
+            )
+          )
         )
       )
     )

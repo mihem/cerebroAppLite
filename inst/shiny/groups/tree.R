@@ -99,50 +99,60 @@ output[["groups_tree_plot"]] <- renderPlot({
     input[["groups_tree_label_offset"]],
     !is.null(input[["groups_tree_margin"]])
   )
-  ## only proceed if tree is present (this check is necessary because it can
-  ## otherwise result in an error when switching between groups)
-  if (
-    !is.null(getTree( input[["groups_selected_group"]] )) &&
-    class(getTree( input[["groups_selected_group"]] )) == 'phylo'
-  ) {
-    ## retrieve tree from Cerebro object
-    tree <- getTree( input[["groups_selected_group"]] )
-    ## get color assignments for groups
-    group_colors <- reactive_colors()[[ input[["groups_selected_group"]] ]]
-    ## get put colors in correct order
-    tip_colors <- group_colors[match(tree$tip.label, names(group_colors))]
-    ##
-    if ( input[["groups_tree_plot_type"]] == "Unrooted" ) {
-      ape::plot.phylo(
-        tree,
-        type = 'unrooted',
-        lab4ut = 'axial',
-        align.tip.label = TRUE,
-        edge.width = input[["groups_tree_edge_width"]],
-        label.offset = input[["groups_tree_label_offset"]],
-        tip.color = tip_colors,
-        font = 1,
-        cex = input[["groups_tree_label_size"]],
-        no.margin = input[["groups_tree_margin"]]
-      )
-    ##
-    } else if ( input[["groups_tree_plot_type"]] == "Phylogram" ) {
-      ape::plot.phylo(
-        tree,
-        type = 'phylogram',
-        direction = "downwards",
-        align.tip.label = TRUE,
-        edge.width = input[["groups_tree_edge_width"]],
-        label.offset = input[["groups_tree_label_offset"]],
-        tip.color = tip_colors,
-        font = 1,
-        cex = input[["groups_tree_label_size"]],
-        no.margin = input[["groups_tree_margin"]],
-        srt = 90,
-        adj = 0.5
-      )
+
+  withProgress(message = 'Generating tree plot...', value = 0.5, {
+    ## only proceed if tree is present
+    if (
+      !is.null(getTree( input[["groups_selected_group"]] )) &&
+      class(getTree( input[["groups_selected_group"]] )) == 'phylo'
+    ) {
+      ## get tree
+      tree <- getTree(input[["groups_selected_group"]])
+
+      ## get color assignments for groups
+      group_colors <- reactive_colors()[[ input[["groups_selected_group"]] ]]
+      ## get put colors in correct order
+      tip_colors <- group_colors[match(tree$tip.label, names(group_colors))]
+
+      ## check if margin should be extended
+      if ( input[["groups_tree_margin"]] == TRUE ) {
+        par(mar = c(1, 1, 1, 10))
+      }
+
+      ## plot tree
+      if ( input[["groups_tree_plot_type"]] == "Unrooted" ) {
+        ape::plot.phylo(
+          tree,
+          type = "unrooted",
+          lab4ut = "axial",
+          align.tip.label = TRUE,
+          edge.width = input[["groups_tree_edge_width"]],
+          cex = input[["groups_tree_label_size"]],
+          label.offset = input[["groups_tree_label_offset"]],
+          tip.color = tip_colors,
+          font = 1,
+          rotate.tree = 0,
+          no.margin = !input[["groups_tree_margin"]]
+        )
+      } else if ( input[["groups_tree_plot_type"]] == "Phylogram" ) {
+        ape::plot.phylo(
+          tree,
+          type = "phylogram",
+          direction = "downwards",
+          align.tip.label = TRUE,
+          edge.width = input[["groups_tree_edge_width"]],
+          cex = input[["groups_tree_label_size"]],
+          label.offset = input[["groups_tree_label_offset"]],
+          tip.color = tip_colors,
+          font = 1,
+          srt = 90,
+          adj = 0.5,
+          rotate.tree = 0,
+          no.margin = !input[["groups_tree_margin"]]
+        )
+      }
     }
-  }
+  })
 })
 
 ##----------------------------------------------------------------------------##

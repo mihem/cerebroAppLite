@@ -29,6 +29,9 @@ observeEvent(input[["expression_projection_export"]], {
   )
   ## only proceed if a path has been provided
   req(nrow(save_file_input) > 0)
+
+  withProgress(message = 'Exporting plot...', value = 0, {
+
   ## make ggplot2 functions available
   require("ggplot2")
   ## extract specified file path
@@ -41,6 +44,9 @@ observeEvent(input[["expression_projection_export"]], {
     cell_order <- order(expression_levels)
     cells_df <- cells_df[cell_order,]
   }
+
+  incProgress(0.2, detail = "Validating parameters...")
+
   ##
   if (
     is.list(expression_levels) ||
@@ -62,6 +68,7 @@ observeEvent(input[["expression_projection_export"]], {
       html = TRUE
     )
   } else {
+    incProgress(0.3, detail = "Generating plot...")
     ## check if projection or trajectory should be shown
     ## ... projection
     if ( plot_parameters[["projection"]] %in% availableProjections() ) {
@@ -111,6 +118,8 @@ observeEvent(input[["expression_projection_export"]], {
     }
     ## plot must be a ggplot object, otherwise don't proceed
     req(is.ggplot(plot))
+
+    incProgress(0.3, detail = "Saving file...")
     ## save plot
     pdf(NULL)
     ggsave(save_file_path, plot, height = 8, width = 11)
@@ -135,4 +144,5 @@ observeEvent(input[["expression_projection_export"]], {
       )
     }
   }
+  }) # end withProgress
 })

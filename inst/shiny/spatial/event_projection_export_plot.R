@@ -24,6 +24,9 @@ observeEvent(input[["spatial_projection_export"]], {
   )
   ## only proceed if a path has been provided
   req(nrow(save_file_input) > 0)
+  
+  withProgress(message = 'Exporting spatial plot...', value = 0, {
+  
   ## ggplot2 functions are necessary to create the plot
   require("ggplot2")
   ## extract specified file path
@@ -33,6 +36,7 @@ observeEvent(input[["spatial_projection_export"]], {
   ## check if selection projection consists of 2 or 3 dimensions
   ## ... selection projection consists of 2 dimensions
   if ( plot_parameters[['n_dimensions']] == 2 ) {
+    incProgress(0.2, detail = "Generating plot object...")
     ##
     stroke <- ifelse(plot_parameters[["draw_border"]], 0.2, 0)
     ## start building the plot
@@ -92,9 +96,14 @@ observeEvent(input[["spatial_projection_export"]], {
           guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")
         )
     }
+    
+    incProgress(0.6, detail = "Writing PDF file...")
     ## save plot
     pdf(NULL)
     ggsave(save_file_path, plot, height = 8, width = 11)
+    
+    incProgress(0.9, detail = "Finishing...")
+    
     ## check if file was succesfully saved
     ## ... successful
     if ( file.exists(save_file_path) ) {
@@ -125,4 +134,6 @@ observeEvent(input[["spatial_projection_export"]], {
       type = "error"
     )
   }
+  
+  }) # end withProgress
 })

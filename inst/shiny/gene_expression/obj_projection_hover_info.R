@@ -1,5 +1,7 @@
 ##----------------------------------------------------------------------------##
 ## Hover info for cells in projection.
+## NOTE: This reactive is kept for backward compatibility but the logic has been
+## inlined into expression_projection_data_to_plot for optimization.
 ##----------------------------------------------------------------------------##
 expression_projection_hover_info <- reactive({
   req(

@@ -253,443 +253,538 @@ createImmuneRepertoireServer <- function(repertoire_type = c("bcr", "tcr")) {
   output[[paste0(prefix, "plot_clonalAbundance")]] <- renderPlot({
     req(has_scRepertoire())
     message("[", toupper(repertoire_type), " DEBUG] Entering clonalAbundance renderer")
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    message("[", toupper(repertoire_type), " DEBUG] Data for clonalAbundance - class: ", paste(class(data), collapse = ", "))
-    message("[", toupper(repertoire_type), " DEBUG] Params - cloneCall: ", pars$cloneCall, ", groupBy: ", pars$groupBy)
-    safeRenderPlot({
-      scRepertoire::clonalAbundance(data, cloneCall = pars$cloneCall)
-    }, plot_name = "clonalAbundance")
+    withProgress(message = "Generating Abundance Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+      message("[", toupper(repertoire_type), " DEBUG] Data for clonalAbundance - class: ", paste(class(data), collapse = ", "))
+      message("[", toupper(repertoire_type), " DEBUG] Params - cloneCall: ", pars$cloneCall, ", groupBy: ", pars$groupBy)
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalAbundance(data, cloneCall = pars$cloneCall)
+      }, plot_name = "clonalAbundance")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalCompare")]] <- renderPlot({
     req(has_scRepertoire())
     req(!is.null(input[[paste0(prefix, "compare_samples")]]) && length(input[[paste0(prefix, "compare_samples")]]) >= 2)
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalCompare(
-        repertoire_data(),
-        cloneCall = pars$cloneCall,
-        chain = "both",
-        samples = input[[paste0(prefix, "compare_samples")]],
-        clones = NULL,
-        top.clones = 5,
-        highlight.clones = NULL,
-        relabel.clones = FALSE,
-        group.by = NULL,
-        order.by = NULL,
-        graph = "alluvial",
-        proportion = TRUE,
-        exportTable = FALSE,
-        palette = "inferno"
-      )
-    }, plot_name = "clonalCompare")
+    withProgress(message = "Generating Compare Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalCompare(
+          repertoire_data(),
+          cloneCall = pars$cloneCall,
+          chain = "both",
+          samples = input[[paste0(prefix, "compare_samples")]],
+          clones = NULL,
+          top.clones = 5,
+          highlight.clones = NULL,
+          relabel.clones = FALSE,
+          group.by = NULL,
+          order.by = NULL,
+          graph = "alluvial",
+          proportion = TRUE,
+          exportTable = FALSE,
+          palette = "inferno"
+        )
+      }, plot_name = "clonalCompare")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalDiversity")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalDiversity(
-        repertoire_data(),
-        cloneCall = pars$cloneCall,
-        metric = "shannon",
-        chain = "both",
-        group.by = NULL,
-        order.by = NULL,
-        x.axis = NULL,
-        exportTable = FALSE,
-        palette = "inferno",
-        n.boots = 100,
-        return.boots = FALSE,
-        skip.boots = FALSE)
-    }, plot_name = "clonalDiversity")
+    withProgress(message = "Generating Diversity Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalDiversity(
+          repertoire_data(),
+          cloneCall = pars$cloneCall,
+          metric = "shannon",
+          chain = "both",
+          group.by = NULL,
+          order.by = NULL,
+          x.axis = NULL,
+          exportTable = FALSE,
+          palette = "inferno",
+          n.boots = 100,
+          return.boots = FALSE,
+          skip.boots = FALSE)
+      }, plot_name = "clonalDiversity")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalHomeostasis")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalHomeostasis(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        cloneCall = pars$cloneCall,
-        group.by = NULL,
-        order.by = NULL,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "clonalHomeostasis")
+    withProgress(message = "Generating Homeostasis Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalHomeostasis(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          cloneCall = pars$cloneCall,
+          group.by = NULL,
+          order.by = NULL,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "clonalHomeostasis")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalLength")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalLength(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        cloneCall = pars$cloneCall,
-        group.by = NULL,
-        order.by = NULL,
-        scale = FALSE,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "clonalLength")
+    withProgress(message = "Generating Length Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalLength(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          cloneCall = pars$cloneCall,
+          group.by = NULL,
+          order.by = NULL,
+          scale = FALSE,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "clonalLength")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalOverlap")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalOverlap(
-        repertoire_data(),
-        cloneCall = pars$cloneCall,
-        method = "overlap",
-        chain = "both",
-        group.by = NULL,
-        order.by = NULL,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "clonalOverlap")
+    withProgress(message = "Generating Overlap Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalOverlap(
+          repertoire_data(),
+          cloneCall = pars$cloneCall,
+          method = "overlap",
+          chain = "both",
+          group.by = NULL,
+          order.by = NULL,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "clonalOverlap")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalProportion")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalProportion(
-        repertoire_data(),
-        clonalSplit = c(10, 100, 1000, 10000, 30000, 1e+05),
-        chain = input[[paste0(prefix, "chain")]],
-        cloneCall = pars$cloneCall,
-        group.by = pars$groupBy,
-        order.by = NULL,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "clonalProportion")
+    withProgress(message = "Generating Proportion Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalProportion(
+          repertoire_data(),
+          clonalSplit = c(10, 100, 1000, 10000, 30000, 1e+05),
+          chain = input[[paste0(prefix, "chain")]],
+          cloneCall = pars$cloneCall,
+          group.by = pars$groupBy,
+          order.by = NULL,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "clonalProportion")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalQuant")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalQuant(
-        repertoire_data(),
-        cloneCall = pars$cloneCall,
-        chain = input[[paste0(prefix, "chain")]],
-        scale = FALSE,
-        group.by = pars$groupBy,
-        order.by = NULL,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "clonalQuant")
+    withProgress(message = "Generating Quant Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalQuant(
+          repertoire_data(),
+          cloneCall = pars$cloneCall,
+          chain = input[[paste0(prefix, "chain")]],
+          scale = FALSE,
+          group.by = pars$groupBy,
+          order.by = NULL,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "clonalQuant")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalRarefaction")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalRarefaction(
-        repertoire_data(),
-        cloneCall = pars$cloneCall,
-        chain = input[[paste0(prefix, "chain")]],
-        group.by = pars$groupBy,
-        plot.type = 1,
-        hill.numbers = 0,
-        n.boots = 20,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "clonalRarefaction")
+    withProgress(message = "Generating Rarefaction Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalRarefaction(
+          repertoire_data(),
+          cloneCall = pars$cloneCall,
+          chain = input[[paste0(prefix, "chain")]],
+          group.by = pars$groupBy,
+          plot.type = 1,
+          hill.numbers = 0,
+          n.boots = 20,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "clonalRarefaction")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalScatter")]] <- renderPlot({
     req(has_scRepertoire())
     req(!is.null(input[[paste0(prefix, "scatter_x")]]) && !is.null(input[[paste0(prefix, "scatter_y")]]))
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalScatter(
-        repertoire_data(),
-        cloneCall = pars$cloneCall,
-        x.axis = input[[paste0(prefix, "scatter_x")]],
-        y.axis = input[[paste0(prefix, "scatter_y")]],
-        chain = input[[paste0(prefix, "chain")]],
-        dot.size = "total",
-        group.by = pars$groupBy,
-        graph = "proportion",
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "clonalScatter")
+    withProgress(message = "Generating Scatter Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalScatter(
+          repertoire_data(),
+          cloneCall = pars$cloneCall,
+          x.axis = input[[paste0(prefix, "scatter_x")]],
+          y.axis = input[[paste0(prefix, "scatter_y")]],
+          chain = input[[paste0(prefix, "chain")]],
+          dot.size = "total",
+          group.by = pars$groupBy,
+          graph = "proportion",
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "clonalScatter")
+    })
   })
 
   output[[paste0(prefix, "plot_clonalSizeDistribution")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::clonalSizeDistribution(
-        repertoire_data(),
-        cloneCall = pars$cloneCall,
-        method = "ward.D2",
-        exportTable = FALSE)
-    }, plot_name = "clonalSizeDistribution")
+    withProgress(message = "Generating Size Distribution Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::clonalSizeDistribution(
+          repertoire_data(),
+          cloneCall = pars$cloneCall,
+          method = "ward.D2",
+          exportTable = FALSE)
+      }, plot_name = "clonalSizeDistribution")
+    })
   })
 
   output[[paste0(prefix, "plot_percentGeneUsage")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::percentGeneUsage(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        genes = if (repertoire_type == "bcr") "TRBV" else "TRBV",
-        group.by = pars$groupBy,
-        order.by = NULL,
-        summary.fun = "percent",
-        plot.type = "heatmap",
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "percentGeneUsage")
+    withProgress(message = "Generating Gene Usage Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::percentGeneUsage(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          genes = if (repertoire_type == "bcr") "TRBV" else "TRBV",
+          group.by = pars$groupBy,
+          order.by = NULL,
+          summary.fun = "percent",
+          plot.type = "heatmap",
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "percentGeneUsage")
+    })
   })
 
   output[[paste0(prefix, "plot_vizGenes")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::vizGenes(
-        repertoire_data(),
-        x.axis = if (repertoire_type == "bcr") "TRBV" else "TRBV",
-        y.axis = NULL,
-        group.by = pars$groupBy,
-        plot = "heatmap",
-        order.by = NULL,
-        summary.fun = "count",
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "vizGenes")
+    withProgress(message = "Generating Viz Genes Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::vizGenes(
+          repertoire_data(),
+          x.axis = if (repertoire_type == "bcr") "TRBV" else "TRBV",
+          y.axis = NULL,
+          group.by = pars$groupBy,
+          plot = "heatmap",
+          order.by = NULL,
+          summary.fun = "count",
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "vizGenes")
+    })
   })
 
   output[[paste0(prefix, "plot_percentGenes")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::percentGenes(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        gene = "Vgene",
-        group.by = pars$groupBy,
-        order.by = NULL,
-        exportTable = FALSE,
-        summary.fun = "percent",
-        palette = "inferno")
-    }, plot_name = "percentGenes")
+    withProgress(message = "Generating Percent Genes Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::percentGenes(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          gene = "Vgene",
+          group.by = pars$groupBy,
+          order.by = NULL,
+          exportTable = FALSE,
+          summary.fun = "percent",
+          palette = "inferno")
+      }, plot_name = "percentGenes")
+    })
   })
 
   output[[paste0(prefix, "plot_percentVJ")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::percentVJ(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        group.by = pars$groupBy,
-        order.by = NULL,
-        exportTable = FALSE,
-        summary.fun = "percent",
-        palette = "inferno")
-    }, plot_name = "percentVJ")
+    withProgress(message = "Generating Percent VJ Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::percentVJ(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          group.by = pars$groupBy,
+          order.by = NULL,
+          exportTable = FALSE,
+          summary.fun = "percent",
+          palette = "inferno")
+      }, plot_name = "percentVJ")
+    })
   })
 
   output[[paste0(prefix, "plot_percentAA")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::percentAA(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        group.by = pars$groupBy,
-        order.by = NULL,
-        aa.length = 20,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "percentAA")
+    withProgress(message = "Generating Percent AA Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::percentAA(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          group.by = pars$groupBy,
+          order.by = NULL,
+          aa.length = 20,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "percentAA")
+    })
   })
 
   output[[paste0(prefix, "plot_positionalEntropy")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::positionalEntropy(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        group.by = pars$groupBy,
-        order.by = NULL,
-        aa.length = 20,
-        method = "norm.entropy",
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "positionalEntropy")
+    withProgress(message = "Generating Positional Entropy Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::positionalEntropy(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          group.by = pars$groupBy,
+          order.by = NULL,
+          aa.length = 20,
+          method = "norm.entropy",
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "positionalEntropy")
+    })
   })
 
   output[[paste0(prefix, "plot_positionalProperty")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::positionalProperty(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        group.by = pars$groupBy,
-        order.by = NULL,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "positionalProperty")
+    withProgress(message = "Generating Positional Property Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::positionalProperty(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          group.by = pars$groupBy,
+          order.by = NULL,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "positionalProperty")
+    })
   })
 
   output[[paste0(prefix, "plot_percentKmer")]] <- renderPlot({
     req(has_scRepertoire())
-    pars <- repertoire_params()
-    data <- repertoire_data()
-    if (is.null(data)) {
-      message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
-      plot.new()
-      text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
-      return()
-    }
-    safeRenderPlot({
-      scRepertoire::percentKmer(
-        repertoire_data(),
-        chain = input[[paste0(prefix, "chain")]],
-        cloneCall = pars$cloneCall,
-        group.by = pars$groupBy,
-        motif.length = 3,
-        min.depth = 3,
-        top.motifs = 30,
-        exportTable = FALSE,
-        palette = "inferno")
-    }, plot_name = "percentKmer")
+    withProgress(message = "Generating Percent Kmer Plot", value = 0, {
+      incProgress(0.2, detail = "Preparing data...")
+      pars <- repertoire_params()
+      data <- repertoire_data()
+      if (is.null(data)) {
+        message("[", toupper(repertoire_type), " DEBUG] Data is NULL, skipping plot")
+        plot.new()
+        text(0.5, 0.5, paste0("No ", toupper(repertoire_type), " data available"), cex = 1.2)
+        return()
+      }
+
+      incProgress(0.5, detail = "Rendering plot...")
+      safeRenderPlot({
+        scRepertoire::percentKmer(
+          repertoire_data(),
+          chain = input[[paste0(prefix, "chain")]],
+          cloneCall = pars$cloneCall,
+          group.by = pars$groupBy,
+          motif.length = 3,
+          min.depth = 3,
+          top.motifs = 30,
+          exportTable = FALSE,
+          palette = "inferno")
+      }, plot_name = "percentKmer")
+    })
   })
 }
 

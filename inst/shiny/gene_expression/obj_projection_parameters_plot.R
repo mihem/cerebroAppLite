@@ -1,7 +1,8 @@
 ##----------------------------------------------------------------------------##
 ## Collect parameters for projection plot.
+## NOTE: Removed debounce here - debouncing is now only done at data_to_plot level
 ##----------------------------------------------------------------------------##
-expression_projection_parameters_plot_raw <- reactive({
+expression_projection_parameters_plot <- reactive({
   req(
     input[["expression_projection_to_display"]],
     input[["expression_projection_plotting_order"]],
@@ -15,7 +16,7 @@ expression_projection_parameters_plot_raw <- reactive({
     input[["expression_projection_to_display"]] %in% availableProjections() ||
     input[["expression_projection_to_display"]] %in% available_trajectories()
   )
-  # message('--> trigger "expression_projection_parameters_plot_raw"')
+  # message('--> trigger "expression_projection_parameters_plot"')
   if ( input[["expression_projection_to_display"]] %in% availableProjections() ) {
     is_trajectory = FALSE
     n_dimensions = ncol(getProjection(input[["expression_projection_to_display"]]))
@@ -40,8 +41,6 @@ expression_projection_parameters_plot_raw <- reactive({
   # message(str(parameters))
   return(parameters)
 })
-
-expression_projection_parameters_plot <- debounce(expression_projection_parameters_plot_raw, 150)
 
 ##
 expression_projection_parameters_other <- reactiveValues(

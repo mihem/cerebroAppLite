@@ -98,15 +98,16 @@ output[["trajectory_distribution_along_pseudotime_plot"]] <- plotly::renderPlotl
     input[["trajectory_distribution_along_pseudotime_trend_line_width"]]
   )
 
+  withProgress(message = "Generating distribution plot...", value = 0, {
+
   ## collect trajectory data
-  trajectory_data <- getTrajectory(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]]
-  )
+  trajectory_data <- trajectory_data_reactive()
   
   ## extract cells to plot
   cells_df <- cbind(trajectory_data[["meta"]], getMetaData()) %>%
     dplyr::filter(!is.na(pseudotime))
+
+  incProgress(0.2, detail = "Processing data...")
 
   ## grab column name for cell coloring
   color_variable <- input[["trajectory_distribution_along_pseudotime_select_variable"]]
@@ -130,6 +131,8 @@ output[["trajectory_distribution_along_pseudotime_plot"]] <- plotly::renderPlotl
 
     ## create empty plot
     plot <- plotly::plot_ly()
+    
+    incProgress(0.4, detail = "Calculating densities...")
 
     ## add trace to plot for every group level
     for ( i in seq_along(group_levels) ) {
@@ -209,6 +212,8 @@ output[["trajectory_distribution_along_pseudotime_plot"]] <- plotly::renderPlotl
 
     ## get colors for states
     colors_for_groups <- assignColorsToGroups(trajectory_data[["meta"]], "state")
+
+    incProgress(0.4, detail = "Preparing scatter plot...")
 
     ## prepare hover info
     hover_info <- buildHoverInfoForProjections(cells_df)
@@ -305,6 +310,7 @@ output[["trajectory_distribution_along_pseudotime_plot"]] <- plotly::renderPlotl
   } else {
     plot
   }
+  })
 })
 
 ##----------------------------------------------------------------------------##

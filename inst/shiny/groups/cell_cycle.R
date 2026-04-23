@@ -145,31 +145,33 @@ output[["groups_by_cell_cycle_table"]] <- DT::renderDataTable({
     input[["groups_by_cell_cycle_column"]] %in% getCellCycle(),
   )
   ##
-  composition_df <- calculateTableAB(
-    getMetaData(),
-    input[["groups_selected_group"]],
-    input[["groups_by_cell_cycle_column"]],
-    mode = "wide",
-    percent = input[["groups_by_cell_cycle_show_as_percent"]]
-  )
-  ## get indices of columns that should be formatted as percent
-  if ( input[["groups_by_cell_cycle_show_as_percent"]] == TRUE ) {
-    columns_percentage <- c(3:ncol(composition_df))
-  } else {
-    columns_percentage <- NULL
-  }
-  ##
-  composition_df %>%
-  dplyr::rename("# of cells" = total_cell_count) %>%
-  prettifyTable(
-    filter = "none",
-    dom = "Brtlip",
-    show_buttons = FALSE,
-    number_formatting = TRUE,
-    color_highlighting = FALSE,
-    hide_long_columns = TRUE,
-    columns_percentage = columns_percentage
-  )
+  withProgress(message = 'Generating cell cycle table...', value = 0.5, {
+    composition_df <- calculateTableAB(
+      getMetaData(),
+      input[["groups_selected_group"]],
+      input[["groups_by_cell_cycle_column"]],
+      mode = "wide",
+      percent = input[["groups_by_cell_cycle_show_as_percent"]]
+    )
+    ## get indices of columns that should be formatted as percent
+    if ( input[["groups_by_cell_cycle_show_as_percent"]] == TRUE ) {
+      columns_percentage <- c(3:ncol(composition_df))
+    } else {
+      columns_percentage <- NULL
+    }
+    ##
+    composition_df %>%
+    dplyr::rename("# of cells" = total_cell_count) %>%
+    prettifyTable(
+      filter = "none",
+      dom = "Brtlip",
+      show_buttons = FALSE,
+      number_formatting = TRUE,
+      color_highlighting = FALSE,
+      hide_long_columns = TRUE,
+      columns_percentage = columns_percentage
+    )
+  })
 })
 
 ##----------------------------------------------------------------------------##

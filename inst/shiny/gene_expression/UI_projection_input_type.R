@@ -7,7 +7,7 @@ output[["expression_projection_input_type_UI"]] <- renderUI({
     selectizeInput(
       'expression_genes_input',
       label = 'Gene(s)',
-      choices = data.table::as.data.table(data.frame("Genes" = getGeneNames())),
+      choices = NULL,
       multiple = TRUE,
       options = list(
         create = TRUE
@@ -17,10 +17,19 @@ output[["expression_projection_input_type_UI"]] <- renderUI({
     selectizeInput(
       'expression_select_gene_set',
       label = 'Gene set',
-      choices = data.table::as.data.table(
-        data.frame("Gene sets" = c("-", msigdbr:::msigdbr_genesets$gs_name))
-      ),
+      choices = c("-", msigdbr:::msigdbr_genesets$gs_name),
       multiple = FALSE
     )
   }
+})
+
+## update gene list on server side
+observeEvent(input[["expression_analysis_mode"]], {
+  req(input[["expression_analysis_mode"]] == "Gene(s)")
+  updateSelectizeInput(
+    session,
+    'expression_genes_input',
+    choices = getGeneNames(),
+    server = TRUE
+  )
 })

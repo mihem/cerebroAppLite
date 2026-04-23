@@ -160,19 +160,25 @@ spatial_projection_update_plot <- function(input) {
     ## prepare trace for each group of the catergorical coloring variable and
     ## send request to update projection to JavaScript function (2D/3D)
     if ( plot_parameters[['n_dimensions']] == 2 ) {
+      
+      # Optimization: Group cells by color category to avoid repeated full scans
+      cells_by_group <- split(seq_along(color_input), color_input)
+      
       i <- 1
       for ( j in names(color_assignments) ) {
         output_meta[['traces']][[i]] <- j
-        cells_to_extract <- which(color_input==j)
+        
+        # Get indices for this group (NULL if not present)
+        cells_to_extract <- cells_by_group[[j]]
+        
         output_data[['x']][[i]] <- coordinates[[1]][cells_to_extract]
         output_data[['y']][[i]] <- coordinates[[2]][cells_to_extract]
         output_data[['color']][[i]] <- unname(color_assignments[which(names(color_assignments)==j)])
+        
         if ( plot_parameters[["hover_info"]] ) {
-          hover_info_matched <- match(
-            metadata[['cell_barcode']][cells_to_extract],
-            names(hover_info)
-          )
-          output_hover[['text']][[i]] <- unname(hover_info[hover_info_matched])
+          # Optimization: Direct indexing instead of match()
+          # hover_info is already aligned with metadata/color_input
+          output_hover[['text']][[i]] <- unname(hover_info[cells_to_extract])
         }
         i <- i + 1
       }
@@ -190,20 +196,25 @@ spatial_projection_update_plot <- function(input) {
         container_info
       )
     } else if ( plot_parameters[['n_dimensions']] == 3 ) {
+      
+      # Optimization: Group cells by color category
+      cells_by_group <- split(seq_along(color_input), color_input)
+      
       i <- 1
       for ( j in names(color_assignments) ) {
         output_meta[['traces']][[i]] <- j
-        cells_to_extract <- which(color_input==j)
+        
+        # Get indices for this group
+        cells_to_extract <- cells_by_group[[j]]
+        
         output_data[['x']][[i]] <- coordinates[[1]][cells_to_extract]
         output_data[['y']][[i]] <- coordinates[[2]][cells_to_extract]
         output_data[['z']][[i]] <- coordinates[[3]][cells_to_extract]
         output_data[['color']][[i]] <- unname(color_assignments[which(names(color_assignments)==j)])
+        
         if ( plot_parameters[["hover_info"]] ) {
-          hover_info_matched <- match(
-            metadata[['cell_barcode']][cells_to_extract],
-            names(hover_info)
-          )
-          output_hover[['text']][[i]] <- unname(hover_info[hover_info_matched])
+          # Optimization: Direct indexing
+          output_hover[['text']][[i]] <- unname(hover_info[cells_to_extract])
         }
         i <- i + 1
       }

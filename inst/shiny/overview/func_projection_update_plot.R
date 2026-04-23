@@ -94,19 +94,20 @@ overview_projection_update_plot <- function(input) {
     ## prepare trace for each group of the catergorical coloring variable and
     ## send request to update projection to JavaScript function (2D/3D)
     if ( plot_parameters[['n_dimensions']] == 2 ) {
+      indices_by_group <- split(seq_along(color_input), as.character(color_input))
       i <- 1
       for ( j in names(color_assignments) ) {
+        if ( is.null(indices_by_group[[j]]) ) next
+
         output_meta[['traces']][[i]] <- j
-        cells_to_extract <- which(color_input==j)
+        cells_to_extract <- indices_by_group[[j]]
+
         output_data[['x']][[i]] <- coordinates[[1]][cells_to_extract]
         output_data[['y']][[i]] <- coordinates[[2]][cells_to_extract]
-        output_data[['color']][[i]] <- unname(color_assignments[which(names(color_assignments)==j)])
+        output_data[['color']][[i]] <- unname(color_assignments[j])
+
         if ( plot_parameters[["hover_info"]] ) {
-          hover_info_matched <- match(
-            cells_df[['cell_barcode']][cells_to_extract],
-            names(hover_info)
-          )
-          output_hover[['text']][[i]] <- unname(hover_info[hover_info_matched])
+          output_hover[['text']][[i]] <- unname(hover_info[cells_to_extract])
         }
         i <- i + 1
       }
@@ -123,20 +124,21 @@ overview_projection_update_plot <- function(input) {
         output_group_centers
       )
     } else if ( plot_parameters[['n_dimensions']] == 3 ) {
+      indices_by_group <- split(seq_along(color_input), as.character(color_input))
       i <- 1
       for ( j in names(color_assignments) ) {
+        if ( is.null(indices_by_group[[j]]) ) next
+
         output_meta[['traces']][[i]] <- j
-        cells_to_extract <- which(color_input==j)
+        cells_to_extract <- indices_by_group[[j]]
+
         output_data[['x']][[i]] <- coordinates[[1]][cells_to_extract]
         output_data[['y']][[i]] <- coordinates[[2]][cells_to_extract]
         output_data[['z']][[i]] <- coordinates[[3]][cells_to_extract]
-        output_data[['color']][[i]] <- unname(color_assignments[which(names(color_assignments)==j)])
+        output_data[['color']][[i]] <- unname(color_assignments[j])
+
         if ( plot_parameters[["hover_info"]] ) {
-          hover_info_matched <- match(
-            cells_df[['cell_barcode']][cells_to_extract],
-            names(hover_info)
-          )
-          output_hover[['text']][[i]] <- unname(hover_info[hover_info_matched])
+          output_hover[['text']][[i]] <- unname(hover_info[cells_to_extract])
         }
         i <- i + 1
       }

@@ -159,15 +159,19 @@ server <- function(input, output, session) {
   data_set <- reactive({
     dataset_to_load <- available_crb_files$selected
     req(!is.null(dataset_to_load))
-    if (exists(dataset_to_load)) {
-      print(glue::glue("[{Sys.time()}] Load from variable: {dataset_to_load}"))
-      data <- get(dataset_to_load)
-    } else {
-      ## log message
-      print(glue::glue("[{Sys.time()}] File to load: {dataset_to_load}"))
-      ## read the file
-      data <- read_cerebro_file(dataset_to_load)
-    }
+    
+    withProgress(message = 'Loading data...', value = 0.5, {
+      if (exists(dataset_to_load)) {
+        print(glue::glue("[{Sys.time()}] Load from variable: {dataset_to_load}"))
+        data <- get(dataset_to_load)
+      } else {
+        ## log message
+        print(glue::glue("[{Sys.time()}] File to load: {dataset_to_load}"))
+        ## read the file
+        data <- read_cerebro_file(dataset_to_load)
+      }
+    })
+
     ## log message
     # message(data$print())
     ## use print(data) instead of data$print() because R6 objects don't have a print member by default

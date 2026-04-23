@@ -23,7 +23,8 @@ tab_overview <- tabItem(
       "updatePlot2DContinuous",
       "updatePlot3DContinuous",
       "updatePlot2DCategorical",
-      "updatePlot3DCategorical"
+      "updatePlot3DCategorical",
+      "overviewClearSelection"
     )
   ),
   uiOutput("overview_projection_UI"),

@@ -3,12 +3,15 @@
 ##----------------------------------------------------------------------------##
 expression_projection_expression_levels <- reactive({
   req(
-    expression_projection_data(),
+    expression_projection_cells_to_show(),
     expression_selected_genes()
   )
   # message('--> trigger "expression_projection_expression_levels"')
+  cells_to_show <- expression_projection_cells_to_show()
+  n_cells <- length(cells_to_show)
+
   if ( length(expression_selected_genes()$genes_to_display_present) == 0 ) {
-    expression_levels <- rep(0, nrow(expression_projection_data()))
+    expression_levels <- rep(0, n_cells)
   } else {
     req(expression_projection_coordinates())
     if (
@@ -26,18 +29,21 @@ expression_projection_expression_levels <- reactive({
     } else if (length(expression_selected_genes()$genes_to_display_present) == 1) {
       expression_levels <- data_set()$expression[expression_selected_genes()$genes_to_display_present,]
       if(is.numeric(expression_levels)) {
-       expression_levels <- unname(expression_levels)
+        expression_levels <- unname(expression_levels)
       }
       if (is(expression_levels, "IterableMatrix")) {
       expression_levels <- as.numeric(as(expression_levels, "matrix"))
       }
-      expression_levels <- expression_levels[isolate(expression_projection_cells_to_show())]
+      expression_levels <- expression_levels[cells_to_show]
     } else if (length(expression_selected_genes()$genes_to_display_present) >= 2) {
       expression_levels <- data_set()$expression[expression_selected_genes()$genes_to_display_present,]
-      expression_levels <- as.matrix(expression_levels)
-      expression_levels <- colMeans(expression_levels)
+      if (inherits(expression_levels, "Matrix") || inherits(expression_levels, "dgCMatrix")) {
+        expression_levels <- Matrix::colMeans(expression_levels)
+      } else {
+        expression_levels <- colMeans(as.matrix(expression_levels))
+      }
       expression_levels <- unname(expression_levels)
-      expression_levels <- expression_levels[isolate(expression_projection_cells_to_show())]
+      expression_levels <- expression_levels[cells_to_show]
     }
   }
   # message(str(expression_levels))

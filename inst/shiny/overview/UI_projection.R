@@ -90,13 +90,26 @@ output[["overview_projection_UI"]] <- renderUI({
             plotly::plotlyOutput(
               "overview_projection",
               width = "auto",
-              height = "85vh"
+              height = "calc(100vh - 200px)"
             ),
             type = 8,
             hide.ui = FALSE
           ),
           tags$br(),
-          htmlOutput("overview_number_of_selected_cells"),
+          fluidRow(
+            column(width = 8,
+              htmlOutput("overview_number_of_selected_cells")
+            ),
+            column(width = 4, style = "text-align: right;",
+              actionButton(
+                inputId = "overview_projection_clear_selection",
+                label = "Clear selection",
+                icon = icon("eraser"),
+                class = "btn-xs btn-default",
+                style = "margin-top: 5px;"
+              )
+            )
+          )
         )
       )
     )

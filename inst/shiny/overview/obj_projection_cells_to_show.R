@@ -5,33 +5,55 @@ overview_projection_cells_to_show <- reactive({
   req(input[["overview_projection_percentage_cells_to_show"]])
   # message('--> trigger "overview_projection_cells_to_show"')
   groups <- getGroups()
-  ## require group filters UI elements and at least 1 group level to be selected
+
+  ## require group filters UI elements
   for ( i in groups ) {
     req(input[[paste0("overview_projection_group_filter_", i)]])
   }
+
   pct_cells <- input[["overview_projection_percentage_cells_to_show"]]
-  group_filters <- list()
-  ## store group filters
+
+  ## Get metadata with row indices directly
+  cells_df <- getMetaData()
+  valid_indices <- seq_len(nrow(cells_df))
+
+  ## Apply filters iteratively using logical indexing
   for ( i in groups ) {
-    group_filters[[i]] <- input[[paste0("overview_projection_group_filter_", i)]]
-  }
-  cells_df <- getMetaData() %>%
-    dplyr::mutate(row_id = row_number())
-  ## remove cells based on group filters
-  for ( i in groups ) {
-    ## make sure that group exists in meta data (as column) and that selected
-    ## groups are not NULL, then subset the data frame
     if ( i %in% colnames(cells_df) ) {
-      cells_df <- cells_df[which(cells_df[[i]] %in% group_filters[[i]] ),]
+      selected_groups <- input[[paste0("overview_projection_group_filter_", i)]]
+      ## Only filter if not all groups are selected (optimization)
+      if (!is.null(selected_groups) && length(selected_groups) < length(unique(cells_df[[i]]))) {
+         keep <- cells_df[[i]] %in% selected_groups
+         valid_indices <- valid_indices[keep[valid_indices]]
+      }
     }
   }
-  cells_df <- cells_df %>%
-    dplyr::select(cell_barcode, row_id)
+
+  ## Subset using indices
+  if (length(valid_indices) < nrow(cells_df)) {
+    cells_df_subset <- cells_df[valid_indices, , drop = FALSE]
+  } else {
+    cells_df_subset <- cells_df
+  }
+
   ## randomly remove cells (if necessary)
-  cells_df <- randomlySubsetCells(cells_df, pct_cells)
-  ## put rows in random order
-  cells_df <- cells_df[ sample(1:nrow(cells_df)) , ]
-  cells_to_show <- cells_df$row_id
-  # message(str(cells_to_show))
-  return(cells_to_show)
+  ## Note: randomlySubsetCells likely expects a dataframe and returns a dataframe
+  ## We need to ensure we track the original indices
+
+  if (pct_cells < 100) {
+    n_to_keep <- ceiling(nrow(cells_df_subset) * (pct_cells / 100))
+    if (n_to_keep > 0) {
+       sampled_indices <- sample(valid_indices, n_to_keep)
+       valid_indices <- sampled_indices
+    } else {
+       valid_indices <- integer(0)
+    }
+  }
+
+  ## put rows in random order for plotting (avoid overplotting bias)
+  if (length(valid_indices) > 0) {
+    valid_indices <- sample(valid_indices)
+  }
+
+  return(valid_indices)
 })
