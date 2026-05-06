@@ -161,43 +161,13 @@ server <- function(input, output, session) {
       ))
       data <- get(dataset_to_load)
     } else {
-      ## log message
-      print(glue::glue(
-        "[{Sys.time()}] Load data set from file: {dataset_to_load}"
-      ))
-      ## read the file
-      data <- readRDS(dataset_to_load)
-      if (
-        exists("Cerebro.options") &&
-          Cerebro.options[["expression_matrix_mode"]] == "h5"
-      ) {
-        print(glue::glue(
-          "[{Sys.time()}] Loading h5 expression matrix from: {Cerebro.options[['expression_matrix_h5']]}"
-        ))
-        expression_matrix <- t(HDF5Array::TENxMatrix(
-          Cerebro.options[["expression_matrix_h5"]],
-          group = "expression"
-        ))
-        data$expression <- expression_matrix
-      } else if (
-        exists("Cerebro.options") &&
-          Cerebro.options[["expression_matrix_mode"]] == "BPCells"
-      ) {
-        print(glue::glue(
-          "[{Sys.time()}] Loading BPCells expression matrix from: {Cerebro.options[['expression_matrix_BPCells']]}"
-        ))
-        expression_matrix <- BPCells::open_matrix_dir(Cerebro.options[[
-          "expression_matrix_BPCells"
-        ]])
-        data$expression <- expression_matrix
-      } else if (
-        exists("Cerebro.options") &&
-          Cerebro.options[["expression_matrix_mode"]] == "crb"
-      ) {
-        message(
-          "expression_matrix_mode is set to 'crb', skipping loading expression matrix"
-        )
-      }
+      ## Route through the process-level cache defined in utility_functions.R.
+      ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch) and
+      ## then re-attaches external expression backends (bpcells / h5) using
+      ## paths rooted at the crb's parent directory. Cerebro.options can still
+      ## override the matrix path via expression_matrix_BPCells /
+      ## expression_matrix_h5 -- the helper picks that up internally.
+      data <- get_or_load_crb(dataset_to_load)
     }
     ## log message
     message(data$print())

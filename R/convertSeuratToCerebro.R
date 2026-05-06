@@ -332,6 +332,7 @@ convertSeuratToCerebro <- function(seurat_file,
                                     nGene = "nFeature_RNA",
                                     add_all_meta_data = TRUE,
                                     use_delayed_array = FALSE,
+                                    expression_matrix_mode = c("embedded", "bpcells", "h5"),
                                     verbose = TRUE,
                                     cell_cycle = NULL,
                                     marker_file = NULL,
@@ -339,7 +340,9 @@ convertSeuratToCerebro <- function(seurat_file,
                                     add_most_expressed_genes = TRUE,
                                     most_expressed_genes = NULL,
                                     bcr_file = NULL,
-                                    tcr_file = NULL) {
+                                    tcr_file = NULL,
+                                    format = "rds") {
+  expression_matrix_mode <- match.arg(expression_matrix_mode)
   if (!file.exists(seurat_file)) {
     stop("seurat_file not found: ", seurat_file, call. = FALSE)
   }
@@ -669,7 +672,9 @@ convertSeuratToCerebro <- function(seurat_file,
       add_all_meta_data = add_all_meta_data,
       cell_cycle = cell_cycle,
       verbose = verbose,
-      use_delayed_array = use_delayed_array
+      use_delayed_array = use_delayed_array,
+      expression_matrix_mode = expression_matrix_mode,
+      format = format
     )
     cat("Successfully exported:", file_name, "\n")
   }, error = function(e) {
