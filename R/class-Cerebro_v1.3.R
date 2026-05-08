@@ -324,7 +324,7 @@ Cerebro_v1.3 <- R6::R6Class(
 
       ## check what kind of matrix the transcription counts are stored as
       ## ... DelayedArray / RleMatrix
-      if ( class(self$expression) == 'RleMatrix' ) {
+      if ( inherits(self$expression, 'RleMatrix') ) {
 
         ## get indices of specified genes
         gene_indices <- match(genes, rownames(self$expression))
@@ -369,7 +369,7 @@ Cerebro_v1.3 <- R6::R6Class(
 
       ## check what kind of matrix the transcription counts are stored as
       ## ... DelayedArray / RleMatrix
-      if ( class(self$expression) == 'RleMatrix' ) {
+      if ( inherits(self$expression, 'RleMatrix') ) {
 
         ## if cell names were provided, get their indices
         if (
@@ -440,7 +440,7 @@ Cerebro_v1.3 <- R6::R6Class(
 
       ## check what kind of matrix the transcription counts are stored as
       ## ... DelayedArray / RleMatrix
-      if ( class(self$expression) == 'RleMatrix' ) {
+      if ( inherits(self$expression, 'RleMatrix') ) {
 
         ## if cell names were provided, get their indices
         if (
