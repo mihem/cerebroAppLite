@@ -2,6 +2,7 @@
 cerebroApp.Rcheck
 cerebroApp_*.tar.gz
 .Rhistory
+.Rprofile
 vignettes/*.crb
 docs
 .Rproj.user
