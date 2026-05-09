@@ -5,6 +5,8 @@ on:
     branches: [master, dev]
   pull_request:
     branches: [master, dev]
+  schedule:
+    - cron: "0 23 * * 0"  # every Sunday at 23:00 UTC = Monday 01:00 Berlin time (CEST)
   workflow_dispatch: # This adds the manual trigger
     inputs:
       reason:
@@ -31,6 +33,9 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
+
+      ## Cache the Nix store across runs (7-day TTL on GitHub Actions cache)
+      - uses: DeterminateSystems/magic-nix-cache-action@main
 
       ## Enable the rstats-on-nix binary cache for pre-built R packages
       - uses: cachix/cachix-action@v17
