@@ -47,7 +47,8 @@ rix(
     "viridis"
   ),
   system_pkgs = c(
-    "chromium"     # headless browser for shinytest2
+    "chromium",     # headless browser for shinytest2
+    "pandoc"     # required for building vignettes
   ),
   git_pkgs = list(
     # BPCells is not on CRAN, install from GitHub
