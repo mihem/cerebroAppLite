@@ -5,6 +5,12 @@ on:
     branches: [master, dev]
   pull_request:
     branches: [master, dev]
+  workflow_dispatch: # This adds the manual trigger
+    inputs:
+      reason:
+        description: 'Reason for manual run'
+        required: false
+        default: 'Testing cache'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
