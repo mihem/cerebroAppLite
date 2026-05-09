@@ -1,6 +1,3 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
-
 name: R-CMD-check
 
 on:
@@ -10,13 +7,17 @@ on:
     branches: [master, dev]
   schedule:
     - cron: "0 0 * * 0"  # every Sunday at 00:00 UTC
-  workflow_dispatch: # This adds the manual trigger
+  # for manual trigger
+  workflow_dispatch:
     inputs:
       reason:
         description: 'Reason for manual run'
         required: false
         default: 'Testing cache'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions: read-all
 
@@ -26,17 +27,42 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+
     steps:
       - uses: actions/checkout@v6
 
-      - uses: r-lib/actions/setup-r@v2
+      - name: Create this folder to silence warning
+        run: mkdir -p ~/.nix-defexpr/channels
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      
+      # enable binary caches for faster installs: rstats-on-nix for many R packages
+      - uses: cachix/cachix-action@v17
         with:
-          extra-packages: any::rcmdcheck
-          needs: check
+          name: rstats-on-nix
 
-      - uses: r-lib/actions/check-r-package@v2
+      # enable mihem cache for BPCells and any other packages not in rstats-on-nix
+      - uses: cachix/cachix-action@v17
         with:
-          upload-snapshots: true
-          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+          name: mihem
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # Install R package dependencies via nix-shell, using the default.nix file in the repository
+      - name: Install R package dependencies
+        run: nix-shell default.nix --run "echo 'R package dependencies installed'"
+
+      # Run R CMD check via devtools::check()
+      - name: Run R-CMD-check
+        run: |
+          nix-shell default.nix --run "Rscript -e \"
+            devtools::check(error_on = 'error')
+          \""
+
+      - name: Upload check results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-cmd-check-results
+          path: "*.Rcheck/"
+          retention-days: 14
