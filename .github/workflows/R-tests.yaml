@@ -42,6 +42,10 @@ jobs:
         with:
           name: rstats-on-nix
 
+      # Install R package dependencies via nix-shell, using the default.nix file in the repository
+      - name: Install R package dependencies
+        run: nix-shell default.nix --run "echo 'R package dependencies installed'"
+
       ## Unit tests — load package from source via devtools::load_all(), no install needed
       - name: Run unit tests
         run: |
