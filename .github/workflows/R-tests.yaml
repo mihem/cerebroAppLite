@@ -1,0 +1,65 @@
+name: R Tests
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create this folder to silence warning
+        run: mkdir -p ~/.nix-defexpr/channels
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      ## Enable the rstats-on-nix binary cache for pre-built R packages
+      - uses: cachix/cachix-action@v17
+        with:
+          name: rstats-on-nix
+
+      ## Unit tests — load package from source via devtools::load_all(), no install needed
+      - name: Run unit tests
+        run: |
+          nix-shell default.nix --run "Rscript -e \"
+            devtools::load_all('.')
+            testthat::test_file('tests/testthat/test-r-functions.R',
+              reporter = testthat::default_reporter(),
+              stop_on_failure = TRUE)
+            testthat::test_file('tests/testthat/test-exportFromSeurat.R',
+              reporter = testthat::default_reporter(),
+              stop_on_failure = TRUE)
+          \""
+
+      ## shinytest2 integration tests — inst/app.R uses only library() calls, no cerebroAppLite needed
+      - name: Run shinytest2 integration tests
+        run: |
+          nix-shell default.nix --run "Rscript -e \"
+            testthat::test_file('tests/testthat/test-app-inst.R',
+              reporter = testthat::default_reporter(),
+              stop_on_failure = TRUE)
+          \""
+
+      ## Upload shinytest2 failure artifacts (PNG diffs, logs) — unit test failures are in the log
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shinytest2-failures
+          path: |
+            tests/testthat/_snaps/
+            /tmp/shinytest2*
+          retention-days: 14
