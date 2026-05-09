@@ -170,3 +170,46 @@ test_that("{shinytest2} recording: gene_expression", {
 
   app$stop()
 })
+
+test_that("{shinytest2} recording: gene_id_conversion", {
+  local_app_support(test_path("../../inst"))
+  app <- AppDriver$new(test_path("../../inst"), name = "gene_id_conversion", height = 950, width = 1619)
+  app$wait_for_idle(timeout = 20000)
+
+  app$set_inputs(sidebar = "geneIdConversion")
+  app$wait_for_idle(timeout = 10000)
+
+  table_val <- app$get_value(output = "gene_info")
+  expect_false(is.null(table_val))
+
+  app$stop()
+})
+
+test_that("{shinytest2} recording: color_management", {
+  local_app_support(test_path("../../inst"))
+  app <- AppDriver$new(test_path("../../inst"), name = "color_management", height = 950, width = 1619)
+  app$wait_for_idle(timeout = 20000)
+
+  app$set_inputs(sidebar = "color_management")
+  app$wait_for_idle(timeout = 10000)
+
+  ui_val <- app$get_value(output = "color_assignments_UI")
+  expect_false(is.null(ui_val))
+
+  app$stop()
+})
+
+test_that("{shinytest2} recording: about", {
+  local_app_support(test_path("../../inst"))
+  app <- AppDriver$new(test_path("../../inst"), name = "about", height = 950, width = 1619)
+  app$wait_for_idle(timeout = 20000)
+
+  app$set_inputs(sidebar = "about")
+  app$wait_for_idle(timeout = 10000)
+
+  about_text <- app$get_value(output = "about")
+  expect_false(is.null(about_text))
+  expect_true(nchar(about_text) > 0)
+
+  app$stop()
+})
