@@ -213,9 +213,12 @@ exportFromSeurat <- function(
   ##--------------------------------------------------------------------------##
 
   ## get expression data
-  expression_data <- try(
-    Seurat::GetAssayData(object, assay = assay, slot = slot),
-    silent = TRUE
+  ## Seurat v5 renamed the 'slot' argument to 'layer'; try both
+  expression_data <- tryCatch(
+    Seurat::GetAssayData(object, assay = assay, layer = slot),
+    error = function(e) {
+      try(Seurat::GetAssayData(object, assay = assay, slot = slot), silent = TRUE)
+    }
   )
 
   ## check if provided slot exists in provided assay
