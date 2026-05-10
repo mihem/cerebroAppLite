@@ -101,7 +101,7 @@ pbmc <- getMarkerGenes(
   test = 'wilcox',
   verbose = TRUE
 )
-#> [11:36:09] Get marker genes for 2 groups in `sample`...
+#> [12:14:28] Get marker genes for 2 groups in `sample`...
 #> Calculating cluster pbmc_1
 #> For a (much!) faster implementation of the Wilcoxon Rank Sum Test,
 #> (default method for FindMarkers) please install the presto package
@@ -118,7 +118,7 @@ pbmc <- getMarkerGenes(
 #> Warning: cannot compute exact p-value with ties
 #> Warning: cannot compute exact p-value with ties
 #> Warning: cannot compute exact p-value with ties
-#> [11:36:09] Get marker genes for 2 groups in `seurat_clusters`...
+#> [12:14:28] Get marker genes for 2 groups in `seurat_clusters`...
 #> Calculating cluster 0
 #> Calculating cluster 1
 ```

@@ -2,9 +2,10 @@
 
 ## Authors
 
-- **Roman Hillje**. Author, maintainer.
+- **Michael Heming**. Author, maintainer.
+  [](https://orcid.org/0000-0002-9568-2790)
 
-- **Mischko Heming**. Author.
+- **Roman Hillje**. Author.
 
 ## Citation
 
