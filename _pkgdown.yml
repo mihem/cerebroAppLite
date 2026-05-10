@@ -9,12 +9,15 @@ home:
 
 navbar:
   structure:
-    left: [intro, reference, articles, news]
-    right: [github]
+    left: [home, reference, articles, news]
+    right: [github, homepage]
   components:
     github:
       icon: fab fa-github
       href: https://github.com/mihem/cerebroAppLite
+    homepage:
+      icon: fas fa-globe
+      href: https://mheming.com/
 
 reference:
   - title: "Launch Cerebro"
