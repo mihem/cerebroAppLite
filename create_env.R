@@ -11,6 +11,8 @@ rix(
     "devtools",
     "testthat",
     "shinytest2",
+    "formattable",
+    "stringr",
     "shinyvalidate",
     "Seurat",
     # runtime deps (CRAN)
