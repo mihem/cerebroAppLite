@@ -1,5 +1,5 @@
 # Run this script to regenerate default.nix after changing dependencies.
-# You need rix installed: nix-shell -p rPackages.rix R --run R
+# You need rix installed: nix-shell -p rPackages.rix R --run "Rscript create_env.R"
 # Then source this file.
 
 library(rix)
