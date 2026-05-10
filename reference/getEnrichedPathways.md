@@ -1,0 +1,76 @@
+# Get enriched pathways based on marker genes from EnrichR.
+
+This function uses the enrichR API to look for enriched pathways in
+marker gene sets of all available grouping variables.
+
+## Usage
+
+``` r
+getEnrichedPathways(
+  object,
+  marker_genes_input = "cerebro_seurat",
+  databases = c("GO_Biological_Process_2018", "GO_Cellular_Component_2018",
+    "GO_Molecular_Function_2018", "KEGG_2016", "WikiPathways_2016", "Reactome_2016",
+    "Panther_2016", "Human_Gene_Atlas", "Mouse_Gene_Atlas"),
+  adj_p_cutoff = 0.05,
+  max_terms = 100,
+  URL_API = "http://maayanlab.cloud/Enrichr"
+)
+```
+
+## Arguments
+
+- object:
+
+  Seurat object with marker genes calculated by
+  [`getMarkerGenes`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md).
+
+- marker_genes_input:
+
+  Name of list of marker gene tables that will be used as input. This
+  could be the "name" parameter used in
+  [`getMarkerGenes`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md).
+  Enriched pathways will be calculated for every group level of every
+  grouping variable. Defaults to "cerebro_seurat".
+
+- databases:
+
+  Which databases to query. Use enrichR::listEnrichrDbs() to check what
+  databases are available.
+
+- adj_p_cutoff:
+
+  Cut-off for adjusted p-value of enriched pathways; defaults to 0.05,
+
+- max_terms:
+
+  Save only first n entries of each database; defaults to 100.
+
+- URL_API:
+
+  URL to send requests to (Enrichr API). Allows to overwrite default URL
+  with an alternative taken from the Enrichr website in case the
+  original is out-of-service; defaults to
+  'http://maayanlab.cloud/Enrichr'.
+
+## Value
+
+Seurat object with Enrichr results for all provided grouping variables,
+stored in `object@misc$enriched_pathways$<marker_genes_input>_enrichr`
+
+## Examples
+
+``` r
+if (interactive()) {
+  pbmc <- readRDS(system.file("extdata/v1.4/pbmc_seurat.rds",
+    package = "cerebroAppLite"))
+  pbmc <- getEnrichedPathways(
+    object = pbmc,
+    marker_genes_input = 'cerebro_seurat',
+    databases = c('GO_Biological_Process_2018'),
+    adj_p_cutoff = 0.01,
+    max_terms = 100,
+    URL_API = 'http://maayanlab.cloud/Enrichr'
+  )
+}
+```

@@ -1,0 +1,97 @@
+# Control access to Cerebro with a login page
+
+## Overview
+
+When hosting Cerebro on a web server, it can be useful to control who
+has access to it, especially, when it is pre-loaded with a data set (see
+[`vignette('launch_cerebro_with_pre-loaded_data_set')`](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md)).
+This can be done with the
+[`shinymanager`](https://cran.r-project.org/web/packages/shinymanager/index.html)
+package, however some (minor) adjustments must be made to the source
+code of Cerebro.
+
+## Preparation
+
+### `app.R`
+
+At the top of the `app.R` file, add the `shinymanager` package to be
+loaded alongside other packages that are required by Cerebro:
+
+``` r
+## load packages -------------------------------------------------------------##
+library(shinymanager)
+library(dplyr)
+library(DT)
+# ...
+```
+
+### `shiny_server.R`
+
+Add this to the top of the `shiny_server.R` file, before the definition
+of the `server` function starts:
+
+``` r
+user_credentials <- tibble::tribble(
+   ~user,              ~password,       ~start, ~expire, ~admin,
+  "user1", "reallygoodpassword1", "2020-08-01",      NA,  FALSE,
+  "user2", "reallygoodpassword2", "2020-09-01",      NA,  FALSE
+)
+```
+
+Within the definition of the `server` function, right at the top, add
+this:
+
+``` r
+res_auth <- shinymanager::secure_server(
+  check_credentials = shinymanager::check_credentials(user_credentials)
+)
+```
+
+The head of the `shiny_server.R` file should now look similar to this:
+
+``` r
+## define users that can access Cerebro --------------------------------------##
+user_credentials <- tibble::tribble(
+   ~user,              ~password,       ~start, ~expire, ~admin,
+  "user1", "reallygoodpassword1", "2020-08-01",      NA,  FALSE,
+  "user2", "reallygoodpassword2", "2020-09-01",      NA,  FALSE
+)
+
+## server function -----------------------------------------------------------##
+server <- function(input, output, session) {
+  
+  ## check user authentication -----------------------------------------------##
+  res_auth <- secure_server(
+    check_credentials = check_credentials(user_credentials)
+  )
+# ...
+```
+
+### `shiny_UI.R`
+
+At the end of the file, after the definition of the `ui` function, add
+this:
+
+``` r
+ui <- shinymanager::secure_app(ui)
+```
+
+## Usage
+
+[![Login
+screen](control_access_to_cerebro_with_a_login_page_files/login_screen.png)](https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page_files/login_screen.png)
+
+Now, when opening the Cerebro user interface, user have to authenticate
+themselves as one of the users in the `user_credentials` data frame. Of
+course, the use credentials can also be loaded from a file, which might
+be easier to manage.
+
+Thanks to Michael Heming from the University of Münster for pointing
+this possibility out and sharing his implementation.
+
+## See also
+
+- [Launch Cerebro with pre-loaded data
+  set](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md)
+- [Host Cerebro on
+  shinyapps.io](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md)
