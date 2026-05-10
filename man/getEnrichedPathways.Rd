@@ -49,13 +49,6 @@ gene sets of all available grouping variables.
 if (interactive()) {
   pbmc <- readRDS(system.file("extdata/v1.4/pbmc_seurat.rds",
     package = "cerebroAppLite"))
-  ## inject minimal marker genes so the example can run without prior
-  ## getMarkerGenes() call
-  if (is.null(pbmc@misc$marker_genes)) pbmc@misc$marker_genes <- list()
-  pbmc@misc$marker_genes$cerebro_seurat <- list(
-    sample = data.frame(gene = c("CD3D", "FCN1"), cluster = c("s1", "s2"),
-      stringsAsFactors = FALSE)
-  )
   pbmc <- getEnrichedPathways(
     object = pbmc,
     marker_genes_input = 'cerebro_seurat',
