@@ -45,7 +45,15 @@ jobs:
       - name: Install cerebroAppLite
         run: |
           nix-shell default.nix --run "Rscript -e \"
-             devtools::install(quiet = TRUE)
+            lib <- Sys.getenv('R_LIBS_USER')
+            dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+            install.packages('.', repos = NULL, type = 'source', lib = lib)
+          \""
+
+      - name: Build pkgdown site
+        run: |
+          nix-shell default.nix --run "Rscript -e \"
+            pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
           \""
       
       - name: Build pkgdown site
