@@ -48,7 +48,7 @@
 #'
 #' @importFrom biomaRt getBM useMart
 #' @import dplyr
-#' @importFrom rlang .data
+#' @importFrom rlang .data :=
 #' @importFrom tidyselect all_of any_of
 #'
 #' @export
@@ -92,7 +92,7 @@ getMarkerGenes <- function(
   }
 
   ## check if provided object is of class "Seurat"
-  if ( class(object) != "Seurat" ) {
+  if ( !inherits(object, "Seurat") ) {
     stop(
       paste0(
         "Provided object is of class `", class(object), "` but must be of class 'Seurat'."
