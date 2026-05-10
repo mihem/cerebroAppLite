@@ -9,12 +9,8 @@ home:
 
 navbar:
   structure:
-    left: [home, reference, articles, news]
     right: [search, github, homepage]
   components:
-    home:
-      text: Home
-      href: index.html
     github:
       icon: fab fa-github
       href: https://github.com/mihem/cerebroAppLite
