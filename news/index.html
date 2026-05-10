@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.5.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,6 +58,40 @@
       <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.6.0" id="cerebroapplite-160">cerebroAppLite 1.6.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-160"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-1-6-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-6-0"></a></h3>
+<ul><li>Fixed all errors and warnings identified by R CMD CHECK, making the package ready for CRAN submission</li>
+<li>Fixed Seurat v5 API: replaced deprecated slot access (<code>@counts</code>, <code>@data</code>) with <code><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData()</a></code> across multiple functions</li>
+<li>Fixed <code>addPercentMtRibo</code>, <code>calculatePercentGenes</code>, <code>getMostExpressedGenes</code>, <code>performGeneSetEnrichmentAnalysis</code>, <code>getMarkerGenes</code>, <code>getEnrichedPathways</code>, <code>exportFromSCE</code>, <code>exportFromSeurat</code>
+</li>
+<li>Fixed GSVA v2.x API compatibility: now uses <code>gsvaParam()</code> with version check for backward compatibility</li>
+<li>Fixed <code>class(x) == "..."</code> checks replaced with <code><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits()</a></code> across all relevant functions</li>
+<li>Fixed <code><a href="https://rdrr.io/r/base/library.html" class="external-link">require()</a></code> replaced with <code><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace()</a></code> throughout</li>
+<li>Fixed cross-references and examples in documentation</li>
+</ul></div>
+<div class="section level3">
+<h3 id="testing-1-6-0">Testing<a class="anchor" aria-label="anchor" href="#testing-1-6-0"></a></h3>
+<ul><li>Added unit tests for all core R functions</li>
+<li>Added shinytest2 integration tests for the full Cerebro interface, covering gene expression, group/marker genes, color management, and more</li>
+<li>Tests run in a reproducible Nix environment via GitHub Actions</li>
+</ul></div>
+<div class="section level3">
+<h3 id="cicd-1-6-0">CI/CD<a class="anchor" aria-label="anchor" href="#cicd-1-6-0"></a></h3>
+<ul><li>Added Nix-based GitHub Actions workflows for R CMD CHECK, R tests, pkgdown, code style, and automatic <code>default.nix</code> updates</li>
+<li>Added <code>update-nix</code> workflow: regenerates <code>default.nix</code> weekly via <code>create_env.R</code> and opens a PR automatically; BPCells commit SHA is now auto-fetched from GitHub</li>
+<li>Added <code>style</code> workflow: formats R code via <a href="https://github.com/posit-dev/air" class="external-link">air</a> on every PR</li>
+<li>Added <code>sync-dev</code> workflow: automatically merges master back into dev after every merge to keep branches in sync</li>
+<li>Switched Nix environment to <code>bleeding-edge</code> for always up-to-date CRAN packages</li>
+<li>Branch protection rulesets configured for both <code>master</code> and <code>dev</code> with required status checks and auto-merge</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-1-6-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-1-6-0"></a></h3>
+<ul><li>Added pkgdown site at <a href="https://mihem.github.io/cerebroAppLite/" class="uri">https://mihem.github.io/cerebroAppLite/</a> with light/dark/auto theme switch, search, and all vignettes as articles</li>
+<li>Site automatically builds and deploys to GitHub Pages on push to master</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.5.3" id="cerebroapplite-153">cerebroAppLite 1.5.3<a class="anchor" aria-label="anchor" href="#cerebroapplite-153"></a></h2>
 <ul><li>several bug fixes so that launchCerebro should work again</li>
