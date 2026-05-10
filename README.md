@@ -1,5 +1,8 @@
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/mihem/cerebroAppLite/actions/workflows/R-cmd-check.yaml/badge.svg)](https://github.com/mihem/cerebroAppLite/actions/workflows/R-cmd-check.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Lifecycle: stable](https://lifecycle.r-lib.org/articles/figures/lifecycle-stable.svg)
+<!-- badges: end -->
 
 This is a continuation of the excellent [cerebroApp](https://github.com/romanhaa/cerebroApp) R package from [Roman Hillje](https://github.com/romanhaa), which was sadly discontinued.
 This is supposed to be a lightweight version that only keeps the key functions and focuses on speed.
