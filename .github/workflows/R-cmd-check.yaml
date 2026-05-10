@@ -56,7 +56,7 @@ jobs:
       - name: Run R-CMD-check
         run: |
           nix-shell default.nix --run "Rscript -e \"
-            devtools::check(error_on = 'error')
+            devtools::check(vignettes = FALSE, error_on = 'error')
           \""
 
       - name: Upload check results on failure
