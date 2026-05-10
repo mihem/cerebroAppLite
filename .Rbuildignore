@@ -11,3 +11,5 @@ TODO.md
 ^other_documents$
 ^pkgdown$
 ^result$
+^_pkgdown\.yml$
+^docs$

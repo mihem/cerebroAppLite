@@ -6,7 +6,8 @@ Authors@R: c(
   person("Mischko", "Heming", email = "mihem@mailbox.org", role = c("aut"))
   )
 Description: cerebroAppLite is a Shiny application that allows to interactively visualize scRNA-seq data. Data must be exported from a Seurat object.
-URL: 
+URL: https://mihem.github.io/cerebroAppLite/, https://github.com/mihem/cerebroAppLite
+BugReports: https://github.com/mihem/cerebroAppLite/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

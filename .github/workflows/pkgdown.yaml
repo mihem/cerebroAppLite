@@ -1,0 +1,63 @@
+name: pkgdown
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+
+permissions: read-all
+
+jobs:
+  pkgdown:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Create folder to silence Nix warning
+        run: mkdir -p ~/.nix-defexpr/channels
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: cachix/cachix-action@v17
+        with:
+          name: rstats-on-nix
+
+      - uses: cachix/cachix-action@v17
+        with:
+          name: mihem
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Install R package dependencies
+        run: nix-shell default.nix --run "echo 'R package dependencies installed'"
+
+      - name: Install cerebroAppLite
+        run: |
+          nix-shell default.nix --run "Rscript -e \"
+             devtools::install(quiet = TRUE)
+          \""
+      
+      - name: Build pkgdown site
+        run: |
+          nix-shell default.nix --run "Rscript -e \"
+            pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+           \""
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f # v4.8.0
+        with:
+          clean: false
+          branch: gh-pages
+          folder: docs

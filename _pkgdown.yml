@@ -1,0 +1,58 @@
+url: https://mihem.github.io/cerebroAppLite/
+
+template:
+  bootstrap: 5
+
+home:
+  title: cerebroAppLite
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [github]
+  components:
+    github:
+      icon: fab fa-github
+      href: https://github.com/mihem/cerebroAppLite
+
+reference:
+  - title: "Launch Cerebro"
+    contents:
+      - starts_with("launchCerebro")
+  - title: "Export data"
+    contents:
+      - starts_with("exportFrom")
+  - title: "Pre-processing"
+    contents:
+      - addPercentMtRibo
+      - calculatePercentGenes
+      - getMostExpressedGenes
+      - getMarkerGenes
+      - getEnrichedPathways
+      - performGeneSetEnrichmentAnalysis
+      - extractMonocleTrajectory
+  - title: "Internal"
+    contents:
+      - Cerebro_v1.3
+      - starts_with(".")
+
+articles:
+  - title: "Workflows"
+    navbar: Workflows
+    contents:
+      - cerebroApp_workflow_Seurat
+      - export_a_data_set_in_SCE_format
+  - title: "Cerebro interface"
+    navbar: Interface
+    contents:
+      - Cerebro_interface_v1.2
+      - overview_of_cerebro_v1.3_class
+      - release_notes_v1.3
+  - title: "How-to guides"
+    navbar: How-to
+    contents:
+      - create_expression_matrix_in_h5_format
+      - launch_cerebro_with_pre-loaded_data_set
+      - export_and_visualize_custom_tables_and_plots
+      - control_access_to_cerebro_with_a_login_page
+      - host_cerebro_on_shinyapps
