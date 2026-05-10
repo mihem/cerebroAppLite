@@ -3,14 +3,10 @@ url: https://mihem.github.io/cerebroAppLite/
 template:
   bootstrap: 5
   light-switch: true
-  bslib:
-    primary: "#18bc9c"
-    navbar-light-bg: "#2c3e50"
-    navbar-dark-bg: "#2c3e50"
 
 navbar:
   structure:
-    left: [home, reference, articles, changelog]
+    left: [home, reference, articles, news]
     right: [search, github, homepage, lightswitch]
   components:
     github:
