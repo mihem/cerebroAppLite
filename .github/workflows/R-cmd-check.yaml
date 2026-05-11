@@ -2,7 +2,7 @@ name: R-CMD-check
 
 on:
   pull_request:
-    branches: [master, dev]
+    branches: [master]
   # for manual trigger
   workflow_dispatch:
     inputs:

@@ -2,7 +2,7 @@ name: Style with air
 
 on:
   pull_request:
-    branches: [master, dev]
+    branches: [master]
     # Only run when R files are changed.
     # This also prevents an infinite loop: when the bot pushes styled commits
     # back to the PR branch, it would normally re-trigger this workflow.
@@ -19,16 +19,13 @@ jobs:
   style:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-      GITHUB_PAT: ${{ secrets.PAT_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      # Use PAT_TOKEN instead of GITHUB_TOKEN so the push back to the PR branch
-      # is authenticated as your user account, which has bypass rights on the
-      # branch protection ruleset. GITHUB_TOKEN (the bot) does not have bypass.
       - uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
 
       - name: Create folder to silence Nix warning
