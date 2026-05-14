@@ -327,15 +327,19 @@ convertSeuratToCerebro <- function(seurat_file,
                                     bcr_file = NULL,
                                     tcr_file = NULL) {
   expression_matrix_mode <- match.arg(expression_matrix_mode)
-  if (!file.exists(seurat_file)) {
-    stop("seurat_file not found: ", seurat_file, call. = FALSE)
+  if (inherits(seurat_file, "Seurat")) {
+    seurat <- seurat_file
+  } else {
+    if (!file.exists(seurat_file)) {
+      stop("seurat_file not found: ", seurat_file, call. = FALSE)
+    }
+    ext <- tolower(tools::file_ext(seurat_file))
+    seurat <- switch(ext,
+      rds = readRDS(seurat_file),
+      stop("Unsupported seurat_file format: .", ext,
+           ". Use .rds (saved with saveRDS).", call. = FALSE)
+    )
   }
-  ext <- tolower(tools::file_ext(seurat_file))
-  seurat <- switch(ext,
-    rds = readRDS(seurat_file),
-    stop("Unsupported seurat_file format: .", ext,
-         ". Use .rds (saved with saveRDS).", call. = FALSE)
-  )
 
 
   # Validate groups exist in metadata ----------------------------------------##
@@ -637,7 +641,11 @@ convertSeuratToCerebro <- function(seurat_file,
   }
 
   # Get the base name for the file
-  base_name <- tools::file_path_sans_ext(basename(seurat_file))
+  if (is.character(seurat_file)) {
+    base_name <- tools::file_path_sans_ext(basename(seurat_file))
+  } else {
+    base_name <- gsub("[^A-Za-z0-9._-]", "_", experiment_name)
+  }
   file_name <- paste0("cerebro_", base_name, ".crb")
 
   # Export to cerebro format

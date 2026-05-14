@@ -88,7 +88,8 @@ createTraditionalShinyApp <- function(cerebro_data,
                                       welcome_message = "Welcome to Cerebro App!",
                                       point_size = list(
                                         overview_projection_point_size = NULL),
-                                      variable_to_compare = NULL) {
+                                      variable_to_compare = NULL,
+                                      ...) {
 
   # Validate inputs ----------------------------------------------------------##
   if (!all(file.exists(cerebro_data))) {

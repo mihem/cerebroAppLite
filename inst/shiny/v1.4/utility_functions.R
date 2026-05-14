@@ -1055,7 +1055,12 @@ get_or_load_crb <- function(path) {
 ##----------------------------------------------------------------------------##
 .attachExternalExpression <- function(obj, crb_path) {
   if (!any(grepl("Cerebro", class(obj)))) return(obj)
-  be <- obj$getExpressionBackend()
+  if (!is.function(obj$getExpressionBackend)) {
+    be <- list(type = "embedded", location = NULL)
+  } else {
+    be <- obj$getExpressionBackend()
+  }
+
   if (is.null(be) || identical(be$type, "embedded")) return(obj)
 
   override <- NULL

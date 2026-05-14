@@ -9,3 +9,4 @@ vignettes/*.crb
 docs
 .Rproj.user
 *.Rproj
+tests/smoke/

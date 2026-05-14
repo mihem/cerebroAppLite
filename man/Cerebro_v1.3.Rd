@@ -146,7 +146,7 @@ compatibility with older .crb files).}
 \item \href{#method-Cerebro_v1.3-getGroupsWithEnrichedPathways}{\code{Cerebro_v1.3$getGroupsWithEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-getEnrichedPathways}{\code{Cerebro_v1.3$getEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-addTrajectory}{\code{Cerebro_v1.3$addTrajectory()}}
-\item \href{#method-Cerebro_v1.3-getMethodsWithTrajectories}{\code{Cerebro_v1.3$getMethodsWithTrajectories()}}
+\item \href{#method-Cerebro_v1.3-getMethodsForTrajectories}{\code{Cerebro_v1.3$getMethodsForTrajectories()}}
 \item \href{#method-Cerebro_v1.3-getTrajectories}{\code{Cerebro_v1.3$getTrajectories()}}
 \item \href{#method-Cerebro_v1.3-getTrajectory}{\code{Cerebro_v1.3$getTrajectory()}}
 \item \href{#method-Cerebro_v1.3-getBCR}{\code{Cerebro_v1.3$getBCR()}}
@@ -1108,12 +1108,12 @@ Add trajectory to \code{trajectories} field.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Cerebro_v1.3-getMethodsWithTrajectories"></a>}}
-\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMethodsWithTrajectories}{}}}
-\subsection{Method \code{getMethodsWithTrajectories()}}{
+\if{html}{\out{<a id="method-Cerebro_v1.3-getMethodsForTrajectories"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMethodsForTrajectories}{}}}
+\subsection{Method \code{getMethodsForTrajectories()}}{
 Retrieve names of methods for which trajectories are available.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMethodsWithTrajectories()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMethodsForTrajectories()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{

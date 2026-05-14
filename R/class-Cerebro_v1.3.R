@@ -929,7 +929,7 @@ Cerebro_v1.3 <- R6::R6Class(
     #'
     #' @return
     #' \code{vector} of methods for which trajectories are available.
-    getMethodsWithTrajectories = function() {
+    getMethodsForTrajectories = function() {
       return(names(self$trajectories))
     },
 
@@ -940,8 +940,8 @@ Cerebro_v1.3 <- R6::R6Class(
     #'
     #' @return
     #' \code{vector} of trajectories for the specified method.
-    getTrajectories = function(method) {
-      if ( method %in% self$getMethodsWithTrajectories() == FALSE ) {
+    getNamesOfTrajectories = function(method) {
+      if ( method %in% self$getMethodsForTrajectories() == FALSE ) {
         stop(glue::glue('Method `{method}` is not available.'), call. = FALSE)
       } else {
         return(names(self$trajectories[[method]]))
@@ -957,7 +957,7 @@ Cerebro_v1.3 <- R6::R6Class(
     #' @return
     #' Trajectory data as \code{data.frame} or \code{list}.
     getTrajectory = function(method, trajectory_name) {
-      if ( method %in% self$getMethodsWithTrajectories() == FALSE ) {
+      if ( method %in% self$getMethodsForTrajectories() == FALSE ) {
         stop(glue::glue('Method `{method}` is not available.'), call. = FALSE)
       } else {
         if ( trajectory_name %in% self$getTrajectories(method) == FALSE ) {
