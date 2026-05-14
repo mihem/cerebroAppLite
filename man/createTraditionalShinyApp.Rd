@@ -21,7 +21,8 @@ createTraditionalShinyApp(
   show_upload_ui = TRUE,
   welcome_message = "Welcome to Cerebro App!",
   point_size = list(overview_projection_point_size = NULL),
-  variable_to_compare = NULL
+  variable_to_compare = NULL,
+  ...
 )
 }
 \arguments{

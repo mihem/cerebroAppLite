@@ -143,3 +143,79 @@ test_that("exportFromSeurat: produces a valid .crb file from pbmc_seurat.rds", {
   expect_equal(ncol(expr), ncol(obj_raw))
   expect_equal(nrow(expr), nrow(obj_raw))
 })
+
+## ---------------------------------------------------------------------------
+## h5 backend round-trip
+## ---------------------------------------------------------------------------
+
+test_that("exportFromSeurat: h5 backend writes a sibling .h5 with the
+           example.h5 schema and round-trips bit-exact through the runtime
+           attach reader", {
+  skip_if_not_installed("rhdf5")
+  skip_if_not_installed("Matrix")
+
+  out_dir <- file.path(tempdir(), paste0("h5_rt_", as.integer(Sys.time())))
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  outf <- file.path(out_dir, "trip.crb")
+  h5_path <- file.path(out_dir, "trip.h5")
+
+  args <- valid_args
+  args$file <- outf
+  args$expression_matrix_mode <- "h5"
+  args$verbose <- FALSE
+
+  expect_no_error(do.call(exportFromSeurat, args))
+  expect_true(file.exists(outf))
+  expect_true(file.exists(h5_path))
+
+  ## crb side: backend tag points at the sibling .h5
+  cerebro <- readRDS(outf)
+  be <- cerebro$getExpressionBackend()
+  expect_equal(be$type, "h5")
+  expect_equal(be$location, "trip.h5")
+
+  ## h5 side: must contain the 6 datasets under /expression/ that
+  ## example.h5 carries.
+  ls_df <- rhdf5::h5ls(h5_path)
+  under_expr <- ls_df$name[ls_df$group == "/expression"]
+  for (ds in c("data", "indices", "indptr", "shape", "genes", "barcodes")) {
+    expect_true(ds %in% under_expr, info = paste("missing /expression/", ds))
+  }
+
+  ## round-trip via the runtime reader logic (mirrors
+  ## .attachExternalExpression's h5 branch): on-disk is cells x genes,
+  ## internal layout is genes x cells.
+  data    <- as.numeric(rhdf5::h5read(h5_path, "/expression/data"))
+  indices <- as.integer(rhdf5::h5read(h5_path, "/expression/indices"))
+  indptr  <- as.integer(rhdf5::h5read(h5_path, "/expression/indptr"))
+  shape   <- as.integer(rhdf5::h5read(h5_path, "/expression/shape"))
+  gns     <- as.character(rhdf5::h5read(h5_path, "/expression/genes"))
+  bcs     <- as.character(rhdf5::h5read(h5_path, "/expression/barcodes"))
+  rhdf5::H5close()
+
+  m_disk <- Matrix::sparseMatrix(
+    i = indices + 1L, p = indptr, x = data,
+    dims = c(shape[1], shape[2]), index1 = TRUE
+  )
+  m_int <- methods::as(Matrix::t(m_disk), "CsparseMatrix")
+  rownames(m_int) <- bcs
+  colnames(m_int) <- gns
+
+  ## bit-exact reconstruction of the input matrix
+  orig <- SeuratObject::GetAssayData(obj_raw, layer = "data")
+  expect_equal(dim(m_int), dim(orig))
+  expect_setequal(rownames(m_int), rownames(orig))
+  expect_setequal(colnames(m_int), colnames(orig))
+  delta <- max(abs(
+    as.matrix(m_int[rownames(orig), colnames(orig)]) - as.matrix(orig)
+  ))
+  expect_equal(delta, 0)
+})
+
+test_that("exportFromSeurat: h5 mode errors clearly when rhdf5 is missing", {
+  skip_if(requireNamespace("rhdf5", quietly = TRUE))
+  args <- valid_args
+  args$file <- tempfile(fileext = ".crb")
+  args$expression_matrix_mode <- "h5"
+  expect_error(do.call(exportFromSeurat, args), regexp = "rhdf5")
+})

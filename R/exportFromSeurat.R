@@ -49,10 +49,16 @@
 #'   travels with it; the Shiny runtime re-resolves paths via
 #'   \code{getExpressionBackend()$location} relative to the \code{.crb}'s
 #'   parent directory (step 7.3 runtime attach).
-#'   \item \code{"h5"} is reserved for a future commit. The sparse-vs-dense
-#'   storage decision (e.g. \code{HDF5Array::writeSparseArray()} vs the
-#'   traditional dense \code{HDF5Array}) needs its own design pass, so the
-#'   argument is accepted for forward compatibility but currently errors out.
+#'   \item \code{"h5"} writes the matrix to a 10X-style sparse HDF5 file next
+#'   to the \code{.crb} (sibling \code{<stem>.h5}) and tags the backend with
+#'   that relative location. The on-disk layout mirrors
+#'   \code{inst/extdata/v1.4/example.h5}: a single \code{/expression} group
+#'   with \code{data}, \code{indices}, \code{indptr}, \code{shape},
+#'   \code{genes}, and \code{barcodes} datasets. The matrix is stored in
+#'   cells x genes orientation; the Shiny runtime attach transposes it back
+#'   to genes x cells when loading. Requires the \pkg{rhdf5} package (pulled
+#'   in by \pkg{HDF5Array}). Read access at runtime is eager: the whole
+#'   sparse matrix is materialised as \code{dgCMatrix} on attach.
 #' }
 #' @param verbose Set this to \code{TRUE} if you want additional log messages;
 #' defaults to \code{FALSE}.
@@ -112,12 +118,13 @@ exportFromSeurat <- function(
 
 
   expression_matrix_mode <- match.arg(expression_matrix_mode)
-  if (expression_matrix_mode == "h5") {
+  if (expression_matrix_mode == "h5" &&
+      !requireNamespace("rhdf5", quietly = TRUE)) {
     stop(
-      "expression_matrix_mode = \"h5\" is not implemented yet. ",
-      "The sparse-vs-dense storage decision for HDF5 is a separate design ",
-      "(step 7.2 h5 sub-task). Use \"bpcells\" for external storage today, ",
-      "or \"embedded\" (default) for the classic in-crb matrix.",
+      "expression_matrix_mode = \"h5\" requires the rhdf5 package (a hard ",
+      "dependency of HDF5Array). Install it via ",
+      "BiocManager::install(\"HDF5Array\") and re-run, or switch to ",
+      "expression_matrix_mode = \"bpcells\" / \"embedded\".",
       call. = FALSE
     )
   }
@@ -368,6 +375,61 @@ exportFromSeurat <- function(
     ## 7.3's attach reads the tag, not @dir, so the crb stays portable.
     export$setExpression(mat_handle, backend = "external")
     export$setExpressionBackend(type = "bpcells", location = bpc_dirname)
+
+  } else if (expression_matrix_mode == "h5") {
+    ## Write the expression matrix to a 10X-style sparse HDF5 file sitting next
+    ## to the target .crb. The on-disk orientation is cells x genes (to match
+    ## the existing inst/extdata/v1.4/example.h5 fixture); Cerebro keeps the
+    ## matrix internally as genes x cells, so the writer transposes once on
+    ## the way out and the runtime attach transposes again on the way in.
+    crb_dir <- dirname(file)
+    if (!nzchar(crb_dir) || crb_dir == "") crb_dir <- "."
+    crb_stem <- tools::file_path_sans_ext(basename(file))
+    h5_filename <- paste0(crb_stem, ".h5")
+    h5_abs <- file.path(crb_dir, h5_filename)
+
+    if (!inherits(expression_data, "dgCMatrix")) {
+      if (inherits(expression_data, "matrix")) {
+        expression_data <- methods::as(expression_data, "CsparseMatrix")
+      } else if (inherits(expression_data, c("RleMatrix", "DelayedMatrix"))) {
+        expression_data <- methods::as(
+          as.matrix(expression_data), "CsparseMatrix"
+        )
+      }
+    }
+
+    ## transpose genes x cells -> cells x genes for storage
+    m_disk <- methods::as(Matrix::t(expression_data), "CsparseMatrix")
+
+    if (verbose) {
+      message(sprintf(
+        "[%s] Writing expression matrix to HDF5 file: %s",
+        format(Sys.time(), "%H:%M:%S"), h5_abs
+      ))
+    }
+
+    if (file.exists(h5_abs)) file.remove(h5_abs)
+    rhdf5::h5createFile(h5_abs)
+    rhdf5::h5createGroup(h5_abs, "expression")
+    rhdf5::h5write(as.numeric(m_disk@x),                h5_abs, "expression/data")
+    rhdf5::h5write(as.integer(m_disk@i),                h5_abs, "expression/indices")
+    rhdf5::h5write(as.integer(m_disk@p),                h5_abs, "expression/indptr")
+    rhdf5::h5write(as.integer(c(nrow(m_disk), ncol(m_disk))),
+                                                        h5_abs, "expression/shape")
+    ## /genes labels the on-disk row axis (length = ncells) -> cell barcodes.
+    ## /barcodes labels the on-disk col axis (length = ngenes) -> gene names.
+    ## (Field names follow example.h5 verbatim even though their content is
+    ##  flipped relative to a strict 10X reading.)
+    rhdf5::h5write(rownames(m_disk),                    h5_abs, "expression/genes")
+    rhdf5::h5write(colnames(m_disk),                    h5_abs, "expression/barcodes")
+    rhdf5::H5close()
+
+    ## Keep the original genes x cells dgCMatrix on the in-memory object so
+    ## the current session can use it without paying for an h5 round-trip;
+    ## the runtime attach rebuilds the same object from disk on subsequent
+    ## loads via the backend tag.
+    export$setExpression(expression_data, backend = "external")
+    export$setExpressionBackend(type = "h5", location = h5_filename)
   }
 
   ##--------------------------------------------------------------------------##

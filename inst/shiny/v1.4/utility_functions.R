@@ -1056,7 +1056,22 @@ get_or_load_crb <- function(path) {
 .attachExternalExpression <- function(obj, crb_path) {
   if (!any(grepl("Cerebro", class(obj)))) return(obj)
   if (!is.function(obj$getExpressionBackend)) {
-    be <- list(type = "embedded", location = NULL)
+    ## Legacy crb without an expression_backend field. If the host app has
+    ## configured an external matrix override, synthesise the backend tag
+    ## from it so the runtime can still attach an h5 / bpcells sibling.
+    ## Otherwise fall back to embedded (returned early below).
+    opts <- if (exists("Cerebro.options", envir = .GlobalEnv,
+                        inherits = FALSE))
+              get("Cerebro.options", envir = .GlobalEnv) else list()
+    if (!is.null(opts[["expression_matrix_h5"]])) {
+      be <- list(type = "h5",
+                 location = basename(opts[["expression_matrix_h5"]]))
+    } else if (!is.null(opts[["expression_matrix_BPCells"]])) {
+      be <- list(type = "bpcells",
+                 location = basename(opts[["expression_matrix_BPCells"]]))
+    } else {
+      be <- list(type = "embedded", location = NULL)
+    }
   } else {
     be <- obj$getExpressionBackend()
   }
@@ -1107,11 +1122,61 @@ get_or_load_crb <- function(path) {
     obj$expression <- BPCells::open_matrix_dir(dir = loc_abs)
 
   } else if (be$type == "h5") {
-    stop(
-      "h5 expression backend attach is not implemented yet. ",
-      "Re-export with expression_matrix_mode = \"bpcells\" or \"embedded\".",
-      call. = FALSE
+    if (!requireNamespace("rhdf5", quietly = TRUE)) {
+      stop(
+        "h5-backed crb requires the rhdf5 package (a hard dependency of ",
+        "HDF5Array); please install it via ",
+        "BiocManager::install(\"HDF5Array\").",
+        call. = FALSE
+      )
+    }
+    if (!file.exists(loc_abs)) {
+      stop(sprintf(
+        "Expected h5 file at '%s' (derived from crb '%s' + backend location '%s'), but the file does not exist. ",
+        loc_abs, crb_path, be$location
+      ), "Did the .h5 sibling get moved or dropped when the crb was copied? ",
+         "You can also point at a different absolute location via ",
+         "Cerebro.options[['expression_matrix_h5']].",
+         call. = FALSE)
+    }
+    print(glue::glue("[{Sys.time()}] Attaching h5 backend: {loc_abs}"))
+
+    ## verify the 6 required datasets live under /expression/
+    required_ds <- c(
+      "data", "indices", "indptr", "shape", "genes", "barcodes"
     )
+    ls_df <- rhdf5::h5ls(loc_abs)
+    existing <- ls_df$name[ls_df$group == "/expression"]
+    missing_ds <- setdiff(required_ds, existing)
+    if (length(missing_ds) > 0L) {
+      stop(sprintf(
+        "h5 file '%s' is missing required dataset(s) under /expression/: %s",
+        loc_abs, paste(missing_ds, collapse = ", ")
+      ), call. = FALSE)
+    }
+
+    data    <- as.numeric(rhdf5::h5read(loc_abs, "/expression/data"))
+    indices <- as.integer(rhdf5::h5read(loc_abs, "/expression/indices"))
+    indptr  <- as.integer(rhdf5::h5read(loc_abs, "/expression/indptr"))
+    shape   <- as.integer(rhdf5::h5read(loc_abs, "/expression/shape"))
+    genes_field    <- as.character(rhdf5::h5read(loc_abs, "/expression/genes"))
+    barcodes_field <- as.character(rhdf5::h5read(loc_abs, "/expression/barcodes"))
+    rhdf5::H5close()
+
+    ## On-disk orientation is cells x genes; /genes labels rows (cell
+    ## barcodes), /barcodes labels cols (gene names). Reconstruct the CSC
+    ## matrix at its on-disk shape, then transpose to Cerebro's standard
+    ## genes x cells layout and bind names from the *opposite* field on
+    ## each axis.
+    m_disk <- Matrix::sparseMatrix(
+      i = indices + 1L, p = indptr, x = data,
+      dims = c(shape[1], shape[2]), index1 = TRUE
+    )
+    m_internal <- methods::as(Matrix::t(m_disk), "CsparseMatrix")
+    rownames(m_internal) <- barcodes_field  # gene names
+    colnames(m_internal) <- genes_field     # cell barcodes
+    obj$expression <- m_internal
+
   } else {
     stop(sprintf(
       "Unknown expression backend type '%s' in crb '%s'.",

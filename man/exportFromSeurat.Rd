@@ -81,10 +81,16 @@ such as \code{dgCMatrix} from the \code{Matrix} package. Ignored when
   travels with it; the Shiny runtime re-resolves paths via
   \code{getExpressionBackend()$location} relative to the \code{.crb}'s
   parent directory (step 7.3 runtime attach).
-  \item \code{"h5"} is reserved for a future commit. The sparse-vs-dense
-  storage decision (e.g. \code{HDF5Array::writeSparseArray()} vs the
-  traditional dense \code{HDF5Array}) needs its own design pass, so the
-  argument is accepted for forward compatibility but currently errors out.
+  \item \code{"h5"} writes the matrix to a 10X-style sparse HDF5 file next
+  to the \code{.crb} (sibling \code{<stem>.h5}) and tags the backend with
+  that relative location. The on-disk layout mirrors
+  \code{inst/extdata/v1.4/example.h5}: a single \code{/expression} group
+  with \code{data}, \code{indices}, \code{indptr}, \code{shape},
+  \code{genes}, and \code{barcodes} datasets. The matrix is stored in
+  cells x genes orientation; the Shiny runtime attach transposes it back
+  to genes x cells when loading. Requires the \pkg{rhdf5} package (pulled
+  in by \pkg{HDF5Array}). Read access at runtime is eager: the whole
+  sparse matrix is materialised as \code{dgCMatrix} on attach.
 }}
 
 \item{verbose}{Set this to \code{TRUE} if you want additional log messages;

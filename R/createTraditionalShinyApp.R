@@ -166,15 +166,23 @@ createTraditionalShinyApp <- function(cerebro_data,
     if (!file.copy(file, data_dir, recursive = TRUE)) {
       stop("Failed to copy Cerebro data file: ", basename(file), call. = FALSE)
     }
-    ## bpcells crb stores only metadata; the expression matrix lives in a
-    ## sibling `<stem>.bpcells/` directory resolved relative to the crb at
-    ## runtime. Copy the sibling alongside so the bundle stays portable.
+    ## External-backend crbs store only metadata; the expression matrix
+    ## lives in a sibling file/dir resolved relative to the crb at runtime.
+    ## Copy the sibling alongside so the bundle stays portable.
     crb_stem <- tools::file_path_sans_ext(basename(file))
     bpc_src  <- file.path(dirname(file), paste0(crb_stem, ".bpcells"))
     if (dir.exists(bpc_src)) {
       if (verbose) cat("  -", basename(bpc_src), "(bpcells sibling)\n")
       if (!file.copy(bpc_src, data_dir, recursive = TRUE)) {
         stop("Failed to copy bpcells sibling directory: ", basename(bpc_src),
+             call. = FALSE)
+      }
+    }
+    h5_src <- file.path(dirname(file), paste0(crb_stem, ".h5"))
+    if (file.exists(h5_src)) {
+      if (verbose) cat("  -", basename(h5_src), "(h5 sibling)\n")
+      if (!file.copy(h5_src, data_dir, overwrite = TRUE)) {
+        stop("Failed to copy h5 sibling file: ", basename(h5_src),
              call. = FALSE)
       }
     }

@@ -30,8 +30,7 @@ expression_projection_data_to_plot_raw <- reactive({
     reset_axes = isolate(expression_projection_parameters_other[[
       'reset_axes'
     ]]),
-    ## use isolate() to avoid udpating before new color range is calculated
-    expression_levels = isolate(expression_projection_expression_levels()),
+    expression_levels = expression_projection_expression_levels(),
     plot_parameters = expression_projection_parameters_plot(),
     color_settings = expression_projection_parameters_color(),
     hover_info = expression_projection_hover_info(),

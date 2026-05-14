@@ -12,9 +12,9 @@
 ##----------------------------------------------------------------------------##
 expression_projection_expression_levels <- reactive({
   req(
-    expression_projection_cells_to_show()
+    expression_projection_cells_to_show(),
+    expression_selected_genes()
   )
-  input[["expression_projection_update_button"]]
 
   # message('--> trigger "expression_projection_expression_levels"')
 
@@ -30,7 +30,7 @@ expression_projection_expression_levels <- reactive({
     ## the documented contract: cells = character barcodes.
     cells_to_show_bc <- colnames(data_set()$expression)[cells_to_show]
     n_cells <- length(cells_to_show)
-    genes_data <- isolate(expression_selected_genes())
+    genes_data <- expression_selected_genes()
 
     ## expression_selected_genes() is an eventReactive bound to the
     ## "Plot Expression" button, so its cached `genes_to_display_present` is
