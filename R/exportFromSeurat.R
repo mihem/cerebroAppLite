@@ -460,11 +460,10 @@ exportFromSeurat <- function(
     rhdf5::h5write(colnames(m_disk), h5_abs, "expression/barcodes")
     rhdf5::H5close()
 
-    ## Keep the original genes x cells dgCMatrix on the in-memory object so
-    ## the current session can use it without paying for an h5 round-trip;
-    ## the runtime attach rebuilds the same object from disk on subsequent
-    ## loads via the backend tag.
-    export$setExpression(expression_data, backend = "external")
+    ## Mirror the bpcells path: don't keep the full dgCMatrix on the in-memory
+    ## object, otherwise saveRDS would persist it inside the .crb and defeat
+    ## the whole point of an external sibling. self$expression stays NULL;
+    ## the runtime attach rebuilds the matrix from the .h5 sibling on load.
     export$setExpressionBackend(type = "h5", location = h5_filename)
   }
 
