@@ -49,16 +49,19 @@
 #'   travels with it; the Shiny runtime re-resolves paths via
 #'   \code{getExpressionBackend()$location} relative to the \code{.crb}'s
 #'   parent directory (step 7.3 runtime attach).
-#'   \item \code{"h5"} writes the matrix to a 10X-style sparse HDF5 file next
-#'   to the \code{.crb} (sibling \code{<stem>.h5}) and tags the backend with
-#'   that relative location. The on-disk layout mirrors
-#'   \code{inst/extdata/v1.4/example.h5}: a single \code{/expression} group
-#'   with \code{data}, \code{indices}, \code{indptr}, \code{shape},
-#'   \code{genes}, and \code{barcodes} datasets. The matrix is stored in
-#'   cells x genes orientation; the Shiny runtime attach transposes it back
-#'   to genes x cells when loading. Requires the \pkg{rhdf5} package (pulled
-#'   in by \pkg{HDF5Array}). Read access at runtime is eager: the whole
-#'   sparse matrix is materialised as \code{dgCMatrix} on attach.
+#'   \item \code{"h5"} writes the matrix via \code{HDF5Array::writeTENxMatrix()}
+#'   to a TENx-format sparse HDF5 file next to the \code{.crb} (sibling
+#'   \code{<stem>.h5}) and tags the backend with that relative location. The
+#'   on-disk layout matches \code{inst/extdata/v1.4/example.h5}: a single
+#'   \code{/expression} group with \code{data}, \code{indices}, \code{indptr},
+#'   \code{shape}, \code{genes}, and \code{barcodes} datasets. The matrix is
+#'   stored cells x genes (TENx column-favoured, optimised for per-gene
+#'   reads); the Shiny runtime attach reads it back as a lazy
+#'   \code{HDF5Array::TENxMatrix} seed and transposes it lazily to Cerebro's
+#'   internal genes x cells layout via \code{DelayedArray::t()} (free). The
+#'   in-memory \code{dgCMatrix} is never materialised on attach, so RAM stays
+#'   close to the \code{.crb} metadata size. Requires the \pkg{HDF5Array}
+#'   package.
 #' }
 #' @param verbose Set this to \code{TRUE} if you want additional log messages;
 #' defaults to \code{FALSE}.
@@ -118,13 +121,12 @@ exportFromSeurat <- function(
   expression_matrix_mode <- match.arg(expression_matrix_mode)
   if (
     expression_matrix_mode == "h5" &&
-      !requireNamespace("rhdf5", quietly = TRUE)
+      !requireNamespace("HDF5Array", quietly = TRUE)
   ) {
     stop(
-      "expression_matrix_mode = \"h5\" requires the rhdf5 package (a hard ",
-      "dependency of HDF5Array). Install it via ",
-      "BiocManager::install(\"HDF5Array\") and re-run, or switch to ",
-      "expression_matrix_mode = \"bpcells\" / \"embedded\".",
+      "expression_matrix_mode = \"h5\" requires the HDF5Array package. ",
+      "Install it via BiocManager::install(\"HDF5Array\") and re-run, or ",
+      "switch to expression_matrix_mode = \"bpcells\" / \"embedded\".",
       call. = FALSE
     )
   }
@@ -404,11 +406,12 @@ exportFromSeurat <- function(
     export$setExpression(mat_handle, backend = "external")
     export$setExpressionBackend(type = "bpcells", location = bpc_dirname)
   } else if (expression_matrix_mode == "h5") {
-    ## Write the expression matrix to a 10X-style sparse HDF5 file sitting next
-    ## to the target .crb. The on-disk orientation is cells x genes (to match
-    ## the existing inst/extdata/v1.4/example.h5 fixture); Cerebro keeps the
-    ## matrix internally as genes x cells, so the writer transposes once on
-    ## the way out and the runtime attach transposes again on the way in.
+    ## Write the expression matrix to a TENxMatrix-format sparse HDF5 file
+    ## sitting next to the target .crb. The on-disk orientation is cells x
+    ## genes — TENx CSC stores columns contiguously, so the per-gene reads
+    ## that Cerebro does at runtime become single-column lookups. Cerebro's
+    ## internal layout is genes x cells, so the runtime attach lazily
+    ## transposes the TENxMatrix seed back via DelayedArray::t() (free).
     crb_dir <- dirname(file)
     if (!nzchar(crb_dir) || crb_dir == "") {
       crb_dir <- "."
@@ -433,7 +436,7 @@ exportFromSeurat <- function(
 
     if (verbose) {
       message(sprintf(
-        "[%s] Writing expression matrix to HDF5 file: %s",
+        "[%s] Writing expression matrix to TENx HDF5 file: %s",
         format(Sys.time(), "%H:%M:%S"),
         h5_abs
       ))
@@ -442,28 +445,11 @@ exportFromSeurat <- function(
     if (file.exists(h5_abs)) {
       file.remove(h5_abs)
     }
-    rhdf5::h5createFile(h5_abs)
-    rhdf5::h5createGroup(h5_abs, "expression")
-    rhdf5::h5write(as.numeric(m_disk@x), h5_abs, "expression/data")
-    rhdf5::h5write(as.integer(m_disk@i), h5_abs, "expression/indices")
-    rhdf5::h5write(as.integer(m_disk@p), h5_abs, "expression/indptr")
-    rhdf5::h5write(
-      as.integer(c(nrow(m_disk), ncol(m_disk))),
-      h5_abs,
-      "expression/shape"
-    )
-    ## /genes labels the on-disk row axis (length = ncells) -> cell barcodes.
-    ## /barcodes labels the on-disk col axis (length = ngenes) -> gene names.
-    ## (Field names follow example.h5 verbatim even though their content is
-    ##  flipped relative to a strict 10X reading.)
-    rhdf5::h5write(rownames(m_disk), h5_abs, "expression/genes")
-    rhdf5::h5write(colnames(m_disk), h5_abs, "expression/barcodes")
-    rhdf5::H5close()
+    HDF5Array::writeTENxMatrix(m_disk, h5_abs, group = "expression")
 
-    ## Mirror the bpcells path: don't keep the full dgCMatrix on the in-memory
-    ## object, otherwise saveRDS would persist it inside the .crb and defeat
-    ## the whole point of an external sibling. self$expression stays NULL;
-    ## the runtime attach rebuilds the matrix from the .h5 sibling on load.
+    ## self$expression stays NULL — saveRDS therefore does not embed the
+    ## matrix inside the .crb. The runtime attach reads the sibling back
+    ## as a lazy TENxMatrix seed (no in-memory dgCMatrix materialisation).
     export$setExpressionBackend(type = "h5", location = h5_filename)
   }
 

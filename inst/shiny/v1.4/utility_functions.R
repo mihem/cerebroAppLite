@@ -1145,11 +1145,10 @@ get_or_load_crb <- function(path) {
     print(glue::glue("[{Sys.time()}] Attaching bpcells backend: {loc_abs}"))
     obj$expression <- BPCells::open_matrix_dir(dir = loc_abs)
   } else if (be$type == "h5") {
-    if (!requireNamespace("rhdf5", quietly = TRUE)) {
+    if (!requireNamespace("HDF5Array", quietly = TRUE)) {
       stop(
-        "h5-backed crb requires the rhdf5 package (a hard dependency of ",
-        "HDF5Array); please install it via ",
-        "BiocManager::install(\"HDF5Array\").",
+        "h5-backed crb requires the HDF5Array package; please install it ",
+        "via BiocManager::install(\"HDF5Array\").",
         call. = FALSE
       )
     }
@@ -1167,58 +1166,18 @@ get_or_load_crb <- function(path) {
         call. = FALSE
       )
     }
-    print(glue::glue("[{Sys.time()}] Attaching h5 backend: {loc_abs}"))
-
-    ## verify the 6 required datasets live under /expression/
-    required_ds <- c(
-      "data",
-      "indices",
-      "indptr",
-      "shape",
-      "genes",
-      "barcodes"
-    )
-    ls_df <- rhdf5::h5ls(loc_abs)
-    existing <- ls_df$name[ls_df$group == "/expression"]
-    missing_ds <- setdiff(required_ds, existing)
-    if (length(missing_ds) > 0L) {
-      stop(
-        sprintf(
-          "h5 file '%s' is missing required dataset(s) under /expression/: %s",
-          loc_abs,
-          paste(missing_ds, collapse = ", ")
-        ),
-        call. = FALSE
-      )
-    }
-
-    data <- as.numeric(rhdf5::h5read(loc_abs, "/expression/data"))
-    indices <- as.integer(rhdf5::h5read(loc_abs, "/expression/indices"))
-    indptr <- as.integer(rhdf5::h5read(loc_abs, "/expression/indptr"))
-    shape <- as.integer(rhdf5::h5read(loc_abs, "/expression/shape"))
-    genes_field <- as.character(rhdf5::h5read(loc_abs, "/expression/genes"))
-    barcodes_field <- as.character(rhdf5::h5read(
-      loc_abs,
-      "/expression/barcodes"
+    print(glue::glue(
+      "[{Sys.time()}] Attaching h5 backend (lazy TENxMatrix): {loc_abs}"
     ))
-    rhdf5::H5close()
 
-    ## On-disk orientation is cells x genes; /genes labels rows (cell
-    ## barcodes), /barcodes labels cols (gene names). Reconstruct the CSC
-    ## matrix at its on-disk shape, then transpose to Cerebro's standard
-    ## genes x cells layout and bind names from the *opposite* field on
-    ## each axis.
-    m_disk <- Matrix::sparseMatrix(
-      i = indices + 1L,
-      p = indptr,
-      x = data,
-      dims = c(shape[1], shape[2]),
-      index1 = TRUE
-    )
-    m_internal <- methods::as(Matrix::t(m_disk), "CsparseMatrix")
-    rownames(m_internal) <- barcodes_field # gene names
-    colnames(m_internal) <- genes_field # cell barcodes
-    obj$expression <- m_internal
+    ## On-disk layout is cells x genes (TENxMatrix orientation, optimised for
+    ## per-gene column reads). Cerebro's internal layout is genes x cells, so
+    ## we transpose lazily — DelayedArray::t() is O(1), no data is read.
+    ## The matrix is never materialised into a dgCMatrix at attach time;
+    ## queries stream from disk through the DelayedMatrix path in
+    ## getExpressionRow / getExpressionBlock.
+    m_disk <- HDF5Array::TENxMatrix(loc_abs, group = "expression")
+    obj$expression <- t(m_disk)
   } else {
     stop(
       sprintf(

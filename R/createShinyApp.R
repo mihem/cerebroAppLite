@@ -84,11 +84,11 @@ dedent <- function(string) {
 #' @return Invisibly returns \code{result_dir}.
 #' @importFrom stats setNames
 #' @export
-createTraditionalShinyApp <- function(
+createShinyApp <- function(
   cerebro_data,
   result_dir = NULL,
   max_request_size = 8000,
-  port = 1337,
+  port = 8080,
   host = "127.0.0.1",
   launch_browser = TRUE,
   quiet = FALSE,
