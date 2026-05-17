@@ -481,7 +481,9 @@ exportFromSCE <- function(
     ]] <- SingleCellExperiment::reducedDims(object)[[projections_available]]
     export$addProjection(
       projections_available,
-      SingleCellExperiment::reducedDims(object)[[projections_available]]
+      as.data.frame(
+        SingleCellExperiment::reducedDims(object)[[projections_available]]
+      )
     )
     warning(
       paste0(
@@ -506,7 +508,9 @@ exportFromSCE <- function(
       # SingleCellExperiment::reducedDims(export$expression)[[projection]] <- SingleCellExperiment::reducedDims(object)[[projection]]
       export$addProjection(
         projection,
-        SingleCellExperiment::reducedDims(object)[[projection]]
+        as.data.frame(
+          SingleCellExperiment::reducedDims(object)[[projection]]
+        )
       )
     }
   }

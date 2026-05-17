@@ -35,7 +35,7 @@ matrix created with \code{HDF5Array::writeTENxMatrix()}, with genes as
 columns and cells as rows, contrary to the conventional format of genes as
 rows and cells as columns. This format greatly favors performance for
 extracting expression values for a gene (column), rather than a cell (row),
-which is the primary action in Cerebro. Importantly, the matrix should be 
+which is the primary action in Cerebro. Importantly, the matrix should be
 stored with "expression" as group name (see parameters of the
 \code{HDF5Array::writeTENxMatrix()} function). Saving the expression matrix
 in \code{TENxMatrix} format has the benefit of a low memory footprint since

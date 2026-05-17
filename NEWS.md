@@ -1,4 +1,17 @@
-# cerebroAppLite 1.6.0
+# cerebroAppLite 1.7.0
+
+## Breaking changes
+
+- Renamed `createTraditionalShinyApp()` → `createShinyApp()`. The "Traditional" qualifier was a leftover from when the codebase was being re-architected; the new name is what users actually call
+- `createShinyApp()` default `port` changed from `1337` to `8080` (the conventional Shiny port)
+
+## New features
+
+- External HDF5 expression backend, symmetric to the bpcells backend: `exportFromSeurat()` with `expression_matrix_mode = "h5"` writes the matrix via `HDF5Array::writeTENxMatrix()` to a TENx-format `.h5` next to the `.crb`. The runtime attach loads it back as a lazy `HDF5Array::TENxMatrix` seed and transposes via `DelayedArray::t()` (free); the in-memory `dgCMatrix` is never materialised, so RAM stays close to the `.crb` metadata size and attach is effectively instant
+- `createShinyApp()` now copies the `<stem>.h5` sibling alongside the `.crb` during app bundling, mirroring the existing `.bpcells/` handling
+- Legacy `.crb` files (predating the `expression_backend` field) are auto-tagged as `h5` when the host app sets `Cerebro.options[["expression_matrix_h5"]]`, finally giving `inst/extdata/v1.4/example.h5` a runtime consumer
+- `convertSeuratToCerebro()` accepts an in-memory Seurat object alongside the `.rds` path; output basename derives from `experiment_name` when no path is given
+- `createShinyApp()` opens a `...` passthrough so callers can forward extra options without signature churn
 
 ## Bug fixes
 
@@ -9,12 +22,23 @@
 - Fixed `class(x) == "..."` checks replaced with `inherits()` across all relevant functions
 - Fixed `require()` replaced with `requireNamespace()` throughout
 - Fixed cross-references and examples in documentation
+- Fixed `exportFromSCE()` projections: `reducedDims()` output is now coerced to `data.frame` before `addProjection()`, matching the Seurat path and clearing a latent runtime error for SCE inputs with non-PCA reductions
+- Fixed `.attachExternalExpression` crashing on legacy `.crb` objects that predate the `getExpressionBackend()` method; such objects are now treated as embedded backend and skip the attach step
+- Fixed "method not found" errors on the trajectory tab by renaming the corresponding `Cerebro_v1.3` methods to the names the Shiny server already calls (`getMethodsForTrajectories`, `getNamesOfTrajectories`)
+- Fixed gene_expression plot chain freezing on gene picker changes: removed a stale `isolate()` wrapper and a reference to a non-existent `expression_projection_update_button` input; the existing 250 ms debounce on the data-to-plot reactive still throttles bursts
 
 ## Testing
 
 - Added unit tests for all core R functions
 - Added shinytest2 integration tests for the full Cerebro interface, covering gene expression, group/marker genes, color management, and more
+- Added an h5 round-trip test in `test-exportFromSeurat.R` verifying writer/reader bit-identity for the new HDF5 backend, plus an attach-level test asserting the runtime returns a lazy `DelayedMatrix` (not an in-memory `dgCMatrix`)
+- Added `tests/README.md` documenting the layout (testthat unit, testthat shinytest2, smoke)
+- Routed `tests/smoke/` artifacts through `.Rbuildignore` and `.gitignore` so they no longer leak into the package tarball or git history
 - Tests run in a reproducible Nix environment via GitHub Actions
+
+## Dependencies
+
+- `rhdf5` removed from `Suggests`. The h5 backend now goes through `HDF5Array::writeTENxMatrix()` (writer) and `HDF5Array::TENxMatrix()` (lazy reader), which use rhdf5 internally; users no longer need to install or `requireNamespace` rhdf5 directly
 
 ## CI/CD
 
