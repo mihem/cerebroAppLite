@@ -248,3 +248,28 @@ test_that("{shinytest2} recording: about", {
 
   app$stop()
 })
+
+test_that("createShinyApp bundles a working app", {
+  example <- system.file("extdata/v1.4/example.crb", package = "cerebroAppLite")
+  skip_if_not(nzchar(example), "example.crb not found")
+
+  tmp     <- file.path(tempdir(), "demo.crb")
+  app_dir <- file.path(tempdir(), "test_create_app")
+  file.copy(example, tmp, overwrite = TRUE)
+  on.exit(unlink(app_dir, recursive = TRUE), add = TRUE)
+
+  createShinyApp(
+    cerebro_data   = c("mydata" = tmp),
+    result_dir     = app_dir,
+    launch_browser = FALSE,
+    verbose        = FALSE
+  )
+
+  app <- AppDriver$new(app_dir, height = 950, width = 1619)
+  app$wait_for_idle(timeout = 20000)
+
+  cells <- app$get_value(output = "load_data_number_of_cells")
+  expect_true(grepl("501", cells$html))
+
+  app$stop()
+})

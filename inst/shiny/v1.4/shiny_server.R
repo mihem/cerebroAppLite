@@ -118,7 +118,7 @@ server <- function(input, output, session) {
   ##--------------------------------------------------------------------------##
 
   ## reactive value holding path to file of data set to load
-  data_to_load <- reactiveValues()
+  data_to_load <- reactiveValues(path = NULL)
 
   ## listen to selected 'input_file', initialize before UI element is loaded
   observeEvent(input[['input_file']], ignoreNULL = FALSE, {
@@ -134,15 +134,16 @@ server <- function(input, output, session) {
       ## existing file or object
     } else if (
       exists('Cerebro.options') &&
-        !is.null(Cerebro.options[["crb_file_to_load"]])
+        !is.null(Cerebro.options[["crb_file_to_load"]]) &&
+        length(Cerebro.options[["crb_file_to_load"]]) > 0
     ) {
       file_to_load <- Cerebro.options[["crb_file_to_load"]]
-      if (file.exists(file_to_load) || exists(file_to_load)) {
+      if (any(file.exists(file_to_load)) || any(exists(file_to_load))) {
         path_to_load <- .GlobalEnv$Cerebro.options$crb_file_to_load
       }
     }
     ## assign path to example file if none of the above apply
-    if (path_to_load == '') {
+    if (length(path_to_load) == 0 || all(path_to_load == '')) {
       path_to_load <- system.file(
         "extdata/v1.4/example.crb",
         package = "cerebroAppLite"
@@ -154,6 +155,7 @@ server <- function(input, output, session) {
 
   ## create reactive value holding the current data set
   data_set <- reactive({
+    req(data_to_load$path)
     dataset_to_load <- data_to_load$path
     if (exists(dataset_to_load)) {
       print(glue::glue(
