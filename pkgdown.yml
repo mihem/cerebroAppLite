@@ -5,6 +5,7 @@ articles:
   Cerebro_interface_v1.2: Cerebro_interface_v1.2.html
   cerebroApp_workflow_Seurat: cerebroApp_workflow_Seurat.html
   control_access_to_cerebro_with_a_login_page: control_access_to_cerebro_with_a_login_page.html
+  create_a_self_contained_shiny_app: create_a_self_contained_shiny_app.html
   create_expression_matrix_in_h5_format: create_expression_matrix_in_h5_format.html
   export_a_data_set_in_SCE_format: export_a_data_set_in_SCE_format.html
   export_and_visualize_custom_tables_and_plots: export_and_visualize_custom_tables_and_plots.html
@@ -12,7 +13,7 @@ articles:
   launch_cerebro_with_pre-loaded_data_set: launch_cerebro_with_pre-loaded_data_set.html
   overview_of_cerebro_v1.3_class: overview_of_cerebro_v1.3_class.html
   release_notes_v1.3: release_notes_v1.3.html
-last_built: 2026-05-24T06:46Z
+last_built: 2026-05-27T12:25Z
 urls:
   reference: https://mihem.github.io/cerebroAppLite/reference
   article: https://mihem.github.io/cerebroAppLite/articles

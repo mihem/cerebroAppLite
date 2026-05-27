@@ -1,0 +1,169 @@
+# Create a self-contained Shiny app from a Cerebro data file
+
+## Overview
+
+[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+bundles a Cerebro v1.4 Shiny app into a single output directory. It
+copies the Shiny sources shipped under `inst/shiny/v1.4/`, the requested
+`.crb` (or `.rds`) data file(s), and the `inst/extdata/` reference
+files, and writes an `app.R` that wires everything together with a
+pre-built `Cerebro.options` list. The result is a directory you can
+serve directly with `shiny-server`, drop behind `rsconnect`/Posit
+Connect, or launch locally with
+[`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html) — no
+further calls into `cerebroAppLite` are required at runtime.
+
+This is the recommended path when you want to hand a colleague a
+runnable copy of Cerebro pre-loaded with a specific data set without
+making them install the package themselves, pin the Shiny sources at a
+known revision alongside the data, or deploy to a host that doesn’t run
+R interactively (`shinyapps.io`, Docker images, etc.).
+
+## Setup
+
+The package ships an example `.crb` (and its sibling `.h5`) in
+`inst/extdata/v1.4/`, which we use throughout this vignette.
+
+``` r
+library(cerebroAppLite)
+
+crb <- system.file("extdata/v1.4/example.crb", package = "cerebroAppLite")
+file.exists(crb)
+#> [1] TRUE
+```
+
+## Quick start
+
+`cerebro_data` must be a **named** character vector (or list). The names
+become the dataset labels shown in the Load Data tab; the values are
+paths to `.crb` (or `.rds`) files.
+
+``` r
+out_dir <- file.path(tempdir(), "cerebro_app")
+
+createShinyApp(
+  cerebro_data = c("PBMC example" = crb),
+  result_dir   = out_dir,
+  launch_browser = FALSE
+)
+```
+
+After this call, `out_dir` contains the generated `app.R`, a copy of the
+Shiny sources under `shiny/`, the `inst/extdata/` reference files, the
+data file(s) under `data/`, and a `cerebro_config.rds` holding the
+serialized `Cerebro.options`.
+
+Launch it locally:
+
+``` r
+shiny::runApp(out_dir)
+```
+
+## Common parameters
+
+| argument | purpose |
+|----|----|
+| `cerebro_data` | named vector/list of `.crb` (or `.rds`) paths |
+| `result_dir` | output directory (required) |
+| `overwrite` | wipe `result_dir` first; defaults to `TRUE` |
+| `max_request_size` | upload size cap in MB; defaults to `8000` |
+| `port`, `host` | binding for the generated `app.R`; defaults to `8080` / `127.0.0.1` |
+| `launch_browser`, `quiet`, `display_mode` | forwarded to [`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html) in `app.R` |
+| `welcome_message` | text shown in the Load Data tab |
+| `colors` | optional named list of palettes (one entry per dataset name) |
+| `cerebro_options` | extra entries merged into `Cerebro.options` |
+| `crb_pick_smallest_file`, `show_upload_ui` | forwarded into `Cerebro.options` |
+| `point_size`, `variable_to_compare` | forwarded into `Cerebro.options` |
+
+## Bundling multiple datasets （available in V2.0.0）
+
+The names of `cerebro_data` are what the user picks from inside Cerebro.
+You can also supply matching `colors` so each dataset gets a
+deterministic palette.
+
+``` r
+crb_pbmc <- system.file("extdata/v1.4/example.crb", package = "cerebroAppLite")
+# crb_other <- "/path/to/another_dataset.crb"
+
+createShinyApp(
+  cerebro_data = c(
+    "PBMC example"   = crb_pbmc
+    # , "My dataset" = crb_other
+  ),
+  result_dir = file.path(tempdir(), "cerebro_app_multi"),
+  colors = list(
+    "PBMC example" = list(sample = c(pbmc_1 = "#1f77b4"))
+  ),
+  welcome_message = "Welcome to my Cerebro deployment.",
+  launch_browser = FALSE
+)
+```
+
+## Sibling files: `.bpcells/` and `.h5`
+
+If your `.crb` was exported with an external expression backend
+(`expression_matrix_mode = "bpcells"` or `"h5"` in
+[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)),
+the actual expression matrix lives in a sibling file or directory next
+to the `.crb`. The bpcells backend writes a `<stem>.bpcells/` directory;
+the h5 backend writes a 10X-style sparse CSC `<stem>.h5` file.
+
+[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+detects siblings automatically and copies them into `result_dir/data/`
+alongside the `.crb`, so the bundle stays portable. You don’t need to
+pass anything extra — just keep the sibling next to the `.crb` on disk
+before calling the function.
+
+``` r
+# example.crb ships with example.h5 in the same folder; both are bundled
+crb <- system.file("extdata/v1.4/example.crb", package = "cerebroAppLite")
+file.exists(file.path(dirname(crb), "example.h5"))
+#> [1] TRUE
+```
+
+## Forwarding extra Cerebro options
+
+Anything you want to surface in `Cerebro.options` that isn’t already a
+top-level argument can go through `cerebro_options`.
+
+``` r
+createShinyApp(
+  cerebro_data = c("PBMC example" = crb),
+  result_dir   = file.path(tempdir(), "cerebro_app_opts"),
+  cerebro_options = list(
+    exclude_trivial_metadata = TRUE,
+    # enable the h5 path when the data was written that way
+    expression_matrix_h5     = TRUE
+  ),
+  launch_browser = FALSE
+)
+```
+
+`mode`, `crb_file_to_load`, and `cerebro_root` are filled in by the
+function itself — anything you supply for those keys will be
+overwritten.
+
+## Deploying the bundle
+
+The output directory is self-contained: shipping the folder is all
+that’s required. Three common targets:
+
+``` r
+# 1. Local
+shiny::runApp(out_dir)
+
+# 2. shiny-server / Posit Connect
+# Drop the directory under the server's app root (e.g. /srv/shiny-server/),
+# or use the Posit Connect publishing UI pointing at `app.R`.
+
+# 3. shinyapps.io
+rsconnect::deployApp(appDir = out_dir)
+```
+
+## Reference
+
+- [`?createShinyApp`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+- [`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.md)
+  for end-to-end Seurat → `.crb` → app
+- [`vignette("host_cerebro_on_shinyapps")`](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md)
+  for shinyapps.io specifics

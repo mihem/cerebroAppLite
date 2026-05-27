@@ -49,6 +49,16 @@ A new `Cerebro_v1.3` object.
 
   `matrix`-like object that holds transcript counts.
 
+- `expression_backend`:
+
+  `list` describing how/where the expression matrix is stored. For step
+  7.1 every newly exported object tags itself
+  `list(type = "embedded", location = NULL)`; future step 7.2 will
+  introduce `type = "h5"` / `"bpcells"` with an external `location`.
+  Older `.crb` files (serialised before this field existed) load with
+  `expression_backend = NULL`; `getExpressionBackend()` treats that as
+  `"embedded"` for backward compatibility.
+
 - `meta_data`:
 
   `data.frame` that contains cell meta data.
@@ -62,6 +72,11 @@ A new `Cerebro_v1.3` object.
   `list` that contains a `data.frame` holding the most expressed genes
   for each grouping variable that was specified during the call to
   [`getMostExpressedGenes`](https://mihem.github.io/cerebroAppLite/reference/getMostExpressedGenes.md).
+
+- `mean_expression`:
+
+  `list` that contains a `data.frame` holding the mean expression per
+  gene for each grouping variable.
 
 - `marker_genes`:
 
@@ -96,6 +111,25 @@ A new `Cerebro_v1.3` object.
   `list` that can contain additional material related to the data set;
   tables should be stored in `data.frame` format in a named `list`
   called \`tables\`
+
+- `immune_repertoire`:
+
+  `list` of data.frames (one per sample) containing scRepertoire columns
+  (CTgene, CTnt, CTaa, CTstrict, etc.).
+
+- `bcr_data`:
+
+  `list` that contains BCR data (kept for backward compatibility with
+  older .crb files).
+
+- `tcr_data`:
+
+  `list` that contains TCR data (kept for backward compatibility with
+  older .crb files).
+
+- `spatial`:
+
+  `list` that contains spatial data (coordinates and expression).
 
 ## Methods
 
@@ -139,6 +173,10 @@ A new `Cerebro_v1.3` object.
 
 - [`Cerebro_v1.3$setExpression()`](#method-Cerebro_v1.3-setExpression)
 
+- [`Cerebro_v1.3$setExpressionBackend()`](#method-Cerebro_v1.3-setExpressionBackend)
+
+- [`Cerebro_v1.3$getExpressionBackend()`](#method-Cerebro_v1.3-getExpressionBackend)
+
 - [`Cerebro_v1.3$getCellNames()`](#method-Cerebro_v1.3-getCellNames)
 
 - [`Cerebro_v1.3$getGeneNames()`](#method-Cerebro_v1.3-getGeneNames)
@@ -148,6 +186,10 @@ A new `Cerebro_v1.3` object.
 - [`Cerebro_v1.3$getMeanExpressionForCells()`](#method-Cerebro_v1.3-getMeanExpressionForCells)
 
 - [`Cerebro_v1.3$getExpressionMatrix()`](#method-Cerebro_v1.3-getExpressionMatrix)
+
+- [`Cerebro_v1.3$getExpressionRow()`](#method-Cerebro_v1.3-getExpressionRow)
+
+- [`Cerebro_v1.3$getExpressionBlock()`](#method-Cerebro_v1.3-getExpressionBlock)
 
 - [`Cerebro_v1.3$setCellCycle()`](#method-Cerebro_v1.3-setCellCycle)
 
@@ -169,6 +211,12 @@ A new `Cerebro_v1.3` object.
 
 - [`Cerebro_v1.3$getMostExpressedGenes()`](#method-Cerebro_v1.3-getMostExpressedGenes)
 
+- [`Cerebro_v1.3$addMeanExpression()`](#method-Cerebro_v1.3-addMeanExpression)
+
+- [`Cerebro_v1.3$getGroupsWithMeanExpression()`](#method-Cerebro_v1.3-getGroupsWithMeanExpression)
+
+- [`Cerebro_v1.3$getMeanExpression()`](#method-Cerebro_v1.3-getMeanExpression)
+
 - [`Cerebro_v1.3$addMarkerGenes()`](#method-Cerebro_v1.3-addMarkerGenes)
 
 - [`Cerebro_v1.3$getMethodsForMarkerGenes()`](#method-Cerebro_v1.3-getMethodsForMarkerGenes)
@@ -179,7 +227,7 @@ A new `Cerebro_v1.3` object.
 
 - [`Cerebro_v1.3$addEnrichedPathways()`](#method-Cerebro_v1.3-addEnrichedPathways)
 
-- [`Cerebro_v1.3$getMethodsForEnrichedPathways()`](#method-Cerebro_v1.3-getMethodsForEnrichedPathways)
+- [`Cerebro_v1.3$getMethodsWithEnrichedPathways()`](#method-Cerebro_v1.3-getMethodsWithEnrichedPathways)
 
 - [`Cerebro_v1.3$getGroupsWithEnrichedPathways()`](#method-Cerebro_v1.3-getGroupsWithEnrichedPathways)
 
@@ -193,11 +241,31 @@ A new `Cerebro_v1.3` object.
 
 - [`Cerebro_v1.3$getTrajectory()`](#method-Cerebro_v1.3-getTrajectory)
 
+- [`Cerebro_v1.3$getBCR()`](#method-Cerebro_v1.3-getBCR)
+
+- [`Cerebro_v1.3$getTCR()`](#method-Cerebro_v1.3-getTCR)
+
+- [`Cerebro_v1.3$addBCRData()`](#method-Cerebro_v1.3-addBCRData)
+
+- [`Cerebro_v1.3$addTCRData()`](#method-Cerebro_v1.3-addTCRData)
+
+- [`Cerebro_v1.3$getImmuneRepertoire()`](#method-Cerebro_v1.3-getImmuneRepertoire)
+
+- [`Cerebro_v1.3$addImmuneRepertoire()`](#method-Cerebro_v1.3-addImmuneRepertoire)
+
+- [`Cerebro_v1.3$addSpatialData()`](#method-Cerebro_v1.3-addSpatialData)
+
+- [`Cerebro_v1.3$getSpatialData()`](#method-Cerebro_v1.3-getSpatialData)
+
+- [`Cerebro_v1.3$availableSpatial()`](#method-Cerebro_v1.3-availableSpatial)
+
 - [`Cerebro_v1.3$addExtraMaterial()`](#method-Cerebro_v1.3-addExtraMaterial)
 
 - [`Cerebro_v1.3$addExtraTable()`](#method-Cerebro_v1.3-addExtraTable)
 
 - [`Cerebro_v1.3$addExtraPlot()`](#method-Cerebro_v1.3-addExtraPlot)
+
+- [`Cerebro_v1.3$getExtraMaterial()`](#method-Cerebro_v1.3-getExtraMaterial)
 
 - [`Cerebro_v1.3$getExtraMaterialCategories()`](#method-Cerebro_v1.3-getExtraMaterialCategories)
 
@@ -525,7 +593,7 @@ Set transcript count matrix.
 
 #### Usage
 
-    Cerebro_v1.3$setExpression(counts)
+    Cerebro_v1.3$setExpression(counts, backend = NULL)
 
 #### Arguments
 
@@ -534,6 +602,57 @@ Set transcript count matrix.
   `matrix`-like object that contains transcript counts for cells in the
   data set. Number of columns must be equal to the number of rows in the
   `meta_data` field.
+
+- `backend`:
+
+  Optional backend tag. If left `NULL` the object is tagged `"embedded"`
+  (the matrix lives inside the `.crb` itself). Callers exporting with
+  step-7.2 external-storage modes should pass `setExpressionBackend()`
+  directly instead of relying on this default.
+
+------------------------------------------------------------------------
+
+### Method `setExpressionBackend()`
+
+Tag the object with information about how / where its expression matrix
+is stored. In step 7.1 every newly exported `.crb` is tagged
+`"embedded"` with a NULL location, meaning the matrix is carried inside
+the serialised `.crb`. Later steps (7.2 exporter, 7.3 runtime attach)
+will produce objects tagged `"h5"` or `"bpcells"` with an external
+`location`.
+
+#### Usage
+
+    Cerebro_v1.3$setExpressionBackend(type = "embedded", location = NULL)
+
+#### Arguments
+
+- `type`:
+
+  Storage backend label. One of `"embedded"`, `"h5"`, `"bpcells"`. Step
+  7.1 only recognises `"embedded"` at runtime; the other two are
+  accepted here (so step 7.2 can set them) but will still need step-7.3
+  runtime attach to be useful.
+
+- `location`:
+
+  Optional character path (absolute or relative to the generated app
+  `data/` directory) where the external matrix lives. `NULL` when
+  `type == "embedded"`.
+
+------------------------------------------------------------------------
+
+### Method `getExpressionBackend()`
+
+Read the expression backend tag. Returns a `list(type, location)`. For
+`.crb` files generated before the `expression_backend` field existed the
+stored slot is `NULL`; this method graciously falls back to
+`list(type = "embedded", location = NULL)` so that downstream code does
+not need to special-case legacy objects.
+
+#### Usage
+
+    Cerebro_v1.3$getExpressionBackend()
 
 ------------------------------------------------------------------------
 
@@ -638,6 +757,65 @@ Retrieve transcript count matrix.
 #### Returns
 
 Dense transcript count matrix for specified cells and genes.
+
+------------------------------------------------------------------------
+
+### Method `getExpressionRow()`
+
+Retrieve a single row of the expression matrix as a named numeric vector
+WITHOUT going through the dense helper. Prefer this over
+`getExpressionMatrix(genes = gene)` on large or sparse backends where
+materialising a 1 x N dense matrix first is wasteful.
+
+#### Usage
+
+    Cerebro_v1.3$getExpressionRow(gene, cells = NULL)
+
+#### Arguments
+
+- `gene`:
+
+  Name of a single gene. Must exist in the matrix.
+
+- `cells`:
+
+  Names/barcodes of cells to extract; `NULL` returns all cells.
+
+#### Returns
+
+Named `numeric` vector, one entry per requested cell.
+
+------------------------------------------------------------------------
+
+### Method `getExpressionBlock()`
+
+Retrieve a genes x cells sub-matrix in the backend's NATIVE form (sparse
+/ lazy). Callers that need a dense base matrix must apply
+[`as.matrix()`](https://rdrr.io/r/base/matrix.html) themselves. Use this
+to keep sparse-aware downstream operations
+([`Matrix::rowMeans`](https://rdrr.io/pkg/Matrix/man/colSums-methods.html),
+[`Matrix::colMeans`](https://rdrr.io/pkg/Matrix/man/colSums-methods.html),
+etc.) fast instead of densifying just to aggregate.
+
+#### Usage
+
+    Cerebro_v1.3$getExpressionBlock(genes, cells = NULL)
+
+#### Arguments
+
+- `genes`:
+
+  Non-empty character vector of gene names.
+
+- `cells`:
+
+  Names/barcodes of cells to extract; `NULL` returns all cells.
+
+#### Returns
+
+A sub-matrix of the same concrete class as `self$expression`:
+`dgCMatrix` stays `dgCMatrix`, `RleMatrix` yields `DelayedMatrix`,
+`IterableMatrix` stays `IterableMatrix`.
 
 ------------------------------------------------------------------------
 
@@ -804,7 +982,7 @@ available.
 
 ### Method [`getMostExpressedGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMostExpressedGenes.md)
 
-Retrieve table of most expressed genes for a grouping variable.
+Retrieve table of most expressed genes for a specific grouping variable.
 
 #### Usage
 
@@ -814,12 +992,67 @@ Retrieve table of most expressed genes for a grouping variable.
 
 - `group_name`:
 
-  Grouping variable for which most expressed genes should be retrieved.
+  Name of grouping variable for which to retrieve most expressed genes.
 
 #### Returns
 
-`data.frame` that contains most expressed genes for group levels of the
-specified grouping variable.
+`data.frame` containing the most expressed genes.
+
+------------------------------------------------------------------------
+
+### Method `addMeanExpression()`
+
+Add table of mean expression per gene.
+
+#### Usage
+
+    Cerebro_v1.3$addMeanExpression(group_name, table)
+
+#### Arguments
+
+- `group_name`:
+
+  Name of grouping variable that the mean expression belongs to. Must be
+  registered in the `groups` field.
+
+- `table`:
+
+  `data.frame` that contains the mean expression per gene.
+
+------------------------------------------------------------------------
+
+### Method `getGroupsWithMeanExpression()`
+
+Retrieve names of grouping variables for which mean expression data is
+available.
+
+#### Usage
+
+    Cerebro_v1.3$getGroupsWithMeanExpression()
+
+#### Returns
+
+`vector` of grouping variables for which mean expression is available.
+
+------------------------------------------------------------------------
+
+### Method `getMeanExpression()`
+
+Retrieve table of mean expression for a specific grouping variable.
+
+#### Usage
+
+    Cerebro_v1.3$getMeanExpression(group_name)
+
+#### Arguments
+
+- `group_name`:
+
+  Name of grouping variable for which to retrieve mean expression.
+
+#### Returns
+
+`data.frame` containing the mean expression per gene.
 
 ------------------------------------------------------------------------
 
@@ -916,18 +1149,18 @@ Add table of enriched pathways.
 
 #### Usage
 
-    Cerebro_v1.3$addEnrichedPathways(method, name, table)
+    Cerebro_v1.3$addEnrichedPathways(method, group_name, table)
 
 #### Arguments
 
 - `method`:
 
-  Name of method that was used to generate the enriched pathways.
+  Name of method that was used to calculate enriched pathways.
 
-- `name`:
+- `group_name`:
 
-  Name of table. This name will be used to select the table in Cerebro.
-  It is recommended to use the grouping variable, e.g. `sample`.
+  Name of grouping variable that the enriched pathways belong to. Must
+  be registered in the `groups` field.
 
 - `table`:
 
@@ -935,25 +1168,24 @@ Add table of enriched pathways.
 
 ------------------------------------------------------------------------
 
-### Method `getMethodsForEnrichedPathways()`
+### Method `getMethodsWithEnrichedPathways()`
 
-Retrieve names of methods that were used to generate enriched pathways.
+Retrieve names of methods for which enriched pathways are available.
 
 #### Usage
 
-    Cerebro_v1.3$getMethodsForEnrichedPathways()
+    Cerebro_v1.3$getMethodsWithEnrichedPathways()
 
 #### Returns
 
-`vector` of names of methods that were used to generate enriched
-pathways.
+`vector` of methods for which enriched pathways are available.
 
 ------------------------------------------------------------------------
 
 ### Method `getGroupsWithEnrichedPathways()`
 
-Retrieve grouping variables for which enriched pathways were generated
-using a specified method.
+Retrieve names of grouping variables for which enriched pathways are
+available for a specific method.
 
 #### Usage
 
@@ -963,70 +1195,67 @@ using a specified method.
 
 - `method`:
 
-  Name of method.
+  Name of method for which to retrieve grouping variables.
 
 #### Returns
 
-`vector` of grouping variables for which enriched pathways were
-calculated using the specified method.
+`vector` of grouping variables for which enriched pathways are
+available.
 
 ------------------------------------------------------------------------
 
 ### Method [`getEnrichedPathways()`](https://mihem.github.io/cerebroAppLite/reference/getEnrichedPathways.md)
 
-Retrieve table of enriched pathways for specific method and grouping
+Retrieve table of enriched pathways for a specific method and grouping
 variable.
 
 #### Usage
 
-    Cerebro_v1.3$getEnrichedPathways(method, name)
+    Cerebro_v1.3$getEnrichedPathways(method, group_name)
 
 #### Arguments
 
 - `method`:
 
-  Name of method.
+  Name of method for which to retrieve enriched pathways.
 
-- `name`:
+- `group_name`:
 
-  Grouping variable.
+  Name of grouping variable for which to retrieve enriched pathways.
 
 #### Returns
 
-`data.frame` that contains enriched pathways for the specified
-combination of method and grouping variable.
+`data.frame` containing the enriched pathways.
 
 ------------------------------------------------------------------------
 
 ### Method `addTrajectory()`
 
-Add trajectory.
+Add trajectory to `trajectories` field.
 
 #### Usage
 
-    Cerebro_v1.3$addTrajectory(method, name, content)
+    Cerebro_v1.3$addTrajectory(method, trajectory_name, trajectory)
 
 #### Arguments
 
 - `method`:
 
-  Name of method that was used to generate the trajectory.
+  Name of method that was used to calculate trajectory.
 
-- `name`:
+- `trajectory_name`:
 
-  Name of the trajectory. This name will be used later in Cerebro to
-  select the trajectory.
+  Name of trajectory.
 
-- `content`:
+- `trajectory`:
 
-  Relevant data for the trajectory, depending on the method this could
-  be a `list` holding edges, cell positions, pseudotime, etc.
+  Trajectory data as `data.frame` or `list`.
 
 ------------------------------------------------------------------------
 
 ### Method `getMethodsForTrajectories()`
 
-Retrieve names of methods that were used to generate trajectories.
+Retrieve names of methods for which trajectories are available.
 
 #### Usage
 
@@ -1034,13 +1263,13 @@ Retrieve names of methods that were used to generate trajectories.
 
 #### Returns
 
-`vector` of names of methods that were used to generate trajectories.
+`vector` of methods for which trajectories are available.
 
 ------------------------------------------------------------------------
 
 ### Method `getNamesOfTrajectories()`
 
-Retrieve names of available trajectories for a specified method.
+Retrieve names of trajectories for a specific method.
 
 #### Usage
 
@@ -1050,36 +1279,183 @@ Retrieve names of available trajectories for a specified method.
 
 - `method`:
 
-  Name of method.
+  Name of method for which to retrieve trajectories.
 
 #### Returns
 
-`vector` of available trajectory for the specified method.
+`vector` of trajectories for the specified method.
 
 ------------------------------------------------------------------------
 
 ### Method `getTrajectory()`
 
-Retrieve data for a specific trajectory.
+Retrieve trajectory data for a specific method and trajectory name.
 
 #### Usage
 
-    Cerebro_v1.3$getTrajectory(method, name)
+    Cerebro_v1.3$getTrajectory(method, trajectory_name)
 
 #### Arguments
 
 - `method`:
 
-  Name of method.
+  Name of method for which to retrieve trajectory.
 
-- `name`:
+- `trajectory_name`:
 
-  Name of trajectory.
+  Name of trajectory to retrieve.
 
 #### Returns
 
-The type of data depends on the method that was used to generate the
-trajectory.
+Trajectory data as `data.frame` or `list`.
+
+------------------------------------------------------------------------
+
+### Method `getBCR()`
+
+Retrieve BCR data
+
+#### Usage
+
+    Cerebro_v1.3$getBCR()
+
+#### Returns
+
+BCR data stored in the object.
+
+------------------------------------------------------------------------
+
+### Method `getTCR()`
+
+Retrieve TCR data
+
+#### Usage
+
+    Cerebro_v1.3$getTCR()
+
+#### Returns
+
+TCR data stored in the object.
+
+------------------------------------------------------------------------
+
+### Method `addBCRData()`
+
+Add BCR data.
+
+#### Usage
+
+    Cerebro_v1.3$addBCRData(data)
+
+#### Arguments
+
+- `data`:
+
+  `list` that contains BCR data.
+
+------------------------------------------------------------------------
+
+### Method `addTCRData()`
+
+Add TCR data.
+
+#### Usage
+
+    Cerebro_v1.3$addTCRData(data)
+
+#### Arguments
+
+- `data`:
+
+  `list` that contains TCR data.
+
+------------------------------------------------------------------------
+
+### Method `getImmuneRepertoire()`
+
+Get immune repertoire data. Returns the unified `immune_repertoire`
+field if available; otherwise falls back to merging legacy `bcr_data`
+and `tcr_data`.
+
+#### Usage
+
+    Cerebro_v1.3$getImmuneRepertoire()
+
+#### Returns
+
+Named list of data.frames (one per sample), or empty list.
+
+------------------------------------------------------------------------
+
+### Method `addImmuneRepertoire()`
+
+Set immune repertoire data.
+
+#### Usage
+
+    Cerebro_v1.3$addImmuneRepertoire(data)
+
+#### Arguments
+
+- `data`:
+
+  Named list of data.frames (one per sample) containing scRepertoire
+  columns.
+
+------------------------------------------------------------------------
+
+### Method `addSpatialData()`
+
+Add spatial data.
+
+#### Usage
+
+    Cerebro_v1.3$addSpatialData(name, data)
+
+#### Arguments
+
+- `name`:
+
+  Name of the spatial data entry (e.g. image name).
+
+- `data`:
+
+  `list` containing 'coordinates' (data.frame) and 'expression' (sparse
+  matrix).
+
+------------------------------------------------------------------------
+
+### Method `getSpatialData()`
+
+Retrieve spatial data.
+
+#### Usage
+
+    Cerebro_v1.3$getSpatialData(name)
+
+#### Arguments
+
+- `name`:
+
+  Name of the spatial data entry.
+
+#### Returns
+
+`list` containing 'coordinates' and 'expression'.
+
+------------------------------------------------------------------------
+
+### Method `availableSpatial()`
+
+Get list of available spatial data entries.
+
+#### Usage
+
+    Cerebro_v1.3$availableSpatial()
+
+#### Returns
+
+`vector` of spatial data entries that are available.
 
 ------------------------------------------------------------------------
 
@@ -1147,6 +1523,20 @@ Add plot to \`extra_material\` slot.
 
   Plot that should be added, must be created with `ggplot2` (class:
   `ggplot`).
+
+------------------------------------------------------------------------
+
+### Method `getExtraMaterial()`
+
+Retrieve extra material from `extra_material` field.
+
+#### Usage
+
+    Cerebro_v1.3$getExtraMaterial()
+
+#### Returns
+
+`list` of all entries in the `extra_material` field.
 
 ------------------------------------------------------------------------
 

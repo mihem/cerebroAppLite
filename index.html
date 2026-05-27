@@ -21,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,7 @@
     <li><a class="dropdown-item" href="articles/release_notes_v1.3.html">Release notes: Cerebro/cerebroApp v1.3</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>How-to</h6></li>
+    <li><a class="dropdown-item" href="articles/create_a_self_contained_shiny_app.html">Create a self-contained Shiny app from a Cerebro data file</a></li>
     <li><a class="dropdown-item" href="articles/create_expression_matrix_in_h5_format.html">Create expression matrix in h5 format</a></li>
     <li><a class="dropdown-item" href="articles/launch_cerebro_with_pre-loaded_data_set.html">Launch Cerebro with pre-loaded data set</a></li>
     <li><a class="dropdown-item" href="articles/export_and_visualize_custom_tables_and_plots.html">Export and visualize custom tables and plots</a></li>
@@ -79,11 +80,219 @@
 <div class="section level1">
 <div class="page-header"><h1 id="cerebroapplite">cerebroAppLite<a class="anchor" aria-label="anchor" href="#cerebroapplite"></a>
 </h1></div>
-<p>R package that provides an interactive visualization of single cell RNA-seq data. <a href="https://github.com/satijalab/seurat" class="external-link">Seurat</a> v3, v4 and v5 are supported. To increase speed use <a href="https://github.com/Bioconductor/HDF5Array" class="external-link">h5</a> or <a href="https://github.com/bnprks/BPCells" class="external-link">BPCells</a> matrix.</p>
-<p>This is a continuation of the excellent <a href="https://github.com/romanhaa/cerebroApp" class="external-link">cerebroApp</a> R package from <a href="https://github.com/romanhaa" class="external-link">Roman Hillje</a>, which was sadly discontinued. This is supposed to be a lightweight version that only keeps the key functions and focuses on speed.</p>
-<p>The package can be installed with</p>
+<p>Interactive visualization of single-cell RNA-seq data, built on top of <a href="https://shiny.posit.co/" class="external-link">Shiny</a>.</p>
+<p>This is a fork of <a href="https://github.com/mihem/cerebroAppLite" class="external-link">cerebroAppLite</a> by <a href="https://github.com/mihem" class="external-link">mihem</a>, itself a slimmed-down fork of the original <a href="https://github.com/romanhaa/cerebroApp" class="external-link">cerebroApp</a> by <a href="https://github.com/romanhaa" class="external-link">Roman Hillje</a>. The R-CMD-check badge above tracks mihem’s upstream branch. For general usage, data preparation, and the original feature set, please refer to the official documentation:</p>
+<blockquote>
+<p><strong><a href="https://romanhaa.github.io/cerebroApp/" class="external-link uri">https://romanhaa.github.io/cerebroApp/</a></strong></p>
+</blockquote>
+<p>Everything described there (loading data, exploring projections, viewing marker genes, gene expression, etc.) works the same way in cerebroAppLite. The sections below only cover <strong>what this fork adds or changes</strong>.</p>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">'mihem/cerebroAppLite'</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="whats-new-in-this-fork">What’s New in This Fork<a class="anchor" aria-label="anchor" href="#whats-new-in-this-fork"></a>
+</h2>
+<div class="section level3">
+<h3 id="id_1-convertseurattocerebro--one-step-data-conversion">1. <code>convertSeuratToCerebro()</code> — one-step data conversion<a class="anchor" aria-label="anchor" href="#id_1-convertseurattocerebro--one-step-data-conversion"></a>
+</h3>
+<p>The original cerebroApp requires you to call <code><a href="reference/exportFromSeurat.html">exportFromSeurat()</a></code> manually with many parameters. This fork adds a convenience wrapper that handles the entire process in a single call: reading the Seurat object (<code>.rds</code> on disk, or one already loaded in memory), renaming grouping variables, loading marker gene tables, calculating most-expressed genes, pulling scRepertoire columns out of <code>meta.data</code>, and saving a <code>.crb</code> file.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mihem.github.io/cerebroAppLite/">cerebroAppLite</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/convertSeuratToCerebro.html">convertSeuratToCerebro</a></span><span class="op">(</span></span>
+<span>  seurat_file     <span class="op">=</span> <span class="st">"my_seurat.rds"</span>,     <span class="co"># or an in-memory Seurat object</span></span>
+<span>  result_dir      <span class="op">=</span> <span class="st">"output/"</span>,</span>
+<span>  assay           <span class="op">=</span> <span class="st">"RNA"</span>,</span>
+<span>  slot            <span class="op">=</span> <span class="st">"data"</span>,</span>
+<span>  experiment_name <span class="op">=</span> <span class="st">"My Experiment"</span>,</span>
+<span>  organism        <span class="op">=</span> <span class="st">"Human"</span>,</span>
+<span>  groups          <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sample_id"</span>, <span class="st">"condition"</span>, <span class="st">"cell_type"</span><span class="op">)</span>,</span>
+<span>  groups_naming   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="st">"sample_id"</span> <span class="op">=</span> <span class="st">"sample"</span>,</span>
+<span>    <span class="st">"cell_type"</span> <span class="op">=</span> <span class="st">"cluster"</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  marker_file              <span class="op">=</span> <span class="st">"markers.csv"</span>,   <span class="co"># optional: .csv/.tsv/.txt/.tab</span></span>
+<span>  expression_matrix_mode   <span class="op">=</span> <span class="st">"h5"</span>,            <span class="co"># "embedded" | "bpcells" | "h5", see §3</span></span>
+<span>  bcr_file                 <span class="op">=</span> <span class="cn">NULL</span>,            <span class="co"># optional: .rds with BCR data</span></span>
+<span>  tcr_file                 <span class="op">=</span> <span class="cn">NULL</span>             <span class="co"># optional: .rds with TCR data</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co"># → saves output/cerebro_my_seurat.crb (+ sibling .h5 / .bpcells/ when applicable)</span></span></code></pre></div>
+<p><code>.qs</code> input and <code>.xlsx</code> marker tables were dropped in 1.6.0 alongside the <code>qs</code> / <code>readxl</code> Suggests. If you have either, convert them once with <code>qs::qread() |&gt; saveRDS()</code> or open the workbook and re-export as CSV / TSV.</p>
+</div>
+<div class="section level3">
+<h3 id="id_2-createshinyapp--generate-a-deployable-shiny-app">2. <code>createShinyApp()</code> — generate a deployable Shiny app<a class="anchor" aria-label="anchor" href="#id_2-createshinyapp--generate-a-deployable-shiny-app"></a>
+</h3>
+<p>Instead of running <code><a href="reference/launchCerebro.html">launchCerebro()</a></code> interactively, you can generate a self-contained Shiny app directory with all data and source files bundled. This is useful for deploying to a Shiny server or sharing with collaborators.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/createShinyApp.html">createShinyApp</a></span><span class="op">(</span></span>
+<span>  cerebro_data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    `snRNAseq` <span class="op">=</span> <span class="st">"output/cerebro_snrnaseq.crb"</span>,</span>
+<span>    `TCR-BCR`  <span class="op">=</span> <span class="st">"output/cerebro_vdj.crb"</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  result_dir       <span class="op">=</span> <span class="st">"my_app/"</span>,</span>
+<span>  welcome_message  <span class="op">=</span> <span class="st">"&lt;h2&gt;My Single-Cell Atlas&lt;/h2&gt;"</span>,   <span class="co"># rendered via HTML()</span></span>
+<span>  port             <span class="op">=</span> <span class="fl">8080</span>,</span>
+<span>  host             <span class="op">=</span> <span class="st">"127.0.0.1"</span>,</span>
+<span>  max_request_size <span class="op">=</span> <span class="fl">8000</span>,                              <span class="co"># MB</span></span>
+<span>  overwrite        <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co"># → run with shiny::runApp("my_app/") or deploy to Shiny Server</span></span></code></pre></div>
+<p><code>cerebro_data</code> is required and must be a <em>named</em> vector / list of <code>.crb</code> (or <code>.rds</code>) paths — names become the dataset labels users switch between in the app. <code>result_dir</code> is optional. Sibling <code>&lt;stem&gt;.bpcells/</code> and <code>&lt;stem&gt;.h5</code> artefacts produced by the external backends are detected and copied into the bundle automatically (see §3). Other knobs available: <code>colors</code>, <code>cerebro_options</code>, <code>crb_pick_smallest_file</code>, <code>show_upload_ui</code>, <code>point_size</code>, <code>variable_to_compare</code> — run <code><a href="reference/createShinyApp.html">?createShinyApp</a></code> for the full list.</p>
+<p>This is the slimmed-down variant in this fork — auth, spatial, and Docker-template handling were dropped because they depend on dev-only modules; they will reappear as the corresponding modules land.</p>
+</div>
+<div class="section level3">
+<h3 id="id_3-choosing-an-expression-backend">3. Choosing an expression backend<a class="anchor" aria-label="anchor" href="#id_3-choosing-an-expression-backend"></a>
+</h3>
+<p><code><a href="reference/exportFromSeurat.html">exportFromSeurat()</a></code> (and <code><a href="reference/convertSeuratToCerebro.html">convertSeuratToCerebro()</a></code>) accept <code>expression_matrix_mode = c("embedded", "bpcells", "h5")</code> for how the count matrix is persisted alongside the <code>.crb</code>:</p>
+<table class="table">
+<colgroup>
+<col width="5%">
+<col width="20%">
+<col width="11%">
+<col width="30%">
+<col width="7%">
+<col width="23%">
+</colgroup>
+<thead><tr>
+<th>Backend</th>
+<th>Where the matrix lives</th>
+<th>
+<code>.crb</code> size</th>
+<th>Load behaviour</th>
+<th>Extra packages</th>
+<th>Portability</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>embedded</code></td>
+<td>inside the <code>.crb</code> itself</td>
+<td>full matrix included</td>
+<td>always in memory after <code>readRDS</code>
+</td>
+<td>—</td>
+<td>single-file; works with any reader</td>
+</tr>
+<tr>
+<td><code>bpcells</code></td>
+<td>sibling <code>&lt;stem&gt;.bpcells/</code> directory</td>
+<td>tiny (handle only)</td>
+<td>
+<strong>lazy</strong> — <code>IterableMatrix</code> reads on slice access</td>
+<td><code>BPCells</code></td>
+<td>
+<code>.crb</code> + sibling dir must travel together</td>
+</tr>
+<tr>
+<td><code>h5</code></td>
+<td>sibling <code>&lt;stem&gt;.h5</code> file (TENx CSC)</td>
+<td>tiny (tag only)</td>
+<td>
+<strong>lazy</strong> — <code><a href="https://rdrr.io/pkg/HDF5Array/man/TENxMatrix-class.html" class="external-link">HDF5Array::TENxMatrix</a></code> seed; queries stream from disk</td>
+<td><code>HDF5Array</code></td>
+<td>
+<code>.crb</code> + sibling <code>.h5</code> must travel together</td>
+</tr>
+</tbody>
+</table>
+<p>Measured trade-offs on a PBMC fixture (38,606 genes × 147,756 cells). Server-side metrics from <code>tests/smoke/src/93_bench_backend_compare.R</code> (callr-isolated, three backends each in a fresh R subprocess). End-to-end browser metric from <code>tests/smoke/src/94_bench_web_load.R</code> (callr-spawned Shiny + chromote-driven headless Chrome, fresh session per backend). Full methodology and a 5-panel plot in <a href="vignettes/expression_backend_benchmark.Rmd"><code>vignettes/expression_backend_benchmark.Rmd</code></a>:</p>
+<table class="table">
+<colgroup>
+<col width="65%">
+<col width="13%">
+<col width="11%">
+<col width="9%">
+</colgroup>
+<thead><tr>
+<th>metric</th>
+<th align="right">embedded</th>
+<th align="right">bpcells</th>
+<th align="right"><strong>h5</strong></th>
+</tr></thead>
+<tbody>
+<tr>
+<td>total disk</td>
+<td align="right">681 MB</td>
+<td align="right">592 MB</td>
+<td align="right">391 MB</td>
+</tr>
+<tr>
+<td><strong>open URL → dataset visible (browser)</strong></td>
+<td align="right">14.3 s</td>
+<td align="right">9.2 s</td>
+<td align="right"><strong>8.7 s</strong></td>
+</tr>
+<tr>
+<td>RAM (RSS) on the server after attach</td>
+<td align="right">4.5 GB</td>
+<td align="right">1.2 GB</td>
+<td align="right"><strong>1.1 GB</strong></td>
+</tr>
+<tr>
+<td>single-gene query, once loaded (cold)</td>
+<td align="right">0.51 s</td>
+<td align="right">0.74 s</td>
+<td align="right"><strong>0.01 s</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Browser-side TTFB / DOM-ready / <code>load</code> are within ~10 ms of each other across backends — all the divergence in the second row is server-side R work (<code>readRDS</code> + <code>.attachExternalExpression()</code>) plus a constant ~5 s Shiny session handshake.</p>
+<p><strong>Disk-size caveat — it depends on fixture size.</strong> The 391 MB h5 total above is for a large fixture where HDF5’s default gzip filter on the TENx CSC layout compresses sparse counts well (~6× vs uncompressed). On small/dense fixtures the trade-off can flip — for example on Roman Hillje’s <code>inst/extdata/v1.4/example.h5</code> (1000 cells × 500 genes) the sibling <code>.h5</code> is actually <em>larger</em> than the equivalent embedded <code>.crb</code> would have been, because metadata + chunk overhead dominates over compressed payload. <strong>The h5 win on RAM and load time is consistent across fixture sizes; the win on disk only emerges at scale.</strong> Since 1.7.0 the <code>bpcells</code> exporter automatically calls <code>BPCells::convert_matrix_type("uint32_t")</code> whenever the input values are losslessly representable as non-negative integers (the typical scRNA-seq counts case), which triggers BPCells’s bit-packed integer storage and shrinks the sibling by ~5× vs raw double; for normalised float values (<code>slot = "data"</code> / <code>"scale.data"</code>) the exporter falls back to raw storage to avoid silent precision loss.</p>
+<p>Picking one:</p>
+<ul>
+<li>
+<strong><code>h5</code></strong> <em>(recommended default)</em> — fastest startup, lowest RAM, fastest queries; smallest disk on large fixtures (subject to the caveat above). The TENx CSC layout aligns with how Cerebro reads expression (per-gene = single column slice), and HDF5 page-caching makes repeated reads memory-fast without committing the whole matrix to RAM. Requires the <code>HDF5Array</code> Bioconductor package on the host.</li>
+<li>
+<strong><code>bpcells</code></strong> — RAM-constrained host with very large matrices, or workloads dominated by chunk-level batched operations rather than per-gene reads. Disk size is similar to h5 on integer counts (bit-packed since 1.7.0); per-gene query is ~0.7 s, so chunk-level batched ops benefit more than per-gene streaming.</li>
+<li>
+<strong><code>embedded</code></strong> — single-file convenience (no sibling to manage), or compatibility with very old <code>.crb</code> readers. ~14 s end-to-end and pins the full matrix into RAM per loaded copy. Best for small datasets or one-shot scripts.</li>
+</ul>
+<p>For reference, before the 1.7.0 lazy h5 refactor, h5 attach was eager (<code><a href="https://huber-group-embl.github.io/rhdf5/reference/h5_read.html" class="external-link">rhdf5::h5read</a></code> + full <code>dgCMatrix</code> reconstruction), giving ~33 s open-URL time, ~11 GB RSS, and ~0.45 s queries — i.e. lazy-h5 is the same backend with attach <strong>~263× faster, RAM ~10× smaller, queries ~45× faster, web load ~4× faster</strong> (see <a href="vignettes/expression_backend_benchmark.Rmd"><code>expression_backend_benchmark.Rmd</code></a> for the comparison).</p>
+<p><code><a href="reference/createShinyApp.html">createShinyApp()</a></code> already knows about both <code>&lt;stem&gt;.bpcells/</code> and <code>&lt;stem&gt;.h5</code> and copies them next to the bundled <code>.crb</code>. The Shiny runtime re-resolves the sibling location on load via <code>getExpressionBackend()$location</code> relative to the <code>.crb</code>’s parent directory, so the bundle stays portable.</p>
+</div>
+<div class="section level3">
+<h3 id="id_4-other-improvements">4. Other Improvements<a class="anchor" aria-label="anchor" href="#id_4-other-improvements"></a>
+</h3>
+<ul>
+<li>
+<strong>Seurat v5</strong> support throughout (<code>GetAssayData()</code>-based slot access)</li>
+<li>Loading spinners on all plot outputs</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a>
+</h2>
+<p>The package ships with a <code>testthat</code> + <code>shinytest2</code> suite under <code>tests/testthat/</code>. CI (<code>.github/workflows/R-cmd-check.yaml</code>, <code>.github/workflows/R-tests.yaml</code>) runs it on every PR; locally:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># whole suite (loads dev source via pkgload::load_all)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># one file at a time</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span>filter <span class="op">=</span> <span class="st">"app-inst"</span><span class="op">)</span>          <span class="co"># shinytest2 end-to-end smoke</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span>filter <span class="op">=</span> <span class="st">"exportFromSeurat"</span><span class="op">)</span>  <span class="co"># exporter-only</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span>filter <span class="op">=</span> <span class="st">"r-functions"</span><span class="op">)</span>       <span class="co"># plain unit tests</span></span></code></pre></div>
+<p><code>test-app-inst.R</code> drives a real headless Chrome via <code>chromote</code> and relies on <code>NOT_CRAN=true</code> (already set in <code>tests/testthat/setup.R</code>). Install the extras once:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"testthat"</span>, <span class="st">"shinytest2"</span>, <span class="st">"chromote"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># or pull the whole Suggests block:</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/install_deps.html" class="external-link">install_dev_deps</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>From the shell (CI / scripting):</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># what R CMD check effectively runs (uses installed package, not dev source)</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'testthat::test_dir("tests/testthat")'</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co"># only the shinytest2 suite, with a verbose reporter</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="va">NOT_CRAN</span><span class="op">=</span>true <span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::test(filter="app-inst", reporter="summary")'</span></span></code></pre></div>
+<p>Snapshot diffs from <code>expect_snapshot()</code> land under <code>tests/testthat/_snaps/</code>; review them with <code><a href="https://testthat.r-lib.org/reference/snapshot_accept.html" class="external-link">testthat::snapshot_review()</a></code> and accept with <code><a href="https://testthat.r-lib.org/reference/snapshot_accept.html" class="external-link">testthat::snapshot_accept()</a></code> only after confirming the new output is correct.</p>
+<p>See <a href="tests/README.html"><code>tests/README.md</code></a> for the full layout, the <code>inst_dir</code> resolution rule, and the gotcha about regenerating <code>inst/extdata/v1.4/example.crb</code> after R6 method changes (a stale fixture surfaces as a misleading <code>Shiny app did not become stable in 15000ms</code> from shinytest2).</p>
+</div>
+<div class="section level2">
+<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
+</h2>
+<p>MIT — see <a href="LICENSE.html">LICENSE.md</a>. Original cerebroApp © Roman Hillje; cerebroAppLite fork by <a href="https://github.com/mihem" class="external-link">mihem</a>.</p>
+</div>
 </div>
 
   </main><aside class="col-md-3"><div class="links">
@@ -121,7 +330,7 @@
 <div class="dev-status">
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/mihem/cerebroAppLite/actions/workflows/R-cmd-check.yaml" class="external-link"><img src="https://github.com/mihem/cerebroAppLite/actions/workflows/R-cmd-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://github.com/mihem/cerebroAppLite/actions/workflows/R-cmd-check.yaml" class="external-link"><img src="https://github.com/mihem/cerebroAppLite/actions/workflows/R-cmd-check.yaml/badge.svg" alt="R-CMD-check (upstream)"></a></li>
 <li><a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></li>
 </ul>
 </div>

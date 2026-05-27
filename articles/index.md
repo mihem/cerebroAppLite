@@ -18,6 +18,8 @@
 
 ### How-to guides
 
+- [Create a self-contained Shiny app from a Cerebro data
+  file](https://mihem.github.io/cerebroAppLite/articles/create_a_self_contained_shiny_app.md):
 - [Create expression matrix in h5
   format](https://mihem.github.io/cerebroAppLite/articles/create_expression_matrix_in_h5_format.md):
 - [Launch Cerebro with pre-loaded data

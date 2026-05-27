@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,6 +29,7 @@
     <li><a class="dropdown-item" href="../articles/release_notes_v1.3.html">Release notes: Cerebro/cerebroApp v1.3</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>How-to</h6></li>
+    <li><a class="dropdown-item" href="../articles/create_a_self_contained_shiny_app.html">Create a self-contained Shiny app from a Cerebro data file</a></li>
     <li><a class="dropdown-item" href="../articles/create_expression_matrix_in_h5_format.html">Create expression matrix in h5 format</a></li>
     <li><a class="dropdown-item" href="../articles/launch_cerebro_with_pre-loaded_data_set.html">Launch Cerebro with pre-loaded data set</a></li>
     <li><a class="dropdown-item" href="../articles/export_and_visualize_custom_tables_and_plots.html">Export and visualize custom tables and plots</a></li>
@@ -59,9 +60,23 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="1.6.0" id="cerebroapplite-160">cerebroAppLite 1.6.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-160"></a></h2>
+<h2 class="pkg-version" data-toc-text="1.7.0" id="cerebroapplite-170">cerebroAppLite 1.7.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-170"></a></h2>
 <div class="section level3">
-<h3 id="bug-fixes-1-6-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-6-0"></a></h3>
+<h3 id="new-features-1-7-0">New features<a class="anchor" aria-label="anchor" href="#new-features-1-7-0"></a></h3>
+<ul><li>External HDF5 expression backend, symmetric to the bpcells backend: <code><a href="../reference/exportFromSeurat.html">exportFromSeurat()</a></code> with <code>expression_matrix_mode = "h5"</code> writes the matrix via <code><a href="https://rdrr.io/pkg/HDF5Array/man/writeTENxMatrix.html" class="external-link">HDF5Array::writeTENxMatrix()</a></code> to a TENx-format <code>.h5</code> next to the <code>.crb</code>. The runtime attach loads it back as a lazy <code><a href="https://rdrr.io/pkg/HDF5Array/man/TENxMatrix-class.html" class="external-link">HDF5Array::TENxMatrix</a></code> seed and transposes via <code>DelayedArray::t()</code> (free); the in-memory <code>dgCMatrix</code> is never materialised, so RAM stays close to the <code>.crb</code> metadata size and attach is effectively instant</li>
+<li>Introduced <code><a href="../reference/createShinyApp.html">createShinyApp()</a></code> for bundling a self-contained Shiny app from one or more <code>.crb</code> files</li>
+<li>
+<code><a href="../reference/createShinyApp.html">createShinyApp()</a></code> now copies the <code>&lt;stem&gt;.h5</code> sibling alongside the <code>.crb</code> during app bundling, mirroring the existing <code>.bpcells/</code> handling</li>
+<li>Legacy <code>.crb</code> files (predating the <code>expression_backend</code> field) are auto-tagged as <code>h5</code> when the host app sets <code>Cerebro.options[["expression_matrix_h5"]]</code>, finally giving <code>inst/extdata/v1.4/example.h5</code> a runtime consumer</li>
+<li>
+<code><a href="../reference/convertSeuratToCerebro.html">convertSeuratToCerebro()</a></code> accepts an in-memory Seurat object alongside the <code>.rds</code> path; output basename derives from <code>experiment_name</code> when no path is given</li>
+<li>
+<code><a href="../reference/createShinyApp.html">createShinyApp()</a></code> opens a <code>...</code> passthrough so callers can forward extra options without signature churn</li>
+<li>
+<code><a href="../reference/exportFromSeurat.html">exportFromSeurat()</a></code> with <code>expression_matrix_mode = "bpcells"</code> now auto-detects losslessly-integer values and calls <code>BPCells::convert_matrix_type("uint32_t")</code> before <code>write_matrix_dir()</code>, which triggers BPCells’s bit-packed integer storage on the typical scRNA-seq counts case. Shrinks the bpcells sibling ~5× on integer counts (e.g. 50k cells × 20k genes: 440 MB raw double → 78 MB bit-packed; PBMC All Samples 38,606 × 147,756: 2.6 GB → 549 MB), and queries get ~1.5-1.7× faster as a side effect (smaller payload to read). Normalised float values (<code>slot = "data"</code>/<code>"scale.data"</code>) fall back to raw double to avoid silent precision loss</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-1-7-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-7-0"></a></h3>
 <ul><li>Fixed all errors and warnings identified by R CMD CHECK, making the package ready for CRAN submission</li>
 <li>Fixed Seurat v5 API: replaced deprecated slot access (<code>@counts</code>, <code>@data</code>) with <code><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData()</a></code> across multiple functions</li>
 <li>Fixed <code>addPercentMtRibo</code>, <code>calculatePercentGenes</code>, <code>getMostExpressedGenes</code>, <code>performGeneSetEnrichmentAnalysis</code>, <code>getMarkerGenes</code>, <code>getEnrichedPathways</code>, <code>exportFromSCE</code>, <code>exportFromSeurat</code>
@@ -70,15 +85,27 @@
 <li>Fixed <code>class(x) == "..."</code> checks replaced with <code><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits()</a></code> across all relevant functions</li>
 <li>Fixed <code><a href="https://rdrr.io/r/base/library.html" class="external-link">require()</a></code> replaced with <code><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace()</a></code> throughout</li>
 <li>Fixed cross-references and examples in documentation</li>
+<li>Fixed <code><a href="../reference/exportFromSCE.html">exportFromSCE()</a></code> projections: <code>reducedDims()</code> output is now coerced to <code>data.frame</code> before <code>addProjection()</code>, matching the Seurat path and clearing a latent runtime error for SCE inputs with non-PCA reductions</li>
+<li>Fixed <code>.attachExternalExpression</code> crashing on legacy <code>.crb</code> objects that predate the <code>getExpressionBackend()</code> method; such objects are now treated as embedded backend and skip the attach step</li>
+<li>Fixed “method not found” errors on the trajectory tab by renaming the corresponding <code>Cerebro_v1.3</code> methods to the names the Shiny server already calls (<code>getMethodsForTrajectories</code>, <code>getNamesOfTrajectories</code>)</li>
+<li>Fixed gene_expression plot chain freezing on gene picker changes: removed a stale <code><a href="https://rdrr.io/pkg/shiny/man/isolate.html" class="external-link">isolate()</a></code> wrapper and a reference to a non-existent <code>expression_projection_update_button</code> input; the existing 250 ms debounce on the data-to-plot reactive still throttles bursts</li>
 </ul></div>
 <div class="section level3">
-<h3 id="testing-1-6-0">Testing<a class="anchor" aria-label="anchor" href="#testing-1-6-0"></a></h3>
+<h3 id="testing-1-7-0">Testing<a class="anchor" aria-label="anchor" href="#testing-1-7-0"></a></h3>
 <ul><li>Added unit tests for all core R functions</li>
 <li>Added shinytest2 integration tests for the full Cerebro interface, covering gene expression, group/marker genes, color management, and more</li>
+<li>Added an h5 round-trip test in <code>test-exportFromSeurat.R</code> verifying writer/reader bit-identity for the new HDF5 backend, plus an attach-level test asserting the runtime returns a lazy <code>DelayedMatrix</code> (not an in-memory <code>dgCMatrix</code>)</li>
+<li>Added <code>tests/README.md</code> documenting the layout (testthat unit, testthat shinytest2, smoke)</li>
+<li>Routed <code>tests/smoke/</code> artifacts through <code>.Rbuildignore</code> and <code>.gitignore</code> so they no longer leak into the package tarball or git history</li>
 <li>Tests run in a reproducible Nix environment via GitHub Actions</li>
 </ul></div>
 <div class="section level3">
-<h3 id="cicd-1-6-0">CI/CD<a class="anchor" aria-label="anchor" href="#cicd-1-6-0"></a></h3>
+<h3 id="dependencies-1-7-0">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies-1-7-0"></a></h3>
+<ul><li>
+<code>rhdf5</code> removed from <code>Suggests</code>. The h5 backend now goes through <code><a href="https://rdrr.io/pkg/HDF5Array/man/writeTENxMatrix.html" class="external-link">HDF5Array::writeTENxMatrix()</a></code> (writer) and <code><a href="https://rdrr.io/pkg/HDF5Array/man/TENxMatrix-class.html" class="external-link">HDF5Array::TENxMatrix()</a></code> (lazy reader), which use rhdf5 internally; users no longer need to install or <code>requireNamespace</code> rhdf5 directly</li>
+</ul></div>
+<div class="section level3">
+<h3 id="cicd-1-7-0">CI/CD<a class="anchor" aria-label="anchor" href="#cicd-1-7-0"></a></h3>
 <ul><li>Added Nix-based GitHub Actions workflows for R CMD CHECK, R tests, pkgdown, code style, and automatic <code>default.nix</code> updates</li>
 <li>Added <code>update-nix</code> workflow: regenerates <code>default.nix</code> weekly via <code>create_env.R</code> and opens a PR automatically; BPCells commit SHA is now auto-fetched from GitHub</li>
 <li>Added <code>style</code> workflow: formats R code via <a href="https://github.com/posit-dev/air" class="external-link">air</a> on every PR</li>
@@ -87,7 +114,7 @@
 <li>Branch protection rulesets configured for both <code>master</code> and <code>dev</code> with required status checks and auto-merge</li>
 </ul></div>
 <div class="section level3">
-<h3 id="documentation-1-6-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-1-6-0"></a></h3>
+<h3 id="documentation-1-7-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-1-7-0"></a></h3>
 <ul><li>Added pkgdown site at <a href="https://mihem.github.io/cerebroAppLite/" class="uri">https://mihem.github.io/cerebroAppLite/</a> with light/dark/auto theme switch, search, and all vignettes as articles</li>
 <li>Site automatically builds and deploys to GitHub Pages on push to master</li>
 </ul></div>

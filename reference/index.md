@@ -49,6 +49,10 @@
   : Add percentage of mitochondrial and ribosomal transcripts.
 - [`calculatePercentGenes()`](https://mihem.github.io/cerebroAppLite/reference/calculatePercentGenes.md)
   : Calculate percentage of transcripts of gene list.
+- [`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md)
+  : Convert Seurat Object to Cerebro Format
+- [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+  : Create a self-contained Shiny app folder for Cerebro v1.4
 - [`.read_GMT_file()`](https://mihem.github.io/cerebroAppLite/reference/dot-read_GMT_file.md)
   : Read GMT file.
 - [`.send_enrichr_query()`](https://mihem.github.io/cerebroAppLite/reference/dot-send_enrichr_query.md)

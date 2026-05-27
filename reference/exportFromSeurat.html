@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,6 +29,7 @@
     <li><a class="dropdown-item" href="../articles/release_notes_v1.3.html">Release notes: Cerebro/cerebroApp v1.3</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>How-to</h6></li>
+    <li><a class="dropdown-item" href="../articles/create_a_self_contained_shiny_app.html">Create a self-contained Shiny app from a Cerebro data file</a></li>
     <li><a class="dropdown-item" href="../articles/create_expression_matrix_in_h5_format.html">Create expression matrix in h5 format</a></li>
     <li><a class="dropdown-item" href="../articles/launch_cerebro_with_pre-loaded_data_set.html">Launch Cerebro with pre-loaded data set</a></li>
     <li><a class="dropdown-item" href="../articles/export_and_visualize_custom_tables_and_plots.html">Export and visualize custom tables and plots</a></li>
@@ -73,11 +74,13 @@
 <span>  <span class="va">experiment_name</span>,</span>
 <span>  <span class="va">organism</span>,</span>
 <span>  <span class="va">groups</span>,</span>
+<span>  main_group <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cell_cycle <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  nUMI <span class="op">=</span> <span class="st">"nUMI"</span>,</span>
 <span>  nGene <span class="op">=</span> <span class="st">"nGene"</span>,</span>
 <span>  add_all_meta_data <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_delayed_array <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  expression_matrix_mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"embedded"</span>, <span class="st">"bpcells"</span>, <span class="st">"h5"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -119,6 +122,12 @@ bottlenecks in the Cerebro interface.</p></dd>
 must be provided; defaults to <code>NULL</code>.</p></dd>
 
 
+<dt id="arg-main-group">main_group<a class="anchor" aria-label="anchor" href="#arg-main-group"></a></dt>
+<dd><p>The primary grouping variable to use for display in Cerebro;
+must be one of the grouping variables specified in <code>groups</code>; defaults to
+<code>NULL</code>.</p></dd>
+
+
 <dt id="arg-cell-cycle">cell_cycle<a class="anchor" aria-label="anchor" href="#arg-cell-cycle"></a></dt>
 <dd><p>Names of columns in meta data
 (<code>object@meta.data</code>) that contain cell cycle information, e.g.
@@ -148,7 +157,35 @@ and instead values will be read from the disk directly, at the cost of
 performance. Note that it is necessary to install the <code>DelayedArray</code>
 package. If set to <code>FALSE</code> (default), the expression matrix will be
 copied from the input object as is. It is recommended to use a sparse format,
-such as <code>dgCMatrix</code> from the <code>Matrix</code> package.</p></dd>
+such as <code>dgCMatrix</code> from the <code>Matrix</code> package. Ignored when
+<code>expression_matrix_mode</code> is set to an external backend.</p></dd>
+
+
+<dt id="arg-expression-matrix-mode">expression_matrix_mode<a class="anchor" aria-label="anchor" href="#arg-expression-matrix-mode"></a></dt>
+<dd><p>How to persist the expression matrix. One of
+<code>"embedded"</code> (default), <code>"bpcells"</code>, or <code>"h5"</code>.</p><ul><li><p><code>"embedded"</code> stores the matrix inside the <code>.crb</code> file, as
+  before. Compatible with all existing <code>.crb</code> readers.</p></li>
+<li><p><code>"bpcells"</code> writes the matrix to a BPCells on-disk directory
+  next to the <code>.crb</code> and keeps only a lightweight handle in the
+  serialised object. Recommended for large sparse matrices. The resulting
+  <code>.crb</code> is portable as long as the sibling <code>.bpcells/</code> directory
+  travels with it; the Shiny runtime re-resolves paths via
+  <code>getExpressionBackend()$location</code> relative to the <code>.crb</code>'s
+  parent directory (step 7.3 runtime attach).</p></li>
+<li><p><code>"h5"</code> writes the matrix via <code><a href="https://rdrr.io/pkg/HDF5Array/man/writeTENxMatrix.html" class="external-link">HDF5Array::writeTENxMatrix()</a></code>
+  to a TENx-format sparse HDF5 file next to the <code>.crb</code> (sibling
+  <code>&lt;stem&gt;.h5</code>) and tags the backend with that relative location. The
+  on-disk layout matches <code>inst/extdata/v1.4/example.h5</code>: a single
+  <code>/expression</code> group with <code>data</code>, <code>indices</code>, <code>indptr</code>,
+  <code>shape</code>, <code>genes</code>, and <code>barcodes</code> datasets. The matrix is
+  stored cells x genes (TENx column-favoured, optimised for per-gene
+  reads); the Shiny runtime attach reads it back as a lazy
+  <code><a href="https://rdrr.io/pkg/HDF5Array/man/TENxMatrix-class.html" class="external-link">HDF5Array::TENxMatrix</a></code> seed and transposes it lazily to Cerebro's
+  internal genes x cells layout via <code>DelayedArray::t()</code> (free). The
+  in-memory <code>dgCMatrix</code> is never materialised on attach, so RAM stays
+  close to the <code>.crb</code> metadata size. Requires the <span class="pkg">HDF5Array</span>
+  package.</p></li>
+</ul></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -159,6 +196,16 @@ defaults to <code>FALSE</code>.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>No data returned.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="immune-repertoire">Immune Repertoire<a class="anchor" aria-label="anchor" href="#immune-repertoire"></a></h2>
+
+
+<p>If <code>object@misc$immune_repertoire</code> contains a named list of
+data.frames (one per sample, with scRepertoire columns such as CTgene,
+CTnt, CTaa, CTstrict), it will be automatically exported into the Cerebro
+object via <code>addImmuneRepertoire()</code>.  Legacy <code>bcr_data</code> /
+<code>tcr_data</code> slots are also supported as a fallback.</p>
     </div>
 
     <div class="section level2">
@@ -176,20 +223,22 @@ defaults to <code>FALSE</code>.</p></dd>
 <span class="r-in"><span>  use_delayed_array <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
 <span class="r-in"><span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Initializing Cerebro object...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Collecting available meta data...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Extracting all meta data columns...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Extracting dimensional reductions...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Will export the following dimensional reductions: umap</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Extracting tables of marker genes...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] No trajectories to extract...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Overview of Cerebro object:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Initializing Cerebro object...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Adding expression data (embedded)...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Collecting available meta data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Extracting all meta data columns...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Extracting dimensional reductions...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Will export the following dimensional reductions: umap</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Checking for spatial data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Extracting marker genes table...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] No trajectories to extract...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Overview of Cerebro object:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> class: Cerebro_v1.3</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> cerebroApp version: 1.6.0</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> cerebroApp version: 1.7.0</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> experiment name: PBMC</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> organism: hg</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> date of analysis: </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> date of export: 2026-05-24</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> date of export: 2026-05-27</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> number of cells: 80</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> number of genes: 230</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> grouping variables (2): sample, seurat_clusters</span>
@@ -202,8 +251,10 @@ defaults to <code>FALSE</code>.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> enriched pathways:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> trajectories:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> extra material:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Saving Cerebro object to: /tmp/nix-shell-4493-741374278/RtmpCV7flb/pbmc_Seurat.crb</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [06:47:04] Done!</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Immune repertoire:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Spatial data:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Saving Cerebro object to: /tmp/nix-shell-4420-1240496482/Rtmp97z1fV/pbmc_Seurat.crb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [12:26:04] Done!</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

@@ -6,6 +6,7 @@
 <url><loc>https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page.html</loc></url>
+<url><loc>https://mihem.github.io/cerebroAppLite/articles/create_a_self_contained_shiny_app.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/articles/create_expression_matrix_in_h5_format.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/articles/export_a_data_set_in_SCE_format.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/articles/export_and_visualize_custom_tables_and_plots.html</loc></url>
@@ -20,6 +21,8 @@
 <url><loc>https://mihem.github.io/cerebroAppLite/reference/Cerebro_v1.3.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/reference/addPercentMtRibo.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/reference/calculatePercentGenes.html</loc></url>
+<url><loc>https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.html</loc></url>
+<url><loc>https://mihem.github.io/cerebroAppLite/reference/createShinyApp.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/reference/dot-read_GMT_file.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/reference/dot-send_enrichr_query.html</loc></url>
 <url><loc>https://mihem.github.io/cerebroAppLite/reference/exportFromSCE.html</loc></url>

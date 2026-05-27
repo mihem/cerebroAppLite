@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,6 +29,7 @@
     <li><a class="dropdown-item" href="articles/release_notes_v1.3.html">Release notes: Cerebro/cerebroApp v1.3</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>How-to</h6></li>
+    <li><a class="dropdown-item" href="articles/create_a_self_contained_shiny_app.html">Create a self-contained Shiny app from a Cerebro data file</a></li>
     <li><a class="dropdown-item" href="articles/create_expression_matrix_in_h5_format.html">Create expression matrix in h5 format</a></li>
     <li><a class="dropdown-item" href="articles/launch_cerebro_with_pre-loaded_data_set.html">Launch Cerebro with pre-loaded data set</a></li>
     <li><a class="dropdown-item" href="articles/export_and_visualize_custom_tables_and_plots.html">Export and visualize custom tables and plots</a></li>
@@ -65,9 +66,30 @@
 <ul><li>increase speed of gene expression</li>
 <li>remove unnecessary functions</li>
 </ul></div>
+<div class="section level2">
+<h2 id="gene-expression-page--known-issues">Gene expression page — known issues<a class="anchor" aria-label="anchor" href="#gene-expression-page--known-issues"></a></h2>
+<div class="section level3">
+<h3 id="id_1-gene-set-option-is-hidden">1. “Gene set” option is hidden<a class="anchor" aria-label="anchor" href="#id_1-gene-set-option-is-hidden"></a></h3>
+<ul><li>The Gene set code paths still exist in <code>gene_expression/</code>, but the radio button in <code>UI_projection.R</code> only offers <code>c("Gene(s)")</code>, so users can’t reach it.</li>
+<li>
+<code>getGenesForGeneSet()</code> also uses <code>msigdbr:::msigdbr_genesets</code> (internal), which was removed in msigdbr 7.x — it would crash even if exposed.</li>
+<li>Fix later: rewrite <code>getGenesForGeneSet()</code> with the public <code>msigdbr()</code> API, then add <code>"Gene set"</code> back to the radio choices. Optional: support user-supplied GMT/JSON files.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="id_2-umap-doesnt-update-when-genes-change">2. UMAP doesn’t update when genes change<a class="anchor" aria-label="anchor" href="#id_2-umap-doesnt-update-when-genes-change"></a></h3>
+<ul><li>Picking genes on the Gene expression page doesn’t redraw the plot — color stays at 0.</li>
+<li>Cause: a partial merge. Commit 035d2f5 brought the consumer side (a reference to <code>input$expression_projection_update_button</code> plus <code>isolate()</code> around <code>expression_selected_genes()</code> and <code>expression_projection_expression_levels()</code>), but the producer side from commit a49cb03 (on <code>mischko</code> / <code>mischko-03-refresh</code>) was never merged into <code>mischko-01-foundation</code>. Three pieces are missing:
+<ol style="list-style-type: decimal"><li>The <code>actionButton("expression_projection_update_button", "Plot Expression", ...)</code> in <code>UI_projection_input_type.R</code>.</li>
+<li>
+<code>obj_selected_genes.R</code> should be <code>eventReactive(input$update_button, { ... }, ignoreNULL = FALSE)</code>, not a plain <code>reactive(...)</code>.</li>
+<li>The <code>serverSideGeneSelector</code> helper (defined in dev’s <code>utility_functions.R</code>).</li>
+</ol></li>
+</ul></div>
+</div>
 </div>
 
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
