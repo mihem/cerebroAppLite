@@ -12,13 +12,6 @@
 
 ## Bug fixes
 
-- Fixed all errors and warnings identified by R CMD CHECK, making the package ready for CRAN submission
-- Fixed Seurat v5 API: replaced deprecated slot access (`@counts`, `@data`) with `GetAssayData()` across multiple functions
-- Fixed `addPercentMtRibo`, `calculatePercentGenes`, `getMostExpressedGenes`, `performGeneSetEnrichmentAnalysis`, `getMarkerGenes`, `getEnrichedPathways`, `exportFromSCE`, `exportFromSeurat`
-- Fixed GSVA v2.x API compatibility: now uses `gsvaParam()` with version check for backward compatibility
-- Fixed `class(x) == "..."` checks replaced with `inherits()` across all relevant functions
-- Fixed `require()` replaced with `requireNamespace()` throughout
-- Fixed cross-references and examples in documentation
 - Fixed `exportFromSCE()` projections: `reducedDims()` output is now coerced to `data.frame` before `addProjection()`, matching the Seurat path and clearing a latent runtime error for SCE inputs with non-PCA reductions
 - Fixed `.attachExternalExpression` crashing on legacy `.crb` objects that predate the `getExpressionBackend()` method; such objects are now treated as embedded backend and skip the attach step
 - Fixed "method not found" errors on the trajectory tab by renaming the corresponding `Cerebro_v1.3` methods to the names the Shiny server already calls (`getMethodsForTrajectories`, `getNamesOfTrajectories`)
@@ -26,16 +19,37 @@
 
 ## Testing
 
-- Added unit tests for all core R functions
-- Added shinytest2 integration tests for the full Cerebro interface, covering gene expression, group/marker genes, color management, and more
+- Extended testing
 - Added an h5 round-trip test in `test-exportFromSeurat.R` verifying writer/reader bit-identity for the new HDF5 backend, plus an attach-level test asserting the runtime returns a lazy `DelayedMatrix` (not an in-memory `dgCMatrix`)
 - Added `tests/README.md` documenting the layout (testthat unit, testthat shinytest2, smoke)
-- Routed `tests/smoke/` artifacts through `.Rbuildignore` and `.gitignore` so they no longer leak into the package tarball or git history
-- Tests run in a reproducible Nix environment via GitHub Actions
 
 ## Dependencies
 
 - `rhdf5` removed from `Suggests`. The h5 backend now goes through `HDF5Array::writeTENxMatrix()` (writer) and `HDF5Array::TENxMatrix()` (lazy reader), which use rhdf5 internally; users no longer need to install or `requireNamespace` rhdf5 directly
+
+## CI/CD
+
+- Switched Nix environment to `fixed-date` to avoid constant rebuilding
+- simplified workflow by removing `dev` and `sync-dev`
+
+
+ # cerebroAppLite 1.6.0
+
+## Bug fixes
+
+- Fixed all errors and warnings identified by R CMD CHECK, making the package ready for CRAN submission
+- Fixed Seurat v5 API: replaced deprecated slot access (`@counts`, `@data`) with `GetAssayData()` across multiple functions
+- Fixed `addPercentMtRibo`, `calculatePercentGenes`, `getMostExpressedGenes`, `performGeneSetEnrichmentAnalysis`, `getMarkerGenes`, `getEnrichedPathways`, `exportFromSCE`, `exportFromSeurat`
+- Fixed GSVA v2.x API compatibility: now uses `gsvaParam()` with version check for backward compatibility
+- Fixed `class(x) == "..."` checks replaced with `inherits()` across all relevant functions
+- Fixed `require()` replaced with `requireNamespace()` throughout
+- Fixed cross-references and examples in documentation
+
+## Testing
+
+- Added unit tests for all core R functions
+- Added shinytest2 integration tests for the full Cerebro interface, covering gene expression, group/marker genes, color management, and more
+- Tests run in a reproducible Nix environment via GitHub Actions
 
 ## CI/CD
 
@@ -50,6 +64,7 @@
 
 - Added pkgdown site at <https://mihem.github.io/cerebroAppLite/> with light/dark/auto theme switch, search, and all vignettes as articles
 - Site automatically builds and deploys to GitHub Pages on push to master
+
 
 # cerebroAppLite 1.5.3
 
