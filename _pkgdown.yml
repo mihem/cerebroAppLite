@@ -58,7 +58,3 @@ articles:
       - export_and_visualize_custom_tables_and_plots
       - control_access_to_cerebro_with_a_login_page
       - host_cerebro_on_shinyapps
-  - title: "Benchmarks"
-    navbar: Benchmarks
-    contents:
-      - expression_backend_benchmark
