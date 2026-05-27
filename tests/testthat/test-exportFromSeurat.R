@@ -143,3 +143,120 @@ test_that("exportFromSeurat: produces a valid .crb file from pbmc_seurat.rds", {
   expect_equal(ncol(expr), ncol(obj_raw))
   expect_equal(nrow(expr), nrow(obj_raw))
 })
+
+## ---------------------------------------------------------------------------
+## h5 backend round-trip
+## ---------------------------------------------------------------------------
+
+test_that("exportFromSeurat: h5 mode writes a TENxMatrix-compatible sibling
+           and keeps crb$expression NULL so saveRDS does not embed the
+           matrix; round-trips bit-exact via lazy HDF5Array::TENxMatrix", {
+  skip_if_not_installed("HDF5Array")
+  skip_if_not_installed("Matrix")
+
+  out_dir <- file.path(tempdir(), paste0("h5_rt_", as.integer(Sys.time())))
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  outf <- file.path(out_dir, "trip.crb")
+  h5_path <- file.path(out_dir, "trip.h5")
+
+  args <- valid_args
+  args$file <- outf
+  args$expression_matrix_mode <- "h5"
+  args$verbose <- FALSE
+
+  expect_no_error(do.call(exportFromSeurat, args))
+  expect_true(file.exists(outf))
+  expect_true(file.exists(h5_path))
+
+  ## crb side: expression stays NULL (no in-memory dgCMatrix payload, so
+  ## saveRDS does not embed the matrix and the .crb stays small) and the
+  ## backend tag points at the sibling .h5.
+  cerebro <- readRDS(outf)
+  expect_null(
+    cerebro$expression,
+    label = "crb$expression must be NULL so saveRDS does not embed the matrix"
+  )
+  be <- cerebro$getExpressionBackend()
+  expect_equal(be$type, "h5")
+  expect_equal(be$location, "trip.h5")
+
+  ## h5 side: TENxMatrix-readable. No direct rhdf5 dependency.
+  m <- HDF5Array::TENxMatrix(h5_path, group = "expression")
+  expect_s4_class(m, "TENxMatrix")
+  ## On-disk layout is cells × genes (TENx column-favoured, optimised for
+  ## per-gene column reads). Cerebro's internal layout is genes × cells.
+  m_internal <- t(m)
+  expect_s4_class(m_internal, "DelayedMatrix")
+
+  ## bit-exact round-trip vs the input matrix
+  orig <- SeuratObject::GetAssayData(obj_raw, layer = "data")
+  expect_equal(dim(m_internal), dim(orig))
+  expect_setequal(rownames(m_internal), rownames(orig))
+  expect_setequal(colnames(m_internal), colnames(orig))
+  realised <- as.matrix(m_internal[rownames(orig), colnames(orig)])
+  delta <- max(abs(realised - as.matrix(orig)))
+  expect_equal(delta, 0)
+})
+
+test_that("exportFromSeurat: h5 mode errors clearly when HDF5Array is missing", {
+  skip_if(requireNamespace("HDF5Array", quietly = TRUE))
+  args <- valid_args
+  args$file <- tempfile(fileext = ".crb")
+  args$expression_matrix_mode <- "h5"
+  expect_error(do.call(exportFromSeurat, args), regexp = "HDF5Array")
+})
+
+test_that("h5 attach is lazy: .attachExternalExpression returns a DelayedMatrix
+           seed, not an eagerly materialised dgCMatrix (low RAM, instant attach)", {
+  skip_if_not_installed("HDF5Array")
+
+  ## source the runtime attach helper from inst/ — it's a Shiny utility,
+  ## not part of the package namespace
+  inst_util <- system.file(
+    "shiny/v1.4/utility_functions.R",
+    package = "cerebroAppLite"
+  )
+  if (!nzchar(inst_util)) {
+    inst_util <- testthat::test_path(
+      "../../inst/shiny/v1.4/utility_functions.R"
+    )
+  }
+  ## load only the symbol we need into a fresh env to avoid namespace pollution
+  attach_env <- new.env(parent = globalenv())
+  source(inst_util, local = attach_env, echo = FALSE)
+  skip_if_not(
+    is.function(attach_env$.attachExternalExpression),
+    ".attachExternalExpression not found in utility_functions.R"
+  )
+
+  out_dir <- file.path(tempdir(), paste0("h5_attach_", as.integer(Sys.time())))
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  outf <- file.path(out_dir, "trip.crb")
+
+  args <- valid_args
+  args$file <- outf
+  args$expression_matrix_mode <- "h5"
+  args$verbose <- FALSE
+  do.call(exportFromSeurat, args)
+
+  cerebro <- readRDS(outf)
+  expect_null(cerebro$expression)
+
+  attached <- attach_env$.attachExternalExpression(cerebro, outf)
+
+  ## the attach must NOT materialise a dgCMatrix in RAM — that defeats the
+  ## entire point of the h5 backend (Roman Hillje's vignette
+  ## `create_expression_matrix_in_h5_format.Rmd`).
+  expect_false(
+    inherits(attached$expression, "dgCMatrix"),
+    info = "h5 attach must stay lazy; got an in-memory dgCMatrix"
+  )
+  expect_s4_class(attached$expression, "DelayedMatrix")
+
+  ## but it should still expose Cerebro's genes × cells layout
+  orig <- SeuratObject::GetAssayData(obj_raw, layer = "data")
+  expect_equal(nrow(attached$expression), nrow(orig))
+  expect_equal(ncol(attached$expression), ncol(orig))
+  expect_setequal(rownames(attached$expression), rownames(orig))
+  expect_setequal(colnames(attached$expression), colnames(orig))
+})

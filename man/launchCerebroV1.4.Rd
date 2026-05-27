@@ -43,7 +43,7 @@ matrix created with \code{HDF5Array::writeTENxMatrix()}, with genes as
 columns and cells as rows, contrary to the conventional format of genes as
 rows and cells as columns. This format greatly favors performance for
 extracting expression values for a gene (column), rather than a cell (row),
-which is the primary action in Cerebro. Importantly, the matrix should be 
+which is the primary action in Cerebro. Importantly, the matrix should be
 stored with "expression" as group name (see parameters of the
 \code{HDF5Array::writeTENxMatrix()} function). Saving the expression matrix
 in \code{TENxMatrix} format has the benefit of a low memory footprint since
@@ -54,8 +54,8 @@ that needs to be loaded tends to be very small). By default, this value is
 set to \code{NULL}, meaning that the expression matrix is expected to be part
 of the \code{.crb} file.}
 
-\item{expression_matrix_BPCells}{Optional: Path to BPCells directory created with 
-\code{BPCells::write_matrix_dir()}. This is a hopefully faster alternative to h5 
+\item{expression_matrix_BPCells}{Optional: Path to BPCells directory created with
+\code{BPCells::write_matrix_dir()}. This is a hopefully faster alternative to h5
 with a similar approach.}
 
 \item{welcome_message}{\code{string} with custom welcome message to display

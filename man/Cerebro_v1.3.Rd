@@ -37,6 +37,14 @@ mitochondrial and/or ribosomal genes.}
 
 \item{\code{expression}}{\code{matrix}-like object that holds transcript counts.}
 
+\item{\code{expression_backend}}{\code{list} describing how/where the expression
+matrix is stored. For step 7.1 every newly exported object tags itself
+\code{list(type = "embedded", location = NULL)}; future step 7.2 will
+introduce \code{type = "h5"} / \code{"bpcells"} with an external
+\code{location}. Older \code{.crb} files (serialised before this field
+existed) load with \code{expression_backend = NULL}; \code{getExpressionBackend()}
+treats that as \code{"embedded"} for backward compatibility.}
+
 \item{\code{meta_data}}{\code{data.frame} that contains cell meta data.}
 
 \item{\code{projections}}{\code{list} that contains projections/dimensional
@@ -45,6 +53,9 @@ reductions.}
 \item{\code{most_expressed_genes}}{\code{list} that contains a \code{data.frame}
 holding the most expressed genes for each grouping variable that was
 specified during the call to \code{\link{getMostExpressedGenes}}.}
+
+\item{\code{mean_expression}}{\code{list} that contains a \code{data.frame}
+holding the mean expression per gene for each grouping variable.}
 
 \item{\code{marker_genes}}{\code{list} that contains a \code{list} for every
 method that was used to calculate marker genes, and a \code{data.frame}
@@ -68,6 +79,17 @@ e.g. those extracted with \code{\link{extractMonocleTrajectory}}.}
 \item{\code{extra_material}}{\code{list} that can contain additional material
 related to the data set; tables should be stored in \code{data.frame}
 format in a named \code{list} called `tables`}
+
+\item{\code{immune_repertoire}}{\code{list} of data.frames (one per sample)
+containing scRepertoire columns (CTgene, CTnt, CTaa, CTstrict, etc.).}
+
+\item{\code{bcr_data}}{\code{list} that contains BCR data (kept for backward
+compatibility with older .crb files).}
+
+\item{\code{tcr_data}}{\code{list} that contains TCR data (kept for backward
+compatibility with older .crb files).}
+
+\item{\code{spatial}}{\code{list} that contains spatial data (coordinates and expression).}
 }
 \if{html}{\out{</div>}}
 }
@@ -93,11 +115,15 @@ format in a named \code{list} called `tables`}
 \item \href{#method-Cerebro_v1.3-addGeneList}{\code{Cerebro_v1.3$addGeneList()}}
 \item \href{#method-Cerebro_v1.3-getGeneLists}{\code{Cerebro_v1.3$getGeneLists()}}
 \item \href{#method-Cerebro_v1.3-setExpression}{\code{Cerebro_v1.3$setExpression()}}
+\item \href{#method-Cerebro_v1.3-setExpressionBackend}{\code{Cerebro_v1.3$setExpressionBackend()}}
+\item \href{#method-Cerebro_v1.3-getExpressionBackend}{\code{Cerebro_v1.3$getExpressionBackend()}}
 \item \href{#method-Cerebro_v1.3-getCellNames}{\code{Cerebro_v1.3$getCellNames()}}
 \item \href{#method-Cerebro_v1.3-getGeneNames}{\code{Cerebro_v1.3$getGeneNames()}}
 \item \href{#method-Cerebro_v1.3-getMeanExpressionForGenes}{\code{Cerebro_v1.3$getMeanExpressionForGenes()}}
 \item \href{#method-Cerebro_v1.3-getMeanExpressionForCells}{\code{Cerebro_v1.3$getMeanExpressionForCells()}}
 \item \href{#method-Cerebro_v1.3-getExpressionMatrix}{\code{Cerebro_v1.3$getExpressionMatrix()}}
+\item \href{#method-Cerebro_v1.3-getExpressionRow}{\code{Cerebro_v1.3$getExpressionRow()}}
+\item \href{#method-Cerebro_v1.3-getExpressionBlock}{\code{Cerebro_v1.3$getExpressionBlock()}}
 \item \href{#method-Cerebro_v1.3-setCellCycle}{\code{Cerebro_v1.3$setCellCycle()}}
 \item \href{#method-Cerebro_v1.3-getCellCycle}{\code{Cerebro_v1.3$getCellCycle()}}
 \item \href{#method-Cerebro_v1.3-addProjection}{\code{Cerebro_v1.3$addProjection()}}
@@ -108,21 +134,34 @@ format in a named \code{list} called `tables`}
 \item \href{#method-Cerebro_v1.3-addMostExpressedGenes}{\code{Cerebro_v1.3$addMostExpressedGenes()}}
 \item \href{#method-Cerebro_v1.3-getGroupsWithMostExpressedGenes}{\code{Cerebro_v1.3$getGroupsWithMostExpressedGenes()}}
 \item \href{#method-Cerebro_v1.3-getMostExpressedGenes}{\code{Cerebro_v1.3$getMostExpressedGenes()}}
+\item \href{#method-Cerebro_v1.3-addMeanExpression}{\code{Cerebro_v1.3$addMeanExpression()}}
+\item \href{#method-Cerebro_v1.3-getGroupsWithMeanExpression}{\code{Cerebro_v1.3$getGroupsWithMeanExpression()}}
+\item \href{#method-Cerebro_v1.3-getMeanExpression}{\code{Cerebro_v1.3$getMeanExpression()}}
 \item \href{#method-Cerebro_v1.3-addMarkerGenes}{\code{Cerebro_v1.3$addMarkerGenes()}}
 \item \href{#method-Cerebro_v1.3-getMethodsForMarkerGenes}{\code{Cerebro_v1.3$getMethodsForMarkerGenes()}}
 \item \href{#method-Cerebro_v1.3-getGroupsWithMarkerGenes}{\code{Cerebro_v1.3$getGroupsWithMarkerGenes()}}
 \item \href{#method-Cerebro_v1.3-getMarkerGenes}{\code{Cerebro_v1.3$getMarkerGenes()}}
 \item \href{#method-Cerebro_v1.3-addEnrichedPathways}{\code{Cerebro_v1.3$addEnrichedPathways()}}
-\item \href{#method-Cerebro_v1.3-getMethodsForEnrichedPathways}{\code{Cerebro_v1.3$getMethodsForEnrichedPathways()}}
+\item \href{#method-Cerebro_v1.3-getMethodsWithEnrichedPathways}{\code{Cerebro_v1.3$getMethodsWithEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-getGroupsWithEnrichedPathways}{\code{Cerebro_v1.3$getGroupsWithEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-getEnrichedPathways}{\code{Cerebro_v1.3$getEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-addTrajectory}{\code{Cerebro_v1.3$addTrajectory()}}
 \item \href{#method-Cerebro_v1.3-getMethodsForTrajectories}{\code{Cerebro_v1.3$getMethodsForTrajectories()}}
 \item \href{#method-Cerebro_v1.3-getNamesOfTrajectories}{\code{Cerebro_v1.3$getNamesOfTrajectories()}}
 \item \href{#method-Cerebro_v1.3-getTrajectory}{\code{Cerebro_v1.3$getTrajectory()}}
+\item \href{#method-Cerebro_v1.3-getBCR}{\code{Cerebro_v1.3$getBCR()}}
+\item \href{#method-Cerebro_v1.3-getTCR}{\code{Cerebro_v1.3$getTCR()}}
+\item \href{#method-Cerebro_v1.3-addBCRData}{\code{Cerebro_v1.3$addBCRData()}}
+\item \href{#method-Cerebro_v1.3-addTCRData}{\code{Cerebro_v1.3$addTCRData()}}
+\item \href{#method-Cerebro_v1.3-getImmuneRepertoire}{\code{Cerebro_v1.3$getImmuneRepertoire()}}
+\item \href{#method-Cerebro_v1.3-addImmuneRepertoire}{\code{Cerebro_v1.3$addImmuneRepertoire()}}
+\item \href{#method-Cerebro_v1.3-addSpatialData}{\code{Cerebro_v1.3$addSpatialData()}}
+\item \href{#method-Cerebro_v1.3-getSpatialData}{\code{Cerebro_v1.3$getSpatialData()}}
+\item \href{#method-Cerebro_v1.3-availableSpatial}{\code{Cerebro_v1.3$availableSpatial()}}
 \item \href{#method-Cerebro_v1.3-addExtraMaterial}{\code{Cerebro_v1.3$addExtraMaterial()}}
 \item \href{#method-Cerebro_v1.3-addExtraTable}{\code{Cerebro_v1.3$addExtraTable()}}
 \item \href{#method-Cerebro_v1.3-addExtraPlot}{\code{Cerebro_v1.3$addExtraPlot()}}
+\item \href{#method-Cerebro_v1.3-getExtraMaterial}{\code{Cerebro_v1.3$getExtraMaterial()}}
 \item \href{#method-Cerebro_v1.3-getExtraMaterialCategories}{\code{Cerebro_v1.3$getExtraMaterialCategories()}}
 \item \href{#method-Cerebro_v1.3-checkForExtraTables}{\code{Cerebro_v1.3$checkForExtraTables()}}
 \item \href{#method-Cerebro_v1.3-getNamesOfExtraTables}{\code{Cerebro_v1.3$getNamesOfExtraTables()}}
@@ -433,7 +472,7 @@ Retrieve gene lists from the \code{gene_lists}.
 \subsection{Method \code{setExpression()}}{
 Set transcript count matrix.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$setExpression(counts)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$setExpression(counts, backend = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -442,9 +481,59 @@ Set transcript count matrix.
 \item{\code{counts}}{\code{matrix}-like object that contains transcript counts
 for cells in the data set. Number of columns must be equal to the number
 of rows in the \code{meta_data} field.}
+
+\item{\code{backend}}{Optional backend tag. If left \code{NULL} the object is
+tagged \code{"embedded"} (the matrix lives inside the \code{.crb}
+itself). Callers exporting with step-7.2 external-storage modes should
+pass \code{setExpressionBackend()} directly instead of relying on this
+default.}
 }
 \if{html}{\out{</div>}}
 }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-setExpressionBackend"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-setExpressionBackend}{}}}
+\subsection{Method \code{setExpressionBackend()}}{
+Tag the object with information about how / where its expression matrix
+is stored. In step 7.1 every newly exported \code{.crb} is tagged
+\code{"embedded"} with a NULL location, meaning the matrix is carried
+inside the serialised \code{.crb}. Later steps (7.2 exporter, 7.3
+runtime attach) will produce objects tagged \code{"h5"} or
+\code{"bpcells"} with an external \code{location}.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$setExpressionBackend(type = "embedded", location = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{type}}{Storage backend label. One of \code{"embedded"},
+\code{"h5"}, \code{"bpcells"}. Step 7.1 only recognises
+\code{"embedded"} at runtime; the other two are accepted here (so step
+7.2 can set them) but will still need step-7.3 runtime attach to be
+useful.}
+
+\item{\code{location}}{Optional character path (absolute or relative to the
+generated app \code{data/} directory) where the external matrix lives.
+\code{NULL} when \code{type == "embedded"}.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getExpressionBackend"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getExpressionBackend}{}}}
+\subsection{Method \code{getExpressionBackend()}}{
+Read the expression backend tag. Returns a \code{list(type, location)}.
+For \code{.crb} files generated before the \code{expression_backend}
+field existed the stored slot is \code{NULL}; this method graciously
+falls back to \code{list(type = "embedded", location = NULL)} so that
+downstream code does not need to special-case legacy objects.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getExpressionBackend()}\if{html}{\out{</div>}}
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Cerebro_v1.3-getCellNames"></a>}}
@@ -542,6 +631,59 @@ will return all genes.}
 }
 \subsection{Returns}{
 Dense transcript count matrix for specified cells and genes.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getExpressionRow"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getExpressionRow}{}}}
+\subsection{Method \code{getExpressionRow()}}{
+Retrieve a single row of the expression matrix as a named numeric vector
+WITHOUT going through the dense helper. Prefer this over
+\code{getExpressionMatrix(genes = gene)} on large or sparse backends
+where materialising a 1 x N dense matrix first is wasteful.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getExpressionRow(gene, cells = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{gene}}{Name of a single gene. Must exist in the matrix.}
+
+\item{\code{cells}}{Names/barcodes of cells to extract; \code{NULL} returns all cells.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+Named \code{numeric} vector, one entry per requested cell.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getExpressionBlock"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getExpressionBlock}{}}}
+\subsection{Method \code{getExpressionBlock()}}{
+Retrieve a genes x cells sub-matrix in the backend's NATIVE form
+(sparse / lazy). Callers that need a dense base matrix must apply
+\code{as.matrix()} themselves. Use this to keep sparse-aware downstream
+operations (\code{Matrix::rowMeans}, \code{Matrix::colMeans}, etc.)
+fast instead of densifying just to aggregate.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getExpressionBlock(genes, cells = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{genes}}{Non-empty character vector of gene names.}
+
+\item{\code{cells}}{Names/barcodes of cells to extract; \code{NULL} returns all cells.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A sub-matrix of the same concrete class as \code{self$expression}:
+\code{dgCMatrix} stays \code{dgCMatrix}, \code{RleMatrix} yields
+\code{DelayedMatrix}, \code{IterableMatrix} stays \code{IterableMatrix}.
 }
 }
 \if{html}{\out{<hr>}}
@@ -707,7 +849,7 @@ available.
 \if{html}{\out{<a id="method-Cerebro_v1.3-getMostExpressedGenes"></a>}}
 \if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMostExpressedGenes}{}}}
 \subsection{Method \code{getMostExpressedGenes()}}{
-Retrieve table of most expressed genes for a grouping variable.
+Retrieve table of most expressed genes for a specific grouping variable.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMostExpressedGenes(group_name)}\if{html}{\out{</div>}}
 }
@@ -715,14 +857,69 @@ Retrieve table of most expressed genes for a grouping variable.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{group_name}}{Grouping variable for which most expressed genes should
-be retrieved.}
+\item{\code{group_name}}{Name of grouping variable for which to retrieve most
+expressed genes.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-\code{data.frame} that contains most expressed genes for group levels of
-the specified grouping variable.
+\code{data.frame} containing the most expressed genes.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-addMeanExpression"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-addMeanExpression}{}}}
+\subsection{Method \code{addMeanExpression()}}{
+Add table of mean expression per gene.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addMeanExpression(group_name, table)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{group_name}}{Name of grouping variable that the mean expression
+belongs to. Must be registered in the \code{groups} field.}
+
+\item{\code{table}}{\code{data.frame} that contains the mean expression per gene.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getGroupsWithMeanExpression"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getGroupsWithMeanExpression}{}}}
+\subsection{Method \code{getGroupsWithMeanExpression()}}{
+Retrieve names of grouping variables for which mean expression data is
+available.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getGroupsWithMeanExpression()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+\code{vector} of grouping variables for which mean expression is
+available.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getMeanExpression"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMeanExpression}{}}}
+\subsection{Method \code{getMeanExpression()}}{
+Retrieve table of mean expression for a specific grouping variable.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMeanExpression(group_name)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{group_name}}{Name of grouping variable for which to retrieve mean
+expression.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+\code{data.frame} containing the mean expression per gene.
 }
 }
 \if{html}{\out{<hr>}}
@@ -813,18 +1010,17 @@ combination of method and grouping variable.
 \subsection{Method \code{addEnrichedPathways()}}{
 Add table of enriched pathways.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addEnrichedPathways(method, name, table)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addEnrichedPathways(method, group_name, table)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{method}}{Name of method that was used to generate the enriched
+\item{\code{method}}{Name of method that was used to calculate enriched
 pathways.}
 
-\item{\code{name}}{Name of table. This name will be used to select the table in
-Cerebro. It is recommended to use the grouping variable, e.g.
-\code{sample}.}
+\item{\code{group_name}}{Name of grouping variable that the enriched pathways
+belong to. Must be registered in the \code{groups} field.}
 
 \item{\code{table}}{\code{data.frame} that contains the enriched pathways.}
 }
@@ -832,25 +1028,24 @@ Cerebro. It is recommended to use the grouping variable, e.g.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Cerebro_v1.3-getMethodsForEnrichedPathways"></a>}}
-\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMethodsForEnrichedPathways}{}}}
-\subsection{Method \code{getMethodsForEnrichedPathways()}}{
-Retrieve names of methods that were used to generate enriched pathways.
+\if{html}{\out{<a id="method-Cerebro_v1.3-getMethodsWithEnrichedPathways"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMethodsWithEnrichedPathways}{}}}
+\subsection{Method \code{getMethodsWithEnrichedPathways()}}{
+Retrieve names of methods for which enriched pathways are available.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMethodsForEnrichedPathways()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMethodsWithEnrichedPathways()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-\code{vector} of names of methods that were used to generate enriched
-pathways.
+\code{vector} of methods for which enriched pathways are available.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Cerebro_v1.3-getGroupsWithEnrichedPathways"></a>}}
 \if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getGroupsWithEnrichedPathways}{}}}
 \subsection{Method \code{getGroupsWithEnrichedPathways()}}{
-Retrieve grouping variables for which enriched pathways were generated
-using a specified method.
+Retrieve names of grouping variables for which enriched pathways are
+available for a specific method.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getGroupsWithEnrichedPathways(method)}\if{html}{\out{</div>}}
 }
@@ -858,59 +1053,56 @@ using a specified method.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{method}}{Name of method.}
+\item{\code{method}}{Name of method for which to retrieve grouping variables.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-\code{vector} of grouping variables for which enriched pathways were
-calculated using the specified method.
+\code{vector} of grouping variables for which enriched pathways are
+available.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Cerebro_v1.3-getEnrichedPathways"></a>}}
 \if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getEnrichedPathways}{}}}
 \subsection{Method \code{getEnrichedPathways()}}{
-Retrieve table of enriched pathways for specific method and grouping
+Retrieve table of enriched pathways for a specific method and grouping
 variable.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getEnrichedPathways(method, name)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getEnrichedPathways(method, group_name)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{method}}{Name of method.}
+\item{\code{method}}{Name of method for which to retrieve enriched pathways.}
 
-\item{\code{name}}{Grouping variable.}
+\item{\code{group_name}}{Name of grouping variable for which to retrieve enriched
+pathways.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-\code{data.frame} that contains enriched pathways for the specified
-combination of method and grouping variable.
+\code{data.frame} containing the enriched pathways.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Cerebro_v1.3-addTrajectory"></a>}}
 \if{latex}{\out{\hypertarget{method-Cerebro_v1.3-addTrajectory}{}}}
 \subsection{Method \code{addTrajectory()}}{
-Add trajectory.
+Add trajectory to \code{trajectories} field.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addTrajectory(method, name, content)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addTrajectory(method, trajectory_name, trajectory)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{method}}{Name of method that was used to generate the trajectory.}
+\item{\code{method}}{Name of method that was used to calculate trajectory.}
 
-\item{\code{name}}{Name of the trajectory. This name will be used later in
-Cerebro to select the trajectory.}
+\item{\code{trajectory_name}}{Name of trajectory.}
 
-\item{\code{content}}{Relevant data for the trajectory, depending on the method
-this could be a \code{list} holding edges, cell positions, pseudotime,
-etc.}
+\item{\code{trajectory}}{Trajectory data as \code{data.frame} or \code{list}.}
 }
 \if{html}{\out{</div>}}
 }
@@ -919,21 +1111,20 @@ etc.}
 \if{html}{\out{<a id="method-Cerebro_v1.3-getMethodsForTrajectories"></a>}}
 \if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMethodsForTrajectories}{}}}
 \subsection{Method \code{getMethodsForTrajectories()}}{
-Retrieve names of methods that were used to generate trajectories.
+Retrieve names of methods for which trajectories are available.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMethodsForTrajectories()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-\code{vector} of names of methods that were used to generate
-trajectories.
+\code{vector} of methods for which trajectories are available.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Cerebro_v1.3-getNamesOfTrajectories"></a>}}
 \if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getNamesOfTrajectories}{}}}
 \subsection{Method \code{getNamesOfTrajectories()}}{
-Retrieve names of available trajectories for a specified method.
+Retrieve names of trajectories for a specific method.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getNamesOfTrajectories(method)}\if{html}{\out{</div>}}
 }
@@ -941,35 +1132,179 @@ Retrieve names of available trajectories for a specified method.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{method}}{Name of method.}
+\item{\code{method}}{Name of method for which to retrieve trajectories.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-\code{vector} of available trajectory for the specified method.
+\code{vector} of trajectories for the specified method.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Cerebro_v1.3-getTrajectory"></a>}}
 \if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getTrajectory}{}}}
 \subsection{Method \code{getTrajectory()}}{
-Retrieve data for a specific trajectory.
+Retrieve trajectory data for a specific method and trajectory name.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getTrajectory(method, name)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getTrajectory(method, trajectory_name)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{method}}{Name of method.}
+\item{\code{method}}{Name of method for which to retrieve trajectory.}
 
-\item{\code{name}}{Name of trajectory.}
+\item{\code{trajectory_name}}{Name of trajectory to retrieve.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The type of data depends on the method that was used to generate the
-trajectory.
+Trajectory data as \code{data.frame} or \code{list}.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getBCR"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getBCR}{}}}
+\subsection{Method \code{getBCR()}}{
+Retrieve BCR data
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getBCR()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+BCR data stored in the object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getTCR"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getTCR}{}}}
+\subsection{Method \code{getTCR()}}{
+Retrieve TCR data
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getTCR()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+TCR data stored in the object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-addBCRData"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-addBCRData}{}}}
+\subsection{Method \code{addBCRData()}}{
+Add BCR data.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addBCRData(data)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{data}}{\code{list} that contains BCR data.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-addTCRData"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-addTCRData}{}}}
+\subsection{Method \code{addTCRData()}}{
+Add TCR data.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addTCRData(data)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{data}}{\code{list} that contains TCR data.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getImmuneRepertoire"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getImmuneRepertoire}{}}}
+\subsection{Method \code{getImmuneRepertoire()}}{
+Get immune repertoire data. Returns the unified \code{immune_repertoire}
+field if available; otherwise falls back to merging legacy
+\code{bcr_data} and \code{tcr_data}.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getImmuneRepertoire()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Named list of data.frames (one per sample), or empty list.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-addImmuneRepertoire"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-addImmuneRepertoire}{}}}
+\subsection{Method \code{addImmuneRepertoire()}}{
+Set immune repertoire data.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addImmuneRepertoire(data)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{data}}{Named list of data.frames (one per sample) containing
+scRepertoire columns.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-addSpatialData"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-addSpatialData}{}}}
+\subsection{Method \code{addSpatialData()}}{
+Add spatial data.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addSpatialData(name, data)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{name}}{Name of the spatial data entry (e.g. image name).}
+
+\item{\code{data}}{\code{list} containing 'coordinates' (data.frame) and 'expression' (sparse matrix).}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getSpatialData"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getSpatialData}{}}}
+\subsection{Method \code{getSpatialData()}}{
+Retrieve spatial data.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getSpatialData(name)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{name}}{Name of the spatial data entry.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+\code{list} containing 'coordinates' and 'expression'.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-availableSpatial"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-availableSpatial}{}}}
+\subsection{Method \code{availableSpatial()}}{
+Get list of available spatial data entries.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$availableSpatial()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+\code{vector} of spatial data entries that are available.
 }
 }
 \if{html}{\out{<hr>}}
@@ -1032,6 +1367,19 @@ Add plot to `extra_material` slot.
 \code{ggplot2} (class: \code{ggplot}).}
 }
 \if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getExtraMaterial"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getExtraMaterial}{}}}
+\subsection{Method \code{getExtraMaterial()}}{
+Retrieve extra material from \code{extra_material} field.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getExtraMaterial()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+\code{list} of all entries in the \code{extra_material} field.
 }
 }
 \if{html}{\out{<hr>}}

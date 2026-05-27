@@ -118,7 +118,7 @@ server <- function(input, output, session) {
   ##--------------------------------------------------------------------------##
 
   ## reactive value holding path to file of data set to load
-  data_to_load <- reactiveValues()
+  data_to_load <- reactiveValues(path = NULL)
 
   ## listen to selected 'input_file', initialize before UI element is loaded
   observeEvent(input[['input_file']], ignoreNULL = FALSE, {
@@ -134,15 +134,16 @@ server <- function(input, output, session) {
       ## existing file or object
     } else if (
       exists('Cerebro.options') &&
-        !is.null(Cerebro.options[["crb_file_to_load"]])
+        !is.null(Cerebro.options[["crb_file_to_load"]]) &&
+        length(Cerebro.options[["crb_file_to_load"]]) > 0
     ) {
       file_to_load <- Cerebro.options[["crb_file_to_load"]]
-      if (file.exists(file_to_load) || exists(file_to_load)) {
+      if (any(file.exists(file_to_load)) || any(exists(file_to_load))) {
         path_to_load <- .GlobalEnv$Cerebro.options$crb_file_to_load
       }
     }
     ## assign path to example file if none of the above apply
-    if (path_to_load == '') {
+    if (length(path_to_load) == 0 || all(path_to_load == '')) {
       path_to_load <- system.file(
         "extdata/v1.4/example.crb",
         package = "cerebroAppLite"
@@ -154,6 +155,7 @@ server <- function(input, output, session) {
 
   ## create reactive value holding the current data set
   data_set <- reactive({
+    req(data_to_load$path)
     dataset_to_load <- data_to_load$path
     if (exists(dataset_to_load)) {
       print(glue::glue(
@@ -161,43 +163,13 @@ server <- function(input, output, session) {
       ))
       data <- get(dataset_to_load)
     } else {
-      ## log message
-      print(glue::glue(
-        "[{Sys.time()}] Load data set from file: {dataset_to_load}"
-      ))
-      ## read the file
-      data <- readRDS(dataset_to_load)
-      if (
-        exists("Cerebro.options") &&
-          Cerebro.options[["expression_matrix_mode"]] == "h5"
-      ) {
-        print(glue::glue(
-          "[{Sys.time()}] Loading h5 expression matrix from: {Cerebro.options[['expression_matrix_h5']]}"
-        ))
-        expression_matrix <- t(HDF5Array::TENxMatrix(
-          Cerebro.options[["expression_matrix_h5"]],
-          group = "expression"
-        ))
-        data$expression <- expression_matrix
-      } else if (
-        exists("Cerebro.options") &&
-          Cerebro.options[["expression_matrix_mode"]] == "BPCells"
-      ) {
-        print(glue::glue(
-          "[{Sys.time()}] Loading BPCells expression matrix from: {Cerebro.options[['expression_matrix_BPCells']]}"
-        ))
-        expression_matrix <- BPCells::open_matrix_dir(Cerebro.options[[
-          "expression_matrix_BPCells"
-        ]])
-        data$expression <- expression_matrix
-      } else if (
-        exists("Cerebro.options") &&
-          Cerebro.options[["expression_matrix_mode"]] == "crb"
-      ) {
-        message(
-          "expression_matrix_mode is set to 'crb', skipping loading expression matrix"
-        )
-      }
+      ## Route through the process-level cache defined in utility_functions.R.
+      ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch) and
+      ## then re-attaches external expression backends (bpcells / h5) using
+      ## paths rooted at the crb's parent directory. Cerebro.options can still
+      ## override the matrix path via expression_matrix_BPCells /
+      ## expression_matrix_h5 -- the helper picks that up internally.
+      data <- get_or_load_crb(dataset_to_load)
     }
     ## log message
     message(data$print())

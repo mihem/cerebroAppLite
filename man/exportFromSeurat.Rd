@@ -12,11 +12,13 @@ exportFromSeurat(
   experiment_name,
   organism,
   groups,
+  main_group = NULL,
   cell_cycle = NULL,
   nUMI = "nUMI",
   nGene = "nGene",
   add_all_meta_data = TRUE,
   use_delayed_array = FALSE,
+  expression_matrix_mode = c("embedded", "bpcells", "h5"),
   verbose = FALSE
 )
 }
@@ -40,6 +42,10 @@ bottlenecks in the Cerebro interface.}
 (\code{object@meta.data}), e.g. \code{c("sample","cluster")}; at least one
 must be provided; defaults to \code{NULL}.}
 
+\item{main_group}{The primary grouping variable to use for display in Cerebro;
+must be one of the grouping variables specified in \code{groups}; defaults to
+\code{NULL}.}
+
 \item{cell_cycle}{Names of columns in meta data
 (\code{object@meta.data}) that contain cell cycle information, e.g.
 \code{c("Phase")}; defaults to \code{NULL}.}
@@ -60,7 +66,35 @@ and instead values will be read from the disk directly, at the cost of
 performance. Note that it is necessary to install the \code{DelayedArray}
 package. If set to \code{FALSE} (default), the expression matrix will be
 copied from the input object as is. It is recommended to use a sparse format,
-such as \code{dgCMatrix} from the \code{Matrix} package.}
+such as \code{dgCMatrix} from the \code{Matrix} package. Ignored when
+\code{expression_matrix_mode} is set to an external backend.}
+
+\item{expression_matrix_mode}{How to persist the expression matrix. One of
+\code{"embedded"} (default), \code{"bpcells"}, or \code{"h5"}.
+\itemize{
+  \item \code{"embedded"} stores the matrix inside the \code{.crb} file, as
+  before. Compatible with all existing \code{.crb} readers.
+  \item \code{"bpcells"} writes the matrix to a BPCells on-disk directory
+  next to the \code{.crb} and keeps only a lightweight handle in the
+  serialised object. Recommended for large sparse matrices. The resulting
+  \code{.crb} is portable as long as the sibling \code{.bpcells/} directory
+  travels with it; the Shiny runtime re-resolves paths via
+  \code{getExpressionBackend()$location} relative to the \code{.crb}'s
+  parent directory (step 7.3 runtime attach).
+  \item \code{"h5"} writes the matrix via \code{HDF5Array::writeTENxMatrix()}
+  to a TENx-format sparse HDF5 file next to the \code{.crb} (sibling
+  \code{<stem>.h5}) and tags the backend with that relative location. The
+  on-disk layout matches \code{inst/extdata/v1.4/example.h5}: a single
+  \code{/expression} group with \code{data}, \code{indices}, \code{indptr},
+  \code{shape}, \code{genes}, and \code{barcodes} datasets. The matrix is
+  stored cells x genes (TENx column-favoured, optimised for per-gene
+  reads); the Shiny runtime attach reads it back as a lazy
+  \code{HDF5Array::TENxMatrix} seed and transposes it lazily to Cerebro's
+  internal genes x cells layout via \code{DelayedArray::t()} (free). The
+  in-memory \code{dgCMatrix} is never materialised on attach, so RAM stays
+  close to the \code{.crb} metadata size. Requires the \pkg{HDF5Array}
+  package.
+}}
 
 \item{verbose}{Set this to \code{TRUE} if you want additional log messages;
 defaults to \code{FALSE}.}
@@ -71,6 +105,15 @@ No data returned.
 \description{
 This function allows to export a Seurat object to visualize in Cerebro.
 }
+\section{Immune Repertoire}{
+
+If \code{object@misc$immune_repertoire} contains a named list of
+data.frames (one per sample, with scRepertoire columns such as CTgene,
+CTnt, CTaa, CTstrict), it will be automatically exported into the Cerebro
+object via \code{addImmuneRepertoire()}.  Legacy \code{bcr_data} /
+\code{tcr_data} slots are also supported as a fallback.
+}
+
 \examples{
 pbmc <- readRDS(system.file("extdata/v1.4/pbmc_seurat.rds",
   package = "cerebroAppLite"))

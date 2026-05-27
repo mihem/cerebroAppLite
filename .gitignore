@@ -9,3 +9,6 @@ vignettes/*.crb
 docs
 .Rproj.user
 *.Rproj
+tests/smoke/
+vignettes/expression_backend_benchmark*
+.playwright-mcp/
