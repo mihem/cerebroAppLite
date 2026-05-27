@@ -33,7 +33,7 @@
 - simplified workflow by removing `dev` and `sync-dev`
 
 
- # cerebroAppLite 1.6.0
+# cerebroAppLite 1.6.0
 
 ## Bug fixes
 
