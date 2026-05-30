@@ -1,3 +1,10 @@
+# cerebroAppLite (development version)
+
+## Internal
+
+- Remove unused `renderMenu` + `shinyjs::toggleElement` sidebar logic for trajectory
+  and extra_material tabs (replaced by dynamic sidebar infrastructure in a later PR).
+
 # cerebroAppLite 1.7.0
 
 ## New features
