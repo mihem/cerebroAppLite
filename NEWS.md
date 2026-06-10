@@ -1,4 +1,4 @@
-# cerebroAppLite (development version)
+# cerebroAppLite 1.7.1
 
 # cerebroAppLite 1.7.0
 
