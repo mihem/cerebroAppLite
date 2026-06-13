@@ -1,8 +1,8 @@
 # cerebroAppLite 1.7.1
 
-Initial fork from upstream cerebroAppLite. This release introduces the v1.4
-Shiny app infrastructure, external expression backends (bpcells, h5), spatial
-transcriptomics, immune repertoire analysis, and trajectory analysis.
+This release introduces the v1.4 Shiny app infrastructure, external expression
+backends (bpcells, h5), Monocle trajectory extraction, and infrastructure for
+data conversion and Shiny app deployment.
 
 ## Major changes since 1.7.0
 
@@ -100,11 +100,11 @@ transcriptomics, immune repertoire analysis, and trajectory analysis.
 
 # cerebroAppLite 1.4.0
 
-This is the first update of this cerebroApp fork. Its aim is to continue a lightweight version of the excellent cerebroApp with only the main function as the cerebroApp by Roman Hillje is sadly discontinued.
+First release of cerebroAppLite.
 
 ## Major changes
 
-- remove enriched pathways, extra material, most expressed genes and trajectory functions since the goal of this fork is to continue with a lightweight version
+- Streamlined the interface to focus on core visualization modules
 
 ## Minor changes
 

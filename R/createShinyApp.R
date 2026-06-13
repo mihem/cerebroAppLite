@@ -55,9 +55,11 @@ dedent <- function(string) {
 #' UI/server. The output directory can be served directly by shiny-server or
 #' run with \code{shiny::runApp(result_dir)}.
 #'
-#' This fork extends the upstream cerebroAppLite with spatial transcriptomics
-#' and external expression backends (bpcells, h5). Auth and Docker deployment
-#' modules from the upstream package are not included in this fork.
+#' Supports external expression backends (\code{bpcells}, \code{h5}) in
+#' addition to the embedded mode. When \code{cerebro_data} points to a
+#' \code{.crb} with an external backend, the sibling \code{.bpcells/}
+#' directory or \code{.h5} file is detected and copied into the bundle
+#' alongside the \code{.crb}.
 #'
 #' @param cerebro_data Named character vector or list of \code{.crb} (or
 #'   \code{.rds}) file paths. Names are used as dataset labels.
