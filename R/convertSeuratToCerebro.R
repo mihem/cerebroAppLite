@@ -571,7 +571,7 @@ convertSeuratToCerebro <- function(
     markers_df <- .readMarkerFile(marker_file, verbose)
 
     # Attach to Seurat object under misc$marker_genes.
-    # mischko's exportFromSeurat expects list(method = list(group = df)).
+    # exportFromSeurat expects list(method = list(group = df)).
     # Split markers_df by 'cluster' / 'group' column when available,
     # otherwise dump as a single 'all' group under the chosen method.
     if (!is.null(markers_df) && nrow(markers_df) > 0) {

@@ -914,7 +914,7 @@ exportFromSeurat <- function(
       )
     }
     ## marker_genes is a nested list: list(method = list(group = data.frame))
-    ## (mischko's existing shiny consumers depend on the nested layout; the
+    ## (existing shiny consumers depend on the nested layout; the
     ## flat-data.frame simplification is deferred until H6 lands).
     if (!is.list(object@misc$marker_genes)) {
       stop('`object@misc$marker_genes` is not a list.', call. = FALSE)
