@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,9 +60,29 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="1.7.0" id="cerebroapplite-170">cerebroAppLite 1.7.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-170"></a></h2>
+<h2 class="pkg-version" data-toc-text="1.7.1" id="cerebroapplite-171">cerebroAppLite 1.7.1<a class="anchor" aria-label="anchor" href="#cerebroapplite-171"></a></h2>
+<p>This release introduces the v1.4 Shiny app infrastructure, external expression backends (bpcells, h5), Monocle trajectory extraction, and infrastructure for data conversion and Shiny app deployment.</p>
 <div class="section level3">
-<h3 id="new-features-1-7-0">New features<a class="anchor" aria-label="anchor" href="#new-features-1-7-0"></a></h3>
+<h3 id="major-changes-since-1-7-1">Major changes since 1.7.0<a class="anchor" aria-label="anchor" href="#major-changes-since-1-7-1"></a></h3>
+<ul><li>
+<strong>v1.4 Shiny app</strong>: restructured app with dynamic conditional tabs, module-based file layout, and shared projection plotting infrastructure.</li>
+<li>
+<strong>External expression backends</strong>: matrices can now be stored outside the <code>.crb</code> as HDF5 (lazy, recommended) or BPCells (on-disk) for faster startup and lower RAM usage.</li>
+<li>
+<strong>createShinyApp()</strong>: new function to bundle a self-contained Shiny app from one or more <code>.crb</code> files for deployment.</li>
+<li>
+<strong>convertSeuratToCerebro()</strong>: one-step wrapper replacing the multi-step <code><a href="../reference/exportFromSeurat.html">exportFromSeurat()</a></code> workflow.</li>
+<li>
+<strong>Seurat v5 support</strong>: all slot access uses <code><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData()</a></code> for v5 compatibility.</li>
+<li>
+<strong>Nix-based CI/CD</strong>: reproducible dependency management via <code>default.nix</code>, automated testing, pkgdown site building, and code formatting.</li>
+<li>
+<strong>Bug fixes</strong>: resolved all R CMD check errors and warnings; replaced <code>class(x) == "..."</code> with <code><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits()</a></code>; replaced <code><a href="https://rdrr.io/r/base/library.html" class="external-link">require()</a></code> with <code><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace()</a></code>; fixed GSVA v2.x API compatibility.</li>
+<li>
+<strong>Dead code removal</strong>: removed unused <code>renderMenu</code> sidebar logic and orphaned utility wrapper functions. # cerebroAppLite 1.7.0</li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-features-1-7-1">New features<a class="anchor" aria-label="anchor" href="#new-features-1-7-1"></a></h3>
 <ul><li>External HDF5 expression backend, symmetric to the bpcells backend: <code><a href="../reference/exportFromSeurat.html">exportFromSeurat()</a></code> with <code>expression_matrix_mode = "h5"</code> writes the matrix via <code><a href="https://rdrr.io/pkg/HDF5Array/man/writeTENxMatrix.html" class="external-link">HDF5Array::writeTENxMatrix()</a></code> to a TENx-format <code>.h5</code> next to the <code>.crb</code>. The runtime attach loads it back as a lazy <code><a href="https://rdrr.io/pkg/HDF5Array/man/TENxMatrix-class.html" class="external-link">HDF5Array::TENxMatrix</a></code> seed and transposes via <code>DelayedArray::t()</code> (free); the in-memory <code>dgCMatrix</code> is never materialised, so RAM stays close to the <code>.crb</code> metadata size and attach is effectively instant</li>
 <li>Introduced <code><a href="../reference/createShinyApp.html">createShinyApp()</a></code> for bundling a self-contained Shiny app from one or more <code>.crb</code> files</li>
 <li>
@@ -76,25 +96,25 @@
 <code><a href="../reference/exportFromSeurat.html">exportFromSeurat()</a></code> with <code>expression_matrix_mode = "bpcells"</code> now auto-detects losslessly-integer values and calls <code>BPCells::convert_matrix_type("uint32_t")</code> before <code>write_matrix_dir()</code>, which triggers BPCells’s bit-packed integer storage on the typical scRNA-seq counts case. Shrinks the bpcells sibling ~5× on integer counts (e.g. 50k cells × 20k genes: 440 MB raw double → 78 MB bit-packed; PBMC All Samples 38,606 × 147,756: 2.6 GB → 549 MB), and queries get ~1.5-1.7× faster as a side effect (smaller payload to read). Normalised float values (<code>slot = "data"</code>/<code>"scale.data"</code>) fall back to raw double to avoid silent precision loss</li>
 </ul></div>
 <div class="section level3">
-<h3 id="bug-fixes-1-7-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-7-0"></a></h3>
+<h3 id="bug-fixes-1-7-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-7-1"></a></h3>
 <ul><li>Fixed <code><a href="../reference/exportFromSCE.html">exportFromSCE()</a></code> projections: <code>reducedDims()</code> output is now coerced to <code>data.frame</code> before <code>addProjection()</code>, matching the Seurat path and clearing a latent runtime error for SCE inputs with non-PCA reductions</li>
 <li>Fixed <code>.attachExternalExpression</code> crashing on legacy <code>.crb</code> objects that predate the <code>getExpressionBackend()</code> method; such objects are now treated as embedded backend and skip the attach step</li>
 <li>Fixed “method not found” errors on the trajectory tab by renaming the corresponding <code>Cerebro_v1.3</code> methods to the names the Shiny server already calls (<code>getMethodsForTrajectories</code>, <code>getNamesOfTrajectories</code>)</li>
 <li>Fixed gene_expression plot chain freezing on gene picker changes: removed a stale <code><a href="https://rdrr.io/pkg/shiny/man/isolate.html" class="external-link">isolate()</a></code> wrapper and a reference to a non-existent <code>expression_projection_update_button</code> input; the existing 250 ms debounce on the data-to-plot reactive still throttles bursts</li>
 </ul></div>
 <div class="section level3">
-<h3 id="testing-1-7-0">Testing<a class="anchor" aria-label="anchor" href="#testing-1-7-0"></a></h3>
+<h3 id="testing-1-7-1">Testing<a class="anchor" aria-label="anchor" href="#testing-1-7-1"></a></h3>
 <ul><li>Extended testing</li>
 <li>Added an h5 round-trip test in <code>test-exportFromSeurat.R</code> verifying writer/reader bit-identity for the new HDF5 backend, plus an attach-level test asserting the runtime returns a lazy <code>DelayedMatrix</code> (not an in-memory <code>dgCMatrix</code>)</li>
 <li>Added <code>tests/README.md</code> documenting the layout (testthat unit, testthat shinytest2, smoke)</li>
 </ul></div>
 <div class="section level3">
-<h3 id="dependencies-1-7-0">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies-1-7-0"></a></h3>
+<h3 id="dependencies-1-7-1">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies-1-7-1"></a></h3>
 <ul><li>
 <code>rhdf5</code> removed from <code>Suggests</code>. The h5 backend now goes through <code><a href="https://rdrr.io/pkg/HDF5Array/man/writeTENxMatrix.html" class="external-link">HDF5Array::writeTENxMatrix()</a></code> (writer) and <code><a href="https://rdrr.io/pkg/HDF5Array/man/TENxMatrix-class.html" class="external-link">HDF5Array::TENxMatrix()</a></code> (lazy reader), which use rhdf5 internally; users no longer need to install or <code>requireNamespace</code> rhdf5 directly</li>
 </ul></div>
 <div class="section level3">
-<h3 id="cicd-1-7-0">CI/CD<a class="anchor" aria-label="anchor" href="#cicd-1-7-0"></a></h3>
+<h3 id="cicd-1-7-1">CI/CD<a class="anchor" aria-label="anchor" href="#cicd-1-7-1"></a></h3>
 <ul><li>Switched Nix environment to <code>fixed-date</code> to avoid constant rebuilding</li>
 <li>simplified workflow by removing <code>dev</code> and <code>sync-dev</code>
 </li>
@@ -179,7 +199,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Michael Heming, Roman Hillje.</p>
+  <p>Developed by Michael Heming, Roman Hillje, Xuesong Wang.</p>
 </div>
 
 <div class="pkgdown-footer-right">

@@ -116,6 +116,7 @@ Invisibly returns `result_dir`.
 
 ## Details
 
-This is mischko's slimmed-down variant: auth, spatial, bpcells, and
-Docker template handling were dropped — they depend on dev-only modules.
-Re-add those switches as the corresponding modules land.
+Supports external expression backends (`bpcells`, `h5`) in addition to
+the embedded mode. When `cerebro_data` points to a `.crb` with an
+external backend, the sibling `.bpcells/` directory or `.h5` file is
+detected and copied into the bundle alongside the `.crb`.

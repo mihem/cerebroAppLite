@@ -15,7 +15,7 @@ run with shiny::runApp(result_dir)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -185,9 +185,11 @@ the generated app.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This is mischko's slimmed-down variant: auth, spatial, bpcells, and Docker
-template handling were dropped — they depend on dev-only modules. Re-add
-those switches as the corresponding modules land.</p>
+    <p>Supports external expression backends (<code>bpcells</code>, <code>h5</code>) in
+addition to the embedded mode. When <code>cerebro_data</code> points to a
+<code>.crb</code> with an external backend, the sibling <code>.bpcells/</code>
+directory or <code>.h5</code> file is detected and copied into the bundle
+alongside the <code>.crb</code>.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -195,7 +197,7 @@ those switches as the corresponding modules land.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Michael Heming, Roman Hillje.</p>
+  <p>Developed by Michael Heming, Roman Hillje, Xuesong Wang.</p>
 </div>
 
 <div class="pkgdown-footer-right">

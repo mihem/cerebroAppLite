@@ -11,7 +11,7 @@ for visualization."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -178,11 +178,13 @@ or <code>"h5"</code>. See <code><a href="exportFromSeurat.html">exportFromSeurat
 behaviour), <code>"bpcells"</code> writes an on-disk BPCells directory next to
 the <code>.crb</code> and keeps a lightweight handle inside it (typically
 reduces <code>.crb</code> size by ~80<!-- % on large sparse matrices), and -->
-<code>"h5"</code> is reserved for a future release. Pass this through when you
-need a deployment-friendly artefact for large datasets. The Shiny runtime
-re-resolves the BPCells directory relative to the <code>.crb</code>'s parent
-directory, so packaging the <code>.crb</code> and its sibling
-<code>*.bpcells/</code> directory together is enough for portable deployment.</p></dd>
+<code>"h5"</code> writes a TENx-format HDF5 file next to the <code>.crb</code>
+that the Shiny runtime loads lazily, minimising RAM and startup time
+(recommended default for large datasets). The Shiny runtime
+re-resolves both backends relative to the <code>.crb</code>'s parent
+directory, so packaging the <code>.crb</code> with its sibling
+<code>&lt;stem&gt;.bpcells/</code> or <code>&lt;stem&gt;.h5</code> together is enough for
+portable deployment.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -282,7 +284,7 @@ to the specified <code>result_dir</code>.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Michael Heming, Roman Hillje.</p>
+  <p>Developed by Michael Heming, Roman Hillje, Xuesong Wang.</p>
 </div>
 
 <div class="pkgdown-footer-right">

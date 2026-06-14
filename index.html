@@ -21,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,11 +81,9 @@
 <div class="page-header"><h1 id="cerebroapplite">cerebroAppLite<a class="anchor" aria-label="anchor" href="#cerebroapplite"></a>
 </h1></div>
 <p>Interactive visualization of single-cell RNA-seq data, built on top of <a href="https://shiny.posit.co/" class="external-link">Shiny</a>.</p>
-<p>This is a fork of <a href="https://github.com/mihem/cerebroAppLite" class="external-link">cerebroAppLite</a> by <a href="https://github.com/mihem" class="external-link">mihem</a>, itself a slimmed-down fork of the original <a href="https://github.com/romanhaa/cerebroApp" class="external-link">cerebroApp</a> by <a href="https://github.com/romanhaa" class="external-link">Roman Hillje</a>. The R-CMD-check badge above tracks mihem’s upstream branch. For general usage, data preparation, and the original feature set, please refer to the official documentation:</p>
-<blockquote>
-<p><strong><a href="https://romanhaa.github.io/cerebroApp/" class="external-link uri">https://romanhaa.github.io/cerebroApp/</a></strong></p>
-</blockquote>
-<p>Everything described there (loading data, exploring projections, viewing marker genes, gene expression, etc.) works the same way in cerebroAppLite. The sections below only cover <strong>what this fork adds or changes</strong>.</p>
+<p>cerebroAppLite supports loading pre-processed single-cell data, exploring projections and gene expression, browsing marker genes and enriched pathways, and inspecting group compositions—all through an interactive web interface. The sections below cover the key features.</p>
+<p>For the original feature set and data preparation workflows, refer to the upstream cerebroApp documentation at <a href="https://romanhaa.github.io/cerebroApp/" class="external-link uri">https://romanhaa.github.io/cerebroApp/</a>—everything described there works the same way here.</p>
+<p><em>A community fork of <a href="https://github.com/romanhaa/cerebroApp" class="external-link">cerebroApp</a> by Roman Hillje, developed and maintained by <a href="https://github.com/mihem" class="external-link">mihem</a>.</em></p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -93,12 +91,12 @@
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">'mihem/cerebroAppLite'</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="whats-new-in-this-fork">What’s New in This Fork<a class="anchor" aria-label="anchor" href="#whats-new-in-this-fork"></a>
+<h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
 </h2>
 <div class="section level3">
 <h3 id="id_1-convertseurattocerebro--one-step-data-conversion">1. <code>convertSeuratToCerebro()</code> — one-step data conversion<a class="anchor" aria-label="anchor" href="#id_1-convertseurattocerebro--one-step-data-conversion"></a>
 </h3>
-<p>The original cerebroApp requires you to call <code><a href="reference/exportFromSeurat.html">exportFromSeurat()</a></code> manually with many parameters. This fork adds a convenience wrapper that handles the entire process in a single call: reading the Seurat object (<code>.rds</code> on disk, or one already loaded in memory), renaming grouping variables, loading marker gene tables, calculating most-expressed genes, pulling scRepertoire columns out of <code>meta.data</code>, and saving a <code>.crb</code> file.</p>
+<p><code><a href="reference/convertSeuratToCerebro.html">convertSeuratToCerebro()</a></code> handles the entire export process in a single call: reading the Seurat object (<code>.rds</code> on disk, or one already loaded in memory), renaming grouping variables, loading marker gene tables, calculating most-expressed genes, and saving a <code>.crb</code> file.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mihem.github.io/cerebroAppLite/">cerebroAppLite</a></span><span class="op">)</span></span>
 <span></span>
@@ -115,12 +113,9 @@
 <span>    <span class="st">"cell_type"</span> <span class="op">=</span> <span class="st">"cluster"</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  marker_file              <span class="op">=</span> <span class="st">"markers.csv"</span>,   <span class="co"># optional: .csv/.tsv/.txt/.tab</span></span>
-<span>  expression_matrix_mode   <span class="op">=</span> <span class="st">"h5"</span>,            <span class="co"># "embedded" | "bpcells" | "h5", see §3</span></span>
-<span>  bcr_file                 <span class="op">=</span> <span class="cn">NULL</span>,            <span class="co"># optional: .rds with BCR data</span></span>
-<span>  tcr_file                 <span class="op">=</span> <span class="cn">NULL</span>             <span class="co"># optional: .rds with TCR data</span></span>
+<span>  expression_matrix_mode   <span class="op">=</span> <span class="st">"h5"</span>             <span class="co"># "embedded" | "bpcells" | "h5", see §3</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># → saves output/cerebro_my_seurat.crb (+ sibling .h5 / .bpcells/ when applicable)</span></span></code></pre></div>
-<p><code>.qs</code> input and <code>.xlsx</code> marker tables were dropped in 1.6.0 alongside the <code>qs</code> / <code>readxl</code> Suggests. If you have either, convert them once with <code>qs::qread() |&gt; saveRDS()</code> or open the workbook and re-export as CSV / TSV.</p>
 </div>
 <div class="section level3">
 <h3 id="id_2-createshinyapp--generate-a-deployable-shiny-app">2. <code>createShinyApp()</code> — generate a deployable Shiny app<a class="anchor" aria-label="anchor" href="#id_2-createshinyapp--generate-a-deployable-shiny-app"></a>
@@ -130,7 +125,7 @@
 <code class="sourceCode R"><span><span class="fu"><a href="reference/createShinyApp.html">createShinyApp</a></span><span class="op">(</span></span>
 <span>  cerebro_data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>    `snRNAseq` <span class="op">=</span> <span class="st">"output/cerebro_snrnaseq.crb"</span>,</span>
-<span>    `TCR-BCR`  <span class="op">=</span> <span class="st">"output/cerebro_vdj.crb"</span></span>
+<span>    `Sample2`  <span class="op">=</span> <span class="st">"output/cerebro_sample2.crb"</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  result_dir       <span class="op">=</span> <span class="st">"my_app/"</span>,</span>
 <span>  welcome_message  <span class="op">=</span> <span class="st">"&lt;h2&gt;My Single-Cell Atlas&lt;/h2&gt;"</span>,   <span class="co"># rendered via HTML()</span></span>
@@ -141,7 +136,6 @@
 <span><span class="op">)</span></span>
 <span><span class="co"># → run with shiny::runApp("my_app/") or deploy to Shiny Server</span></span></code></pre></div>
 <p><code>cerebro_data</code> is required and must be a <em>named</em> vector / list of <code>.crb</code> (or <code>.rds</code>) paths — names become the dataset labels users switch between in the app. <code>result_dir</code> is optional. Sibling <code>&lt;stem&gt;.bpcells/</code> and <code>&lt;stem&gt;.h5</code> artefacts produced by the external backends are detected and copied into the bundle automatically (see §3). Other knobs available: <code>colors</code>, <code>cerebro_options</code>, <code>crb_pick_smallest_file</code>, <code>show_upload_ui</code>, <code>point_size</code>, <code>variable_to_compare</code> — run <code><a href="reference/createShinyApp.html">?createShinyApp</a></code> for the full list.</p>
-<p>This is the slimmed-down variant in this fork — auth, spatial, and Docker-template handling were dropped because they depend on dev-only modules; they will reappear as the corresponding modules land.</p>
 </div>
 <div class="section level3">
 <h3 id="id_3-choosing-an-expression-backend">3. Choosing an expression backend<a class="anchor" aria-label="anchor" href="#id_3-choosing-an-expression-backend"></a>
@@ -197,7 +191,7 @@
 </tr>
 </tbody>
 </table>
-<p>Measured trade-offs on a PBMC fixture (38,606 genes × 147,756 cells). Server-side metrics from <code>tests/smoke/src/93_bench_backend_compare.R</code> (callr-isolated, three backends each in a fresh R subprocess). End-to-end browser metric from <code>tests/smoke/src/94_bench_web_load.R</code> (callr-spawned Shiny + chromote-driven headless Chrome, fresh session per backend). Full methodology and a 5-panel plot in <a href="vignettes/expression_backend_benchmark.Rmd"><code>vignettes/expression_backend_benchmark.Rmd</code></a>:</p>
+<p>Benchmark trade-offs on a PBMC fixture (38,606 genes × 147,756 cells):</p>
 <table class="table">
 <colgroup>
 <col width="65%">
@@ -249,7 +243,7 @@
 <li>
 <strong><code>embedded</code></strong> — single-file convenience (no sibling to manage), or compatibility with very old <code>.crb</code> readers. ~14 s end-to-end and pins the full matrix into RAM per loaded copy. Best for small datasets or one-shot scripts.</li>
 </ul>
-<p>For reference, before the 1.7.0 lazy h5 refactor, h5 attach was eager (<code><a href="https://huber-group-embl.github.io/rhdf5/reference/h5_read.html" class="external-link">rhdf5::h5read</a></code> + full <code>dgCMatrix</code> reconstruction), giving ~33 s open-URL time, ~11 GB RSS, and ~0.45 s queries — i.e. lazy-h5 is the same backend with attach <strong>~263× faster, RAM ~10× smaller, queries ~45× faster, web load ~4× faster</strong> (see <a href="vignettes/expression_backend_benchmark.Rmd"><code>expression_backend_benchmark.Rmd</code></a> for the comparison).</p>
+<p>For reference, before the 1.7.0 lazy h5 refactor, h5 attach was eager (<code><a href="https://huber-group-embl.github.io/rhdf5/reference/h5_read.html" class="external-link">rhdf5::h5read</a></code> + full <code>dgCMatrix</code> reconstruction), giving ~33 s open-URL time, ~11 GB RSS, and ~0.45 s queries — i.e. lazy-h5 is the same backend with attach <strong>~263× faster, RAM ~10× smaller, queries ~45× faster, web load ~4× faster</strong>.</p>
 <p><code><a href="reference/createShinyApp.html">createShinyApp()</a></code> already knows about both <code>&lt;stem&gt;.bpcells/</code> and <code>&lt;stem&gt;.h5</code> and copies them next to the bundled <code>.crb</code>. The Shiny runtime re-resolves the sibling location on load via <code>getExpressionBackend()$location</code> relative to the <code>.crb</code>’s parent directory, so the bundle stays portable.</p>
 </div>
 <div class="section level3">
@@ -324,6 +318,7 @@
 <ul class="list-unstyled">
 <li>Michael Heming <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-9568-2790" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 <li>Roman Hillje <br><small class="roles"> Author </small>   </li>
+<li>Xuesong Wang <br><small class="roles"> Author </small>   </li>
 </ul>
 </div>
 
@@ -340,7 +335,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Michael Heming, Roman Hillje.</p>
+  <p>Developed by Michael Heming, Roman Hillje, Xuesong Wang.</p>
 </div>
 
 <div class="pkgdown-footer-right">

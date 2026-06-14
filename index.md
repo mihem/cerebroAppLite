@@ -3,20 +3,19 @@
 Interactive visualization of single-cell RNA-seq data, built on top of
 [Shiny](https://shiny.posit.co/).
 
-This is a fork of
-[cerebroAppLite](https://github.com/mihem/cerebroAppLite) by
-[mihem](https://github.com/mihem), itself a slimmed-down fork of the
-original [cerebroApp](https://github.com/romanhaa/cerebroApp) by [Roman
-Hillje](https://github.com/romanhaa). The R-CMD-check badge above tracks
-mihem’s upstream branch. For general usage, data preparation, and the
-original feature set, please refer to the official documentation:
+cerebroAppLite supports loading pre-processed single-cell data,
+exploring projections and gene expression, browsing marker genes and
+enriched pathways, and inspecting group compositions—all through an
+interactive web interface. The sections below cover the key features.
 
-> **<https://romanhaa.github.io/cerebroApp/>**
+For the original feature set and data preparation workflows, refer to
+the upstream cerebroApp documentation at
+<https://romanhaa.github.io/cerebroApp/>—everything described there
+works the same way here.
 
-Everything described there (loading data, exploring projections, viewing
-marker genes, gene expression, etc.) works the same way in
-cerebroAppLite. The sections below only cover **what this fork adds or
-changes**.
+*A community fork of
+[cerebroApp](https://github.com/romanhaa/cerebroApp) by Roman Hillje,
+developed and maintained by [mihem](https://github.com/mihem).*
 
 ## Installation
 
@@ -24,18 +23,15 @@ changes**.
 remotes::install_github('mihem/cerebroAppLite')
 ```
 
-## What’s New in This Fork
+## Features
 
 ### 1. `convertSeuratToCerebro()` — one-step data conversion
 
-The original cerebroApp requires you to call
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
-manually with many parameters. This fork adds a convenience wrapper that
-handles the entire process in a single call: reading the Seurat object
-(`.rds` on disk, or one already loaded in memory), renaming grouping
-variables, loading marker gene tables, calculating most-expressed genes,
-pulling scRepertoire columns out of `meta.data`, and saving a `.crb`
-file.
+[`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md)
+handles the entire export process in a single call: reading the Seurat
+object (`.rds` on disk, or one already loaded in memory), renaming
+grouping variables, loading marker gene tables, calculating
+most-expressed genes, and saving a `.crb` file.
 
 ``` r
 library(cerebroAppLite)
@@ -53,17 +49,10 @@ convertSeuratToCerebro(
     "cell_type" = "cluster"
   ),
   marker_file              = "markers.csv",   # optional: .csv/.tsv/.txt/.tab
-  expression_matrix_mode   = "h5",            # "embedded" | "bpcells" | "h5", see §3
-  bcr_file                 = NULL,            # optional: .rds with BCR data
-  tcr_file                 = NULL             # optional: .rds with TCR data
+  expression_matrix_mode   = "h5"             # "embedded" | "bpcells" | "h5", see §3
 )
 # → saves output/cerebro_my_seurat.crb (+ sibling .h5 / .bpcells/ when applicable)
 ```
-
-`.qs` input and `.xlsx` marker tables were dropped in 1.6.0 alongside
-the `qs` / `readxl` Suggests. If you have either, convert them once with
-`qs::qread() |> saveRDS()` or open the workbook and re-export as CSV /
-TSV.
 
 ### 2. `createShinyApp()` — generate a deployable Shiny app
 
@@ -77,7 +66,7 @@ a Shiny server or sharing with collaborators.
 createShinyApp(
   cerebro_data = c(
     `snRNAseq` = "output/cerebro_snrnaseq.crb",
-    `TCR-BCR`  = "output/cerebro_vdj.crb"
+    `Sample2`  = "output/cerebro_sample2.crb"
   ),
   result_dir       = "my_app/",
   welcome_message  = "<h2>My Single-Cell Atlas</h2>",   # rendered via HTML()
@@ -99,10 +88,6 @@ copied into the bundle automatically (see §3). Other knobs available:
 [`?createShinyApp`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
 for the full list.
 
-This is the slimmed-down variant in this fork — auth, spatial, and
-Docker-template handling were dropped because they depend on dev-only
-modules; they will reappear as the corresponding modules land.
-
 ### 3. Choosing an expression backend
 
 [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
@@ -117,13 +102,7 @@ the count matrix is persisted alongside the `.crb`:
 | `bpcells` | sibling `<stem>.bpcells/` directory | tiny (handle only) | **lazy** — `IterableMatrix` reads on slice access | `BPCells` | `.crb` + sibling dir must travel together |
 | `h5` | sibling `<stem>.h5` file (TENx CSC) | tiny (tag only) | **lazy** — [`HDF5Array::TENxMatrix`](https://rdrr.io/pkg/HDF5Array/man/TENxMatrix-class.html) seed; queries stream from disk | `HDF5Array` | `.crb` + sibling `.h5` must travel together |
 
-Measured trade-offs on a PBMC fixture (38,606 genes × 147,756 cells).
-Server-side metrics from `tests/smoke/src/93_bench_backend_compare.R`
-(callr-isolated, three backends each in a fresh R subprocess).
-End-to-end browser metric from `tests/smoke/src/94_bench_web_load.R`
-(callr-spawned Shiny + chromote-driven headless Chrome, fresh session
-per backend). Full methodology and a 5-panel plot in
-[`vignettes/expression_backend_benchmark.Rmd`](https://mihem.github.io/cerebroAppLite/vignettes/expression_backend_benchmark.Rmd):
+Benchmark trade-offs on a PBMC fixture (38,606 genes × 147,756 cells):
 
 | metric                                   | embedded | bpcells |     **h5** |
 |------------------------------------------|---------:|--------:|-----------:|
@@ -177,9 +156,7 @@ For reference, before the 1.7.0 lazy h5 refactor, h5 attach was eager
 full `dgCMatrix` reconstruction), giving ~33 s open-URL time, ~11 GB
 RSS, and ~0.45 s queries — i.e. lazy-h5 is the same backend with attach
 **~263× faster, RAM ~10× smaller, queries ~45× faster, web load ~4×
-faster** (see
-[`expression_backend_benchmark.Rmd`](https://mihem.github.io/cerebroAppLite/vignettes/expression_backend_benchmark.Rmd)
-for the comparison).
+faster**.
 
 [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
 already knows about both `<stem>.bpcells/` and `<stem>.h5` and copies
