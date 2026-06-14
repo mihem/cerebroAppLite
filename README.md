@@ -8,14 +8,19 @@
 
 Interactive visualization of single-cell RNA-seq data, built on top of [Shiny](https://shiny.posit.co/).
 
-Based on [cerebroAppLite](https://github.com/mihem/cerebroAppLite) by [mihem](https://github.com/mihem),
-which is itself based on the original [cerebroApp](https://github.com/romanhaa/cerebroApp)
-by [Roman Hillje](https://github.com/romanhaa). The R-CMD-check badge above tracks mihem's upstream branch.
-For general usage, data preparation, and feature documentation, please refer to the official documentation:
+cerebroAppLite supports loading pre-processed single-cell data,
+exploring projections and gene expression, browsing marker genes and
+enriched pathways, and inspecting group compositions—all through an
+interactive web interface. The sections below cover the key features.
 
-> **<https://romanhaa.github.io/cerebroApp/>**
+For the original feature set and data preparation workflows, refer to
+the upstream cerebroApp documentation at
+<https://romanhaa.github.io/cerebroApp/>—everything described there
+works the same way here.
 
-Everything described there (loading data, exploring projections, viewing marker genes, gene expression, etc.) works the same way in cerebroAppLite. The sections below cover the key features of this package.
+*A community fork of [cerebroApp](https://github.com/romanhaa/cerebroApp)
+by Roman Hillje, developed and maintained by
+[mihem](https://github.com/mihem).*
 
 ## Installation
 
