@@ -2,38 +2,20 @@
 
 ## cerebroAppLite 1.7.1
 
-This release introduces the v1.4 Shiny app infrastructure, external
-expression backends (bpcells, h5), Monocle trajectory extraction, and
-infrastructure for data conversion and Shiny app deployment.
+This maintenance release cleans up the package surface introduced by the
+previous releases and refreshes documentation for the current codebase.
 
-### Major changes since 1.7.0
+### Maintenance
 
-- **v1.4 Shiny app**: restructured app with dynamic conditional tabs,
-  module-based file layout, and shared projection plotting
-  infrastructure.
-- **External expression backends**: matrices can now be stored outside
-  the `.crb` as HDF5 (lazy, recommended) or BPCells (on-disk) for faster
-  startup and lower RAM usage.
-- **createShinyApp()**: new function to bundle a self-contained Shiny
-  app from one or more `.crb` files for deployment.
-- **convertSeuratToCerebro()**: one-step wrapper replacing the
-  multi-step
-  [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
-  workflow.
-- **Seurat v5 support**: all slot access uses
-  [`GetAssayData()`](https://satijalab.github.io/seurat-object/reference/AssayData.html)
-  for v5 compatibility.
-- **Nix-based CI/CD**: reproducible dependency management via
-  `default.nix`, automated testing, pkgdown site building, and code
-  formatting.
-- **Bug fixes**: resolved all R CMD check errors and warnings; replaced
-  `class(x) == "..."` with
-  [`inherits()`](https://rdrr.io/r/base/class.html); replaced
-  [`require()`](https://rdrr.io/r/base/library.html) with
-  [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html); fixed
-  GSVA v2.x API compatibility.
-- **Dead code removal**: removed unused `renderMenu` sidebar logic and
-  orphaned utility wrapper functions. \# cerebroAppLite 1.7.0
+- Removed unused internal Shiny sidebar/menu helpers and orphaned
+  utility wrapper functions.
+- Cleaned stale roxygen comments, generated Rd files, README wording,
+  and internal comments so they describe the current package from its
+  own perspective.
+- Updated package metadata and regenerated documentation for the current
+  public API.
+
+## cerebroAppLite 1.7.0
 
 ### New features
 
