@@ -1133,3 +1133,40 @@ getEnrichedPathways <- function(method, group) {
     return(data_set()$getEnrichedPathways(method, group))
   }
 }
+
+## Wrapper functions for extra_material module.
+getExtraMaterialCategories <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getExtraMaterialCategories())
+  }
+}
+checkForExtraTables <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$checkForExtraTables())
+  }
+}
+getNamesOfExtraTables <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getNamesOfExtraTables())
+  }
+}
+getExtraTable <- function(name) {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getExtraTable(name))
+  }
+}
+checkForExtraPlots <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$checkForExtraPlots())
+  }
+}
+getNamesOfExtraPlots <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getNamesOfExtraPlots())
+  }
+}
+getExtraPlot <- function(name) {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getExtraPlot(name))
+  }
+}

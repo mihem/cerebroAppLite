@@ -366,6 +366,21 @@ server <- function(input, output, session) {
 
   insertConditionalTab("Enriched pathways", "enrichedPathways", "project-diagram",
     function() getMethodsForEnrichedPathways(), placeholder_id = "enriched_pathways")
+  insertConditionalTab("Extra material", "extra_material", "gift",
+    function() getExtraMaterialCategories())
+
+  ## Cleanup snapshot artifacts that may have been left by test runs.
+  snapshot_dir <- file.path(
+    Cerebro.options[["cerebro_root"]], "..", "..", "tests", "testthat", "_snaps"
+  )
+  new_pngs <- list.files(snapshot_dir, pattern = "\\.new\\.png$", full.names = TRUE)
+  if (length(new_pngs) > 0) file.remove(new_pngs)
+
+  ##--------------------------------------------------------------------------##
+  source(
+    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/extra_material/server.R"),
+    local = TRUE
+  )
 
   ##--------------------------------------------------------------------------##
   ## Export reactive values for testing (shinytest2).
