@@ -1094,3 +1094,79 @@ get_or_load_crb <- function(path) {
 
   obj
 }
+
+## Wrapper functions for most_expressed_genes module.
+getMeanExpression <- function(group_name) {
+  if (any(grepl("Cerebro", class(data_set())))) {
+    data_set()$getMeanExpression(group_name)
+  }
+}
+getGroupsWithMeanExpression <- function() {
+  ds <- data_set()
+  if (!any(grepl("Cerebro", class(ds)))) return(character(0))
+  tryCatch(ds$getGroupsWithMeanExpression(), error = function(e) character(0))
+}
+getGroupsWithMostExpressedGenes <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getGroupsWithMostExpressedGenes())
+  }
+}
+getMostExpressedGenes <- function(group) {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getMostExpressedGenes(group))
+  }
+}
+
+## Wrapper functions for enriched_pathways module.
+getMethodsForEnrichedPathways <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getMethodsForEnrichedPathways())
+  }
+}
+getGroupsWithEnrichedPathways <- function(method) {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getGroupsWithEnrichedPathways(method))
+  }
+}
+getEnrichedPathways <- function(method, group) {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getEnrichedPathways(method, group))
+  }
+}
+
+## Wrapper functions for extra_material module.
+getExtraMaterialCategories <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getExtraMaterialCategories())
+  }
+}
+checkForExtraTables <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$checkForExtraTables())
+  }
+}
+getNamesOfExtraTables <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getNamesOfExtraTables())
+  }
+}
+getExtraTable <- function(name) {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getExtraTable(name))
+  }
+}
+checkForExtraPlots <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$checkForExtraPlots())
+  }
+}
+getNamesOfExtraPlots <- function() {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getNamesOfExtraPlots())
+  }
+}
+getExtraPlot <- function(name) {
+  if ('Cerebro_v1.3' %in% class(data_set())) {
+    return(data_set()$getExtraPlot(name))
+  }
+}

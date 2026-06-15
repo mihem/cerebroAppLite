@@ -242,6 +242,12 @@ server <- function(input, output, session) {
     return(hover_info)
   })
 
+  ## Dynamic sidebar: conditional tabs are inserted/removed based on dataset
+  ## content (see insertConditionalTab() below). The old renderMenu +
+  ## shinyjs::toggleElement pattern for trajectory and extra_material has been
+  ## replaced.
+  ##--------------------------------------------------------------------------##
+
   ##--------------------------------------------------------------------------##
   ## Print log message when switching tab (for debugging).
   ##--------------------------------------------------------------------------##
@@ -312,6 +318,67 @@ server <- function(input, output, session) {
   )
   source(
     paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/about/server.R"),
+    local = TRUE
+  )
+  ## Enhanced module servers.
+  source(
+    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/most_expressed_genes/server.R"),
+    local = TRUE
+  )
+  source(
+    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/enriched_pathways/server.R"),
+    local = TRUE
+  )
+
+  ##--------------------------------------------------------------------------##
+  ## Dynamic sidebar: insert/remove conditional tabs based on dataset content.
+  ##--------------------------------------------------------------------------##
+  insertConditionalTab <- function(tab_label, tab_name, icon_name, check_fn, placeholder_id = tab_name) {
+    item_id <- paste0("sidebar_item_", tab_name)
+    placeholder_selector <- paste0("#sidebar_item_", placeholder_id, "_placeholder")
+    show_reactive <- reactive({
+      req(data_set())
+      result <- tryCatch(check_fn(), error = function(e) FALSE)
+      if (is.logical(result)) return(result)
+      length(result) > 0
+    })
+    inserted <- reactiveVal(FALSE)
+    observe({
+      req(!is.null(data_set()))
+      should_show <- show_reactive()
+      is_inserted <- isolate(inserted())
+      if (should_show && !is_inserted) {
+        session$onFlushed(function() {
+          insertUI(
+            selector = placeholder_selector, where = "afterEnd",
+            ui = tags$li(id = item_id, class = "treeview",
+              menuItem(tab_label, tabName = tab_name, icon = icon(icon_name))$children),
+            immediate = TRUE
+          )
+          inserted(TRUE)
+        }, once = TRUE)
+      } else if (!should_show && is_inserted) {
+        removeUI(selector = paste0("#", item_id), immediate = TRUE)
+        inserted(FALSE)
+      }
+    })
+  }
+
+  insertConditionalTab("Enriched pathways", "enrichedPathways", "project-diagram",
+    function() getMethodsForEnrichedPathways(), placeholder_id = "enriched_pathways")
+  insertConditionalTab("Extra material", "extra_material", "gift",
+    function() getExtraMaterialCategories())
+
+  ## Cleanup snapshot artifacts that may have been left by test runs.
+  snapshot_dir <- file.path(
+    Cerebro.options[["cerebro_root"]], "..", "..", "tests", "testthat", "_snaps"
+  )
+  new_pngs <- list.files(snapshot_dir, pattern = "\\.new\\.png$", full.names = TRUE)
+  if (length(new_pngs) > 0) file.remove(new_pngs)
+
+  ##--------------------------------------------------------------------------##
+  source(
+    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/extra_material/server.R"),
     local = TRUE
   )
 
