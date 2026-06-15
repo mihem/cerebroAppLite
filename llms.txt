@@ -345,3 +345,12 @@ Original cerebroApp © Roman Hillje; cerebroAppLite fork by
   page](https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page.md):
 - [Host Cerebro on
   shinyapps.io](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md):
+
+### Module guides
+
+- [Most Expressed
+  Genes](https://mihem.github.io/cerebroAppLite/articles/most_expressed_genes.md):
+- [Enriched
+  Pathways](https://mihem.github.io/cerebroAppLite/articles/enriched_pathways.md):
+- [Extra
+  Material](https://mihem.github.io/cerebroAppLite/articles/extra_material.md):
