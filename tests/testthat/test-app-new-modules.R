@@ -92,8 +92,14 @@ test_that("insertConditionalTab is defined and wired to conditional tabs", {
   )
 
   # Calls are present for enriched pathways and extra material
-  expect_match(content, 'insertConditionalTab\\(\\"Enriched pathways\\"', perl = TRUE)
-  expect_match(content, 'insertConditionalTab\\(\\"Extra material\\"', perl = TRUE)
+  expect_match(content,
+    "insertConditionalTab\\s*\\([\\s\\S]*?Enriched pathways",
+    perl = TRUE
+  )
+  expect_match(content,
+    "insertConditionalTab\\s*\\([\\s\\S]*?Extra material",
+    perl = TRUE
+  )
 })
 
 test_that("conditional tab placeholders exist in UI source", {
