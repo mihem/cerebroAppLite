@@ -101,11 +101,7 @@ pbmc <- getMarkerGenes(
   test = 'wilcox',
   verbose = TRUE
 )
-#> Error in req_perform(html_request) : Failed to perform HTTP request.
-#> Caused by error in `curl::curl_fetch_memory()`:
-#> ! Timeout was reached [www.ensembl.org]:
-#> Operation timed out after 10002 milliseconds with 0 bytes received
-#> [14:48:18] Get marker genes for 2 groups in `sample`...
+#> [15:49:40] Get marker genes for 2 groups in `sample`...
 #> Calculating cluster pbmc_1
 #> For a (much!) faster implementation of the Wilcoxon Rank Sum Test,
 #> (default method for FindMarkers) please install the presto package
@@ -117,7 +113,7 @@ pbmc <- getMarkerGenes(
 #> efficient implementation (no further action necessary).
 #> This message will be shown once per session
 #> Calculating cluster pbmc_2
-#> [14:48:19] Get marker genes for 2 groups in `seurat_clusters`...
+#> [15:49:40] Get marker genes for 2 groups in `seurat_clusters`...
 #> Calculating cluster 0
 #> Calculating cluster 1
 ```
