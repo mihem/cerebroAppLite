@@ -38,31 +38,68 @@ the module joins metadata onto them by barcode at runtime.
 
 # Preparing immune repertoire data
 
-Immune repertoire data is embedded in the `.crb` file during export. Attach a
-named list of data.frames (one per sample) to the Seurat object's
-`@misc$immune_repertoire` slot before calling `exportFromSeurat()`, which picks
-it up automatically:
+## Background: scRepertoire
+
+The immune repertoire module is built on the
+[scRepertoire](https://www.borch.dev/uploads/screpertoire/) package (≥ 2.0),
+which is the standard tool for turning 10x Cell Ranger V(D)J output into
+per-cell clonotype annotations. cerebroAppLite lists it under `Suggests`, so
+install it once before preparing data:
+
+```{r, eval = FALSE}
+# Bioconductor
+BiocManager::install("scRepertoire")
+```
+
+The full scRepertoire workflow is documented in its vignettes —
+[Loading data](https://www.borch.dev/uploads/screpertoire/articles/loading) and
+[Combining contigs](https://www.borch.dev/uploads/screpertoire/articles/combining_contigs).
+The steps below summarise just what cerebroAppLite needs.
+
+## Step 1 — load the V(D)J contigs
+
+Read the `filtered_contig_annotations.csv` produced by Cell Ranger for each
+sample. TCR and BCR are separate libraries, so load each one:
+
+```{r, eval = FALSE}
+library(scRepertoire)
+
+# one filtered_contig_annotations.csv per sample
+tcr_contigs <- lapply(tcr_paths, read.csv) # T-cell receptor contigs
+bcr_contigs <- lapply(bcr_paths, read.csv) # B-cell receptor contigs
+```
+
+## Step 2 — combine contigs into clonotypes
+
+`combineTCR()` and `combineBCR()` collapse contigs into per-cell clonotypes and
+add the standard `CTgene` / `CTnt` / `CTaa` / `CTstrict` columns. Use the
+matching function for each receptor type:
+
+```{r, eval = FALSE}
+combined_tcr <- combineTCR(tcr_contigs, samples = sample_names)
+combined_bcr <- combineBCR(bcr_contigs, samples = sample_names)
+```
+
+## Step 3 — attach to the Seurat object and export
+
+Build a named list of data.frames (one element per sample) holding the
+scRepertoire clonotype columns, attach it to the Seurat object's
+`@misc$immune_repertoire` slot, and export. `exportFromSeurat()` picks the slot
+up automatically. To include both receptor types, row-bind the T- and B-cell
+clonotypes per sample (cells are mutually exclusive — a cell has a TCR *or* a
+BCR):
 
 ```{r, eval = FALSE}
 library(cerebroAppLite)
-library(scRepertoire)
 
-# Combine 10x contigs and map them onto the Seurat object
-combined <- combineTCR(contig_list, samples = sample_names)
-seurat_object <- combineExpression(combined, seurat_object)
+ir_cols <- c("barcode", "CTgene", "CTnt", "CTaa", "CTstrict")
+to_df <- function(x) x[, ir_cols, drop = FALSE]
 
-# Build a named list of data.frames with the scRepertoire clonotype columns:
-# barcode, CTgene, CTnt, CTaa, CTstrict
-md <- seurat_object@meta.data
-ir_data <- list(
-  sample1 = data.frame(
-    barcode  = rownames(md),
-    CTgene   = md$CTgene,
-    CTnt     = md$CTnt,
-    CTaa     = md$CTaa,
-    CTstrict = md$CTstrict
-  )
-)
+ir_data <- lapply(sample_names, function(s) {
+  rbind(to_df(combined_tcr[[s]]), to_df(combined_bcr[[s]]))
+})
+names(ir_data) <- sample_names
+
 seurat_object@misc$immune_repertoire <- ir_data
 
 exportFromSeurat(
@@ -76,8 +113,10 @@ exportFromSeurat(
 
 Each data.frame must contain the scRepertoire clonotype columns `barcode`,
 `CTgene`, `CTnt`, `CTaa`, and `CTstrict`. The `barcode` values should match
-the cell barcodes in the Seurat object's metadata. Chains (e.g. TRA/TRB) are
-detected automatically from `CTgene`.
+the cell barcodes in the Seurat object's metadata. Chains (e.g. TRA/TRB,
+IGH/IGK/IGL) are detected automatically from `CTgene`, and grouping variables
+(sample, condition, cell type, ...) are read from the cell metadata at runtime —
+the clonotype tables themselves only need the five columns above.
 
 # Module interface
 
