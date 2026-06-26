@@ -190,14 +190,17 @@ test_that("Diversity x.axis uses grouped bootstrap plot, not scRepertoire's cont
   content <- paste(readLines(viz), collapse = "\n")
 
   expect_match(content, "ir_plot_clonal_diversity")
+  # clonalDiversity is now called via do.call (to handle NULL x.axis), but
+  # return.boots=TRUE is still present in the argument list.
   expect_match(
     content,
-    "clonalDiversity\\([\\s\\S]{0,500}return\\.boots\\s*=\\s*TRUE",
+    "return\\.boots\\s*=\\s*TRUE",
     perl = TRUE
   )
+  # Custom ggplot uses eff_x_axis (resolved from x_axis or group column)
   expect_match(
     content,
-    "geom_boxplot\\([\\s\\S]{0,300}group\\s*=\\s*\\.data\\[\\[x_axis\\]\\]",
+    "geom_boxplot\\([\\s\\S]{0,300}group\\s*=\\s*\\.data\\[\\[eff_x_axis\\]\\]",
     perl = TRUE
   )
 })

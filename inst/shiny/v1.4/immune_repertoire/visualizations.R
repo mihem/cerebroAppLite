@@ -489,6 +489,9 @@ ir_plot_clonal_diversity <- function(
   # scRepertoire 2.6.x can coerce factor x.axis values to numeric positions and
   # its boxplot layer does not explicitly group by x.axis. Use its bootstrap
   # table and redraw the x-axis summary so each metadata level gets its own box.
+  # When x_axis is NULL, scRepertoire groups by list element (sample) names and
+  # returns a table without an x.axis column — we use the group column itself as
+  # the effective x-axis so the plot stays consistent with the non-NULL path.
   plot_data <- lapply(data, function(df) {
     for (col in unique(c(group_by, x_axis))) {
       if (!is.null(col) && col %in% colnames(df)) {
@@ -497,38 +500,54 @@ ir_plot_clonal_diversity <- function(
     }
     df
   })
-  output_df <- scRepertoire::clonalDiversity(
+
+  # Build scRepertoire call, omitting x.axis when NULL
+  scr_args <- list(
     plot_data,
     cloneCall = clone_call,
     chain = chain,
     group.by = group_by,
     metric = metric,
-    x.axis = x_axis,
     n.boots = n_boots,
     return.boots = TRUE,
     exportTable = TRUE,
     palette = palette
   )
+  if (!is.null(x_axis)) {
+    scr_args[["x.axis"]] <- x_axis
+  }
+  output_df <- do.call(scRepertoire::clonalDiversity, scr_args)
+
   group_col <- if (is.null(group_by)) "Group" else group_by
+
+  # When x_axis is NULL, scRepertoire returns a table keyed by the group column
+  # alone (no x.axis column). Use the group column as the effective x-axis.
+  eff_x_axis <- if (is.null(x_axis)) group_col else x_axis
+  x_label <- if (is.null(x_axis)) {
+    if (is.null(group_by)) "Group" else group_by
+  } else {
+    x_axis
+  }
+
   validate(
-    need(x_axis %in% colnames(output_df), "Selected X axis is not available."),
+    need(eff_x_axis %in% colnames(output_df), "X axis / group column is missing from the output table."),
     need(group_col %in% colnames(output_df), "Selected grouping is not available.")
   )
 
-  # Build x-axis levels from the original data. scRepertoire internally sorts
-  # categorical x.axis values alphabetically and assigns numeric positions
-  # 1, 2, 3, ... in that order. We sort x_levels to match this ordering so the
-  # factor levels align with scRepertoire's implicit numeric positions in the
-  # returned bootstrap table. If scRepertoire ever changes its sort order, the
-  # ggplot factor levels here must be adjusted accordingly.
-  x_levels <- sort(unique(unlist(lapply(plot_data, function(df) {
-    if (x_axis %in% colnames(df)) as.character(df[[x_axis]]) else character(0)
-  }), use.names = FALSE)))
+  # Build x-axis levels. When x_axis is NULL, the level order comes from the
+  # output table (scRepertoire's natural ordering by list element names).
+  if (is.null(x_axis)) {
+    x_levels <- unique(as.character(output_df[[group_col]]))
+  } else {
+    x_levels <- sort(unique(unlist(lapply(plot_data, function(df) {
+      if (x_axis %in% colnames(df)) as.character(df[[x_axis]]) else character(0)
+    }), use.names = FALSE)))
+  }
   x_levels <- x_levels[!is.na(x_levels)]
   if (length(x_levels) == 0) {
-    x_levels <- unique(as.character(output_df[[x_axis]]))
+    x_levels <- unique(as.character(output_df[[eff_x_axis]]))
   }
-  output_df[[x_axis]] <- factor(as.character(output_df[[x_axis]]), levels = x_levels)
+  output_df[[eff_x_axis]] <- factor(as.character(output_df[[eff_x_axis]]), levels = x_levels)
   output_df[[group_col]] <- factor(as.character(output_df[[group_col]]))
 
   metric_name <- gsub(
@@ -543,12 +562,12 @@ ir_plot_clonal_diversity <- function(
   ggplot2::ggplot(
     output_df,
     ggplot2::aes(
-      x = .data[[x_axis]],
+      x = .data[[eff_x_axis]],
       y = as.numeric(.data[["value"]])
     )
   ) +
     ggplot2::geom_boxplot(
-      ggplot2::aes(group = .data[[x_axis]]),
+      ggplot2::aes(group = .data[[eff_x_axis]]),
       outlier.alpha = 0,
       fill = "white",
       colour = "#666666"
@@ -563,7 +582,7 @@ ir_plot_clonal_diversity <- function(
     ) +
     ggplot2::scale_fill_manual(values = fills, name = "Group") +
     ggplot2::labs(
-      x = x_axis,
+      x = x_label,
       y = paste(metric_name, "Index Score")
     ) +
     ggplot2::theme_classic(base_size = 11) +
@@ -584,30 +603,16 @@ output$ir_plot_clonalDiversity <- renderPlot({
   n_boots <- as.numeric(ir_param("ir_p_n_boots", 20))
   if (is.na(n_boots) || n_boots < 1) n_boots <- 20
   safeRenderPlot(
-    {
-      if (!is.null(x_axis)) {
-        return(ir_plot_clonal_diversity(
-          data = data,
-          clone_call = pars$cloneCall,
-          chain = pars$chain,
-          group_by = pars$groupBy,
-          metric = metric,
-          x_axis = x_axis,
-          n_boots = n_boots,
-          palette = "inferno"
-        ))
-      }
-      scRepertoire::clonalDiversity(
-        data,
-        cloneCall = pars$cloneCall,
-        chain = pars$chain,
-        group.by = pars$groupBy,
-        metric = metric,
-        n.boots = n_boots,
-        exportTable = FALSE,
-        palette = "inferno"
-      )
-    },
+    ir_plot_clonal_diversity(
+      data = data,
+      clone_call = pars$cloneCall,
+      chain = pars$chain,
+      group_by = pars$groupBy,
+      metric = metric,
+      x_axis = x_axis,
+      n_boots = n_boots,
+      palette = "inferno"
+    ),
     "clonalDiversity"
   )
 }) %>%
