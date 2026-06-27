@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,7 @@
     <li><a class="dropdown-item" href="../articles/most_expressed_genes.html">Most Expressed Genes</a></li>
     <li><a class="dropdown-item" href="../articles/enriched_pathways.html">Enriched Pathways</a></li>
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
+    <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -64,6 +65,19 @@
       <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.7.3" id="cerebroapplite-173">cerebroAppLite 1.7.3<a class="anchor" aria-label="anchor" href="#cerebroapplite-173"></a></h2>
+<div class="section level3">
+<h3 id="immune-repertoire-1-7-3">Immune repertoire<a class="anchor" aria-label="anchor" href="#immune-repertoire-1-7-3"></a></h3>
+<ul><li>
+<strong>Immune repertoire</strong>: new conditional tab for TCR/BCR clonotype analysis with 19 visualization methods driven by <code>scRepertoire</code>, covering clonal abundance, diversity, homeostasis, CDR3 length/composition, V(D)J gene usage, k-mer motifs, and cross-sample comparison. Each method includes contextual help with biological interpretation guidance.</li>
+<li>
+<strong>Sample splitting</strong>: a sample-column dropdown lets users re-split the repertoire by any shared metadata column; all visualizations recompute against the chosen grouping instead of a fixed sample field.</li>
+<li>New utility wrapper: <code>getImmuneRepertoire()</code>.</li>
+<li>The bundled <code>example.crb</code> now carries real 10x immune-repertoire data (<code>sc5p_v2_hs_PBMC_10k</code>, 5’ gene expression + TCR + BCR from the same experiment), so the immune repertoire tab — including TCR, BCR (isotype/SHM), and cross-sample comparisons — works out of the box in a single combined dataset. (This single 10x donor is randomly partitioned into three demo samples so that cross-sample features have data; the sample labels do not represent distinct biological donors.)</li>
+<li>Immune repertoire grouping/splitting now works for <strong>any</strong> metadata column (sample, condition, cell type, …): grouping variables are taken from the data set’s metadata and joined onto the clonotype data by barcode, rather than only columns embedded in the IR table.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.7.2" id="cerebroapplite-172">cerebroAppLite 1.7.2<a class="anchor" aria-label="anchor" href="#cerebroapplite-172"></a></h2>
 <div class="section level3">

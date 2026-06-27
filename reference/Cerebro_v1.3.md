@@ -225,6 +225,8 @@ A new `Cerebro_v1.3` object.
 
 - [`Cerebro_v1.3$getMethodsWithEnrichedPathways()`](#method-Cerebro_v1.3-getMethodsWithEnrichedPathways)
 
+- [`Cerebro_v1.3$getMethodsForEnrichedPathways()`](#method-Cerebro_v1.3-getMethodsForEnrichedPathways)
+
 - [`Cerebro_v1.3$getGroupsWithEnrichedPathways()`](#method-Cerebro_v1.3-getGroupsWithEnrichedPathways)
 
 - [`Cerebro_v1.3$getEnrichedPathways()`](#method-Cerebro_v1.3-getEnrichedPathways)
@@ -1165,6 +1167,21 @@ Retrieve names of methods for which enriched pathways are available.
 #### Usage
 
     Cerebro_v1.3$getMethodsWithEnrichedPathways()
+
+#### Returns
+
+`vector` of methods for which enriched pathways are available.
+
+------------------------------------------------------------------------
+
+### Method `getMethodsForEnrichedPathways()`
+
+Alias of `getMethodsWithEnrichedPathways()`, kept for backwards
+compatibility with the Shiny app, which calls this name.
+
+#### Usage
+
+    Cerebro_v1.3$getMethodsForEnrichedPathways()
 
 #### Returns
 

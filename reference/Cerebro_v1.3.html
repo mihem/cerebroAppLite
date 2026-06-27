@@ -9,7 +9,7 @@ data that can be visualized in Cerebro."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,7 @@ data that can be visualized in Cerebro."></head><body>
     <li><a class="dropdown-item" href="../articles/most_expressed_genes.html">Most Expressed Genes</a></li>
     <li><a class="dropdown-item" href="../articles/enriched_pathways.html">Enriched Pathways</a></li>
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
+    <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -252,6 +253,7 @@ compatibility with older .crb files).</p></dd>
 <li><p><a href="#method-Cerebro_v1.3-getMarkerGenes"><code>Cerebro_v1.3$getMarkerGenes()</code></a></p></li>
 <li><p><a href="#method-Cerebro_v1.3-addEnrichedPathways"><code>Cerebro_v1.3$addEnrichedPathways()</code></a></p></li>
 <li><p><a href="#method-Cerebro_v1.3-getMethodsWithEnrichedPathways"><code>Cerebro_v1.3$getMethodsWithEnrichedPathways()</code></a></p></li>
+<li><p><a href="#method-Cerebro_v1.3-getMethodsForEnrichedPathways"><code>Cerebro_v1.3$getMethodsForEnrichedPathways()</code></a></p></li>
 <li><p><a href="#method-Cerebro_v1.3-getGroupsWithEnrichedPathways"><code>Cerebro_v1.3$getGroupsWithEnrichedPathways()</code></a></p></li>
 <li><p><a href="#method-Cerebro_v1.3-getEnrichedPathways"><code>Cerebro_v1.3$getEnrichedPathways()</code></a></p></li>
 <li><p><a href="#method-Cerebro_v1.3-addTrajectory"><code>Cerebro_v1.3$addTrajectory()</code></a></p></li>
@@ -1148,11 +1150,24 @@ belong to. Must be registered in the <code>groups</code> field.</p></dd>
 <p><code>vector</code> of methods for which enriched pathways are available.</p>
 </div>
 
+</div><p></p><hr><a id="method-Cerebro_v1.3-getMethodsForEnrichedPathways"></a><div class="section">
+<h3 id="method-getmethodsforenrichedpathways-">Method <code>getMethodsForEnrichedPathways()</code><a class="anchor" aria-label="anchor" href="#method-getmethodsforenrichedpathways-"></a></h3>
+<p>Alias of <code>getMethodsWithEnrichedPathways()</code>, kept for backwards
+compatibility with the Shiny app, which calls this name.</p><div class="section">
+<h4 id="usage-47">Usage<a class="anchor" aria-label="anchor" href="#usage-47"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getMethodsForEnrichedPathways</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+<div class="section">
+<h4 id="returns-28">Returns<a class="anchor" aria-label="anchor" href="#returns-28"></a></h4>
+<p><code>vector</code> of methods for which enriched pathways are available.</p>
+</div>
+
 </div><p></p><hr><a id="method-Cerebro_v1.3-getGroupsWithEnrichedPathways"></a><div class="section">
 <h3 id="method-getgroupswithenrichedpathways-">Method <code>getGroupsWithEnrichedPathways()</code><a class="anchor" aria-label="anchor" href="#method-getgroupswithenrichedpathways-"></a></h3>
 <p>Retrieve names of grouping variables for which enriched pathways are
 available for a specific method.</p><div class="section">
-<h4 id="usage-47">Usage<a class="anchor" aria-label="anchor" href="#usage-47"></a></h4>
+<h4 id="usage-48">Usage<a class="anchor" aria-label="anchor" href="#usage-48"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getGroupsWithEnrichedPathways</span><span class="op">(</span><span class="va">method</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1165,7 +1180,7 @@ available for a specific method.</p><div class="section">
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-28">Returns<a class="anchor" aria-label="anchor" href="#returns-28"></a></h4>
+<h4 id="returns-29">Returns<a class="anchor" aria-label="anchor" href="#returns-29"></a></h4>
 <p><code>vector</code> of grouping variables for which enriched pathways are
 available.</p>
 </div>
@@ -1174,7 +1189,7 @@ available.</p>
 <h3 id="method-getenrichedpathways-">Method <code><a href="getEnrichedPathways.html">getEnrichedPathways()</a></code><a class="anchor" aria-label="anchor" href="#method-getenrichedpathways-"></a></h3>
 <p>Retrieve table of enriched pathways for a specific method and grouping
 variable.</p><div class="section">
-<h4 id="usage-48">Usage<a class="anchor" aria-label="anchor" href="#usage-48"></a></h4>
+<h4 id="usage-49">Usage<a class="anchor" aria-label="anchor" href="#usage-49"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getEnrichedPathways</span><span class="op">(</span><span class="va">method</span>, <span class="va">group_name</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1192,14 +1207,14 @@ pathways.</p></dd>
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-29">Returns<a class="anchor" aria-label="anchor" href="#returns-29"></a></h4>
+<h4 id="returns-30">Returns<a class="anchor" aria-label="anchor" href="#returns-30"></a></h4>
 <p><code>data.frame</code> containing the enriched pathways.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-addTrajectory"></a><div class="section">
 <h3 id="method-addtrajectory-">Method <code>addTrajectory()</code><a class="anchor" aria-label="anchor" href="#method-addtrajectory-"></a></h3>
 <p>Add trajectory to <code>trajectories</code> field.</p><div class="section">
-<h4 id="usage-49">Usage<a class="anchor" aria-label="anchor" href="#usage-49"></a></h4>
+<h4 id="usage-50">Usage<a class="anchor" aria-label="anchor" href="#usage-50"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">addTrajectory</span><span class="op">(</span><span class="va">method</span>, <span class="va">trajectory_name</span>, <span class="va">trajectory</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1223,19 +1238,19 @@ pathways.</p></dd>
 </div><p></p><hr><a id="method-Cerebro_v1.3-getMethodsForTrajectories"></a><div class="section">
 <h3 id="method-getmethodsfortrajectories-">Method <code>getMethodsForTrajectories()</code><a class="anchor" aria-label="anchor" href="#method-getmethodsfortrajectories-"></a></h3>
 <p>Retrieve names of methods for which trajectories are available.</p><div class="section">
-<h4 id="usage-50">Usage<a class="anchor" aria-label="anchor" href="#usage-50"></a></h4>
+<h4 id="usage-51">Usage<a class="anchor" aria-label="anchor" href="#usage-51"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getMethodsForTrajectories</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-30">Returns<a class="anchor" aria-label="anchor" href="#returns-30"></a></h4>
+<h4 id="returns-31">Returns<a class="anchor" aria-label="anchor" href="#returns-31"></a></h4>
 <p><code>vector</code> of methods for which trajectories are available.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-getNamesOfTrajectories"></a><div class="section">
 <h3 id="method-getnamesoftrajectories-">Method <code>getNamesOfTrajectories()</code><a class="anchor" aria-label="anchor" href="#method-getnamesoftrajectories-"></a></h3>
 <p>Retrieve names of trajectories for a specific method.</p><div class="section">
-<h4 id="usage-51">Usage<a class="anchor" aria-label="anchor" href="#usage-51"></a></h4>
+<h4 id="usage-52">Usage<a class="anchor" aria-label="anchor" href="#usage-52"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getNamesOfTrajectories</span><span class="op">(</span><span class="va">method</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1248,14 +1263,14 @@ pathways.</p></dd>
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-31">Returns<a class="anchor" aria-label="anchor" href="#returns-31"></a></h4>
+<h4 id="returns-32">Returns<a class="anchor" aria-label="anchor" href="#returns-32"></a></h4>
 <p><code>vector</code> of trajectories for the specified method.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-getTrajectory"></a><div class="section">
 <h3 id="method-gettrajectory-">Method <code>getTrajectory()</code><a class="anchor" aria-label="anchor" href="#method-gettrajectory-"></a></h3>
 <p>Retrieve trajectory data for a specific method and trajectory name.</p><div class="section">
-<h4 id="usage-52">Usage<a class="anchor" aria-label="anchor" href="#usage-52"></a></h4>
+<h4 id="usage-53">Usage<a class="anchor" aria-label="anchor" href="#usage-53"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getTrajectory</span><span class="op">(</span><span class="va">method</span>, <span class="va">trajectory_name</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1272,38 +1287,38 @@ pathways.</p></dd>
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-32">Returns<a class="anchor" aria-label="anchor" href="#returns-32"></a></h4>
+<h4 id="returns-33">Returns<a class="anchor" aria-label="anchor" href="#returns-33"></a></h4>
 <p>Trajectory data as <code>data.frame</code> or <code>list</code>.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-getBCR"></a><div class="section">
 <h3 id="method-getbcr-">Method <code>getBCR()</code><a class="anchor" aria-label="anchor" href="#method-getbcr-"></a></h3>
 <p>Retrieve BCR data</p><div class="section">
-<h4 id="usage-53">Usage<a class="anchor" aria-label="anchor" href="#usage-53"></a></h4>
+<h4 id="usage-54">Usage<a class="anchor" aria-label="anchor" href="#usage-54"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getBCR</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-33">Returns<a class="anchor" aria-label="anchor" href="#returns-33"></a></h4>
+<h4 id="returns-34">Returns<a class="anchor" aria-label="anchor" href="#returns-34"></a></h4>
 <p>BCR data stored in the object.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-getTCR"></a><div class="section">
 <h3 id="method-gettcr-">Method <code>getTCR()</code><a class="anchor" aria-label="anchor" href="#method-gettcr-"></a></h3>
 <p>Retrieve TCR data</p><div class="section">
-<h4 id="usage-54">Usage<a class="anchor" aria-label="anchor" href="#usage-54"></a></h4>
+<h4 id="usage-55">Usage<a class="anchor" aria-label="anchor" href="#usage-55"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getTCR</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-34">Returns<a class="anchor" aria-label="anchor" href="#returns-34"></a></h4>
+<h4 id="returns-35">Returns<a class="anchor" aria-label="anchor" href="#returns-35"></a></h4>
 <p>TCR data stored in the object.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-addBCRData"></a><div class="section">
 <h3 id="method-addbcrdata-">Method <code>addBCRData()</code><a class="anchor" aria-label="anchor" href="#method-addbcrdata-"></a></h3>
 <p>Add BCR data.</p><div class="section">
-<h4 id="usage-55">Usage<a class="anchor" aria-label="anchor" href="#usage-55"></a></h4>
+<h4 id="usage-56">Usage<a class="anchor" aria-label="anchor" href="#usage-56"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">addBCRData</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1319,7 +1334,7 @@ pathways.</p></dd>
 </div><p></p><hr><a id="method-Cerebro_v1.3-addTCRData"></a><div class="section">
 <h3 id="method-addtcrdata-">Method <code>addTCRData()</code><a class="anchor" aria-label="anchor" href="#method-addtcrdata-"></a></h3>
 <p>Add TCR data.</p><div class="section">
-<h4 id="usage-56">Usage<a class="anchor" aria-label="anchor" href="#usage-56"></a></h4>
+<h4 id="usage-57">Usage<a class="anchor" aria-label="anchor" href="#usage-57"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">addTCRData</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1337,19 +1352,19 @@ pathways.</p></dd>
 <p>Get immune repertoire data. Returns the unified <code>immune_repertoire</code>
 field if available; otherwise falls back to merging legacy
 <code>bcr_data</code> and <code>tcr_data</code>.</p><div class="section">
-<h4 id="usage-57">Usage<a class="anchor" aria-label="anchor" href="#usage-57"></a></h4>
+<h4 id="usage-58">Usage<a class="anchor" aria-label="anchor" href="#usage-58"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getImmuneRepertoire</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-35">Returns<a class="anchor" aria-label="anchor" href="#returns-35"></a></h4>
+<h4 id="returns-36">Returns<a class="anchor" aria-label="anchor" href="#returns-36"></a></h4>
 <p>Named list of data.frames (one per sample), or empty list.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-addImmuneRepertoire"></a><div class="section">
 <h3 id="method-addimmunerepertoire-">Method <code>addImmuneRepertoire()</code><a class="anchor" aria-label="anchor" href="#method-addimmunerepertoire-"></a></h3>
 <p>Set immune repertoire data.</p><div class="section">
-<h4 id="usage-58">Usage<a class="anchor" aria-label="anchor" href="#usage-58"></a></h4>
+<h4 id="usage-59">Usage<a class="anchor" aria-label="anchor" href="#usage-59"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">addImmuneRepertoire</span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1366,7 +1381,7 @@ scRepertoire columns.</p></dd>
 </div><p></p><hr><a id="method-Cerebro_v1.3-addExtraMaterial"></a><div class="section">
 <h3 id="method-addextramaterial-">Method <code>addExtraMaterial()</code><a class="anchor" aria-label="anchor" href="#method-addextramaterial-"></a></h3>
 <p>Add content to extra material field.</p><div class="section">
-<h4 id="usage-59">Usage<a class="anchor" aria-label="anchor" href="#usage-59"></a></h4>
+<h4 id="usage-60">Usage<a class="anchor" aria-label="anchor" href="#usage-60"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">addExtraMaterial</span><span class="op">(</span><span class="va">category</span>, <span class="va">name</span>, <span class="va">content</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1392,7 +1407,7 @@ format and plots must be created with <code>ggplot2</code>.</p></dd>
 </div><p></p><hr><a id="method-Cerebro_v1.3-addExtraTable"></a><div class="section">
 <h3 id="method-addextratable-">Method <code>addExtraTable()</code><a class="anchor" aria-label="anchor" href="#method-addextratable-"></a></h3>
 <p>Add table to `extra_material` slot.</p><div class="section">
-<h4 id="usage-60">Usage<a class="anchor" aria-label="anchor" href="#usage-60"></a></h4>
+<h4 id="usage-61">Usage<a class="anchor" aria-label="anchor" href="#usage-61"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">addExtraTable</span><span class="op">(</span><span class="va">name</span>, <span class="va">table</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1412,7 +1427,7 @@ format and plots must be created with <code>ggplot2</code>.</p></dd>
 </div><p></p><hr><a id="method-Cerebro_v1.3-addExtraPlot"></a><div class="section">
 <h3 id="method-addextraplot-">Method <code>addExtraPlot()</code><a class="anchor" aria-label="anchor" href="#method-addextraplot-"></a></h3>
 <p>Add plot to `extra_material` slot.</p><div class="section">
-<h4 id="usage-61">Usage<a class="anchor" aria-label="anchor" href="#usage-61"></a></h4>
+<h4 id="usage-62">Usage<a class="anchor" aria-label="anchor" href="#usage-62"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">addExtraPlot</span><span class="op">(</span><span class="va">name</span>, <span class="va">plot</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1433,36 +1448,36 @@ format and plots must be created with <code>ggplot2</code>.</p></dd>
 </div><p></p><hr><a id="method-Cerebro_v1.3-getExtraMaterial"></a><div class="section">
 <h3 id="method-getextramaterial-">Method <code>getExtraMaterial()</code><a class="anchor" aria-label="anchor" href="#method-getextramaterial-"></a></h3>
 <p>Retrieve extra material from <code>extra_material</code> field.</p><div class="section">
-<h4 id="usage-62">Usage<a class="anchor" aria-label="anchor" href="#usage-62"></a></h4>
+<h4 id="usage-63">Usage<a class="anchor" aria-label="anchor" href="#usage-63"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getExtraMaterial</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-36">Returns<a class="anchor" aria-label="anchor" href="#returns-36"></a></h4>
+<h4 id="returns-37">Returns<a class="anchor" aria-label="anchor" href="#returns-37"></a></h4>
 <p><code>list</code> of all entries in the <code>extra_material</code> field.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-getExtraMaterialCategories"></a><div class="section">
 <h3 id="method-getextramaterialcategories-">Method <code>getExtraMaterialCategories()</code><a class="anchor" aria-label="anchor" href="#method-getextramaterialcategories-"></a></h3>
 <p>Get names of categories for which extra material is available.</p><div class="section">
-<h4 id="usage-63">Usage<a class="anchor" aria-label="anchor" href="#usage-63"></a></h4>
+<h4 id="usage-64">Usage<a class="anchor" aria-label="anchor" href="#usage-64"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getExtraMaterialCategories</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-37">Returns<a class="anchor" aria-label="anchor" href="#returns-37"></a></h4>
+<h4 id="returns-38">Returns<a class="anchor" aria-label="anchor" href="#returns-38"></a></h4>
 <p><code>vector</code> with names of available categories.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-checkForExtraTables"></a><div class="section">
 <h3 id="method-checkforextratables-">Method <code>checkForExtraTables()</code><a class="anchor" aria-label="anchor" href="#method-checkforextratables-"></a></h3>
 <p>Check whether there are tables in the extra materials.</p><div class="section">
-<h4 id="usage-64">Usage<a class="anchor" aria-label="anchor" href="#usage-64"></a></h4>
+<h4 id="usage-65">Usage<a class="anchor" aria-label="anchor" href="#usage-65"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">checkForExtraTables</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-38">Returns<a class="anchor" aria-label="anchor" href="#returns-38"></a></h4>
+<h4 id="returns-39">Returns<a class="anchor" aria-label="anchor" href="#returns-39"></a></h4>
 <p><code>logical</code> indicating whether there are tables in the extra
 materials.</p>
 </div>
@@ -1470,19 +1485,19 @@ materials.</p>
 </div><p></p><hr><a id="method-Cerebro_v1.3-getNamesOfExtraTables"></a><div class="section">
 <h3 id="method-getnamesofextratables-">Method <code>getNamesOfExtraTables()</code><a class="anchor" aria-label="anchor" href="#method-getnamesofextratables-"></a></h3>
 <p>Get names of tables in extra materials.</p><div class="section">
-<h4 id="usage-65">Usage<a class="anchor" aria-label="anchor" href="#usage-65"></a></h4>
+<h4 id="usage-66">Usage<a class="anchor" aria-label="anchor" href="#usage-66"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getNamesOfExtraTables</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-39">Returns<a class="anchor" aria-label="anchor" href="#returns-39"></a></h4>
+<h4 id="returns-40">Returns<a class="anchor" aria-label="anchor" href="#returns-40"></a></h4>
 <p><code>vector</code> containing names of tables in extra materials.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-getExtraTable"></a><div class="section">
 <h3 id="method-getextratable-">Method <code>getExtraTable()</code><a class="anchor" aria-label="anchor" href="#method-getextratable-"></a></h3>
 <p>Get table from extra materials.</p><div class="section">
-<h4 id="usage-66">Usage<a class="anchor" aria-label="anchor" href="#usage-66"></a></h4>
+<h4 id="usage-67">Usage<a class="anchor" aria-label="anchor" href="#usage-67"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getExtraTable</span><span class="op">(</span><span class="va">name</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1495,19 +1510,19 @@ materials.</p>
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-40">Returns<a class="anchor" aria-label="anchor" href="#returns-40"></a></h4>
+<h4 id="returns-41">Returns<a class="anchor" aria-label="anchor" href="#returns-41"></a></h4>
 <p>Requested table in <code>data.frame</code> format.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-checkForExtraPlots"></a><div class="section">
 <h3 id="method-checkforextraplots-">Method <code>checkForExtraPlots()</code><a class="anchor" aria-label="anchor" href="#method-checkforextraplots-"></a></h3>
 <p>Check whether there are plots in the extra materials.</p><div class="section">
-<h4 id="usage-67">Usage<a class="anchor" aria-label="anchor" href="#usage-67"></a></h4>
+<h4 id="usage-68">Usage<a class="anchor" aria-label="anchor" href="#usage-68"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">checkForExtraPlots</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-41">Returns<a class="anchor" aria-label="anchor" href="#returns-41"></a></h4>
+<h4 id="returns-42">Returns<a class="anchor" aria-label="anchor" href="#returns-42"></a></h4>
 <p><code>logical</code> indicating whether there are plots in the extra
 materials.</p>
 </div>
@@ -1515,19 +1530,19 @@ materials.</p>
 </div><p></p><hr><a id="method-Cerebro_v1.3-getNamesOfExtraPlots"></a><div class="section">
 <h3 id="method-getnamesofextraplots-">Method <code>getNamesOfExtraPlots()</code><a class="anchor" aria-label="anchor" href="#method-getnamesofextraplots-"></a></h3>
 <p>Get names of plots in extra materials.</p><div class="section">
-<h4 id="usage-68">Usage<a class="anchor" aria-label="anchor" href="#usage-68"></a></h4>
+<h4 id="usage-69">Usage<a class="anchor" aria-label="anchor" href="#usage-69"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getNamesOfExtraPlots</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="returns-42">Returns<a class="anchor" aria-label="anchor" href="#returns-42"></a></h4>
+<h4 id="returns-43">Returns<a class="anchor" aria-label="anchor" href="#returns-43"></a></h4>
 <p><code>vector</code> containing names of plots in extra materials.</p>
 </div>
 
 </div><p></p><hr><a id="method-Cerebro_v1.3-getExtraPlot"></a><div class="section">
 <h3 id="method-getextraplot-">Method <code>getExtraPlot()</code><a class="anchor" aria-label="anchor" href="#method-getextraplot-"></a></h3>
 <p>Get plot from extra materials.</p><div class="section">
-<h4 id="usage-69">Usage<a class="anchor" aria-label="anchor" href="#usage-69"></a></h4>
+<h4 id="usage-70">Usage<a class="anchor" aria-label="anchor" href="#usage-70"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">getExtraPlot</span><span class="op">(</span><span class="va">name</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1540,7 +1555,7 @@ materials.</p>
 </dl><p></p></div>
 </div>
 <div class="section">
-<h4 id="returns-43">Returns<a class="anchor" aria-label="anchor" href="#returns-43"></a></h4>
+<h4 id="returns-44">Returns<a class="anchor" aria-label="anchor" href="#returns-44"></a></h4>
 <p>Requested plot made with <code>ggplot2</code>.</p>
 </div>
 
@@ -1553,7 +1568,7 @@ Print overview of available enriched pathway results for
 <code>self$print()</code> function.
 Print overview of available trajectories for <code>self$print()</code> function.
 Print overview of extra material for <code>self$print()</code> function.</p><div class="section">
-<h4 id="usage-70">Usage<a class="anchor" aria-label="anchor" href="#usage-70"></a></h4>
+<h4 id="usage-71">Usage<a class="anchor" aria-label="anchor" href="#usage-71"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">print</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -1561,7 +1576,7 @@ Print overview of extra material for <code>self$print()</code> function.</p><div
 </div><p></p><hr><a id="method-Cerebro_v1.3-clone"></a><div class="section">
 <h3 id="method-clone-">Method <code>clone()</code><a class="anchor" aria-label="anchor" href="#method-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
-<h4 id="usage-71">Usage<a class="anchor" aria-label="anchor" href="#usage-71"></a></h4>
+<h4 id="usage-72">Usage<a class="anchor" aria-label="anchor" href="#usage-72"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">Cerebro_v1.3</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 

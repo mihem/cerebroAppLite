@@ -1,0 +1,174 @@
+# Immune Repertoire Analysis in cerebroAppLite
+
+## Overview
+
+cerebroAppLite v1.4 introduces a comprehensive **Immune Repertoire**
+module for interactive exploration of T-cell and B-cell receptor
+clonotype data. The module leverages the `scRepertoire` package and
+supports 19 visualization methods covering clonal abundance, diversity,
+CDR3 properties, gene usage, and cross-sample comparisons.
+
+The Immune Repertoire tab appears **conditionally** in the sidebar —
+only when the loaded `.crb` file contains TCR or BCR clonotype
+annotations. The bundled `example.crb` ships with real 10x
+immune-repertoire data (the `sc5p_v2_hs_PBMC_10k` dataset, with 5’ gene
+expression, TCR, and BCR from the same experiment), so the tab —
+including TCR, BCR (isotype/SHM), and cross-sample comparisons — is
+available out of the box. (This single 10x donor is randomly split into
+three demo samples so cross-sample features have data; the sample labels
+are not distinct biological donors.)
+
+Grouping and sample-splitting in the module work for **any** grouping
+variable present in the data set’s cell metadata (sample, condition,
+cell type, etc.). The clonotype tables themselves only need the standard
+scRepertoire columns; the module joins metadata onto them by barcode at
+runtime.
+
+## Preparing immune repertoire data
+
+### Background: scRepertoire
+
+The immune repertoire module is built on the
+[scRepertoire](https://www.borch.dev/uploads/screpertoire/) package (≥
+2.0), which is the standard tool for turning 10x Cell Ranger V(D)J
+output into per-cell clonotype annotations. cerebroAppLite lists it
+under `Suggests`, so install it once before preparing data:
+
+``` r
+# Bioconductor
+BiocManager::install("scRepertoire")
+```
+
+The full scRepertoire workflow is documented in its vignettes — [Loading
+data](https://www.borch.dev/uploads/screpertoire/articles/loading) and
+[Combining
+contigs](https://www.borch.dev/uploads/screpertoire/articles/combining_contigs).
+The steps below summarise just what cerebroAppLite needs.
+
+### Step 1 — load the V(D)J contigs
+
+Read the `filtered_contig_annotations.csv` produced by Cell Ranger for
+each sample. TCR and BCR are separate libraries, so load each one:
+
+``` r
+library(scRepertoire)
+
+# one filtered_contig_annotations.csv per sample
+tcr_contigs <- lapply(tcr_paths, read.csv) # T-cell receptor contigs
+bcr_contigs <- lapply(bcr_paths, read.csv) # B-cell receptor contigs
+```
+
+### Step 2 — combine contigs into clonotypes
+
+[`combineTCR()`](https://www.borch.dev/uploads/scRepertoire/reference/combineTCR.html)
+and
+[`combineBCR()`](https://www.borch.dev/uploads/scRepertoire/reference/combineBCR.html)
+collapse contigs into per-cell clonotypes and add the standard `CTgene`
+/ `CTnt` / `CTaa` / `CTstrict` columns. Use the matching function for
+each receptor type:
+
+``` r
+combined_tcr <- combineTCR(tcr_contigs, samples = sample_names)
+combined_bcr <- combineBCR(bcr_contigs, samples = sample_names)
+```
+
+### Step 3 — attach to the Seurat object and export
+
+Build a named list of data.frames (one element per sample) holding the
+scRepertoire clonotype columns, attach it to the Seurat object’s
+`@misc$immune_repertoire` slot, and export.
+[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+picks the slot up automatically. To include both receptor types,
+row-bind the T- and B-cell clonotypes per sample (cells are mutually
+exclusive — a cell has a TCR *or* a BCR):
+
+``` r
+library(cerebroAppLite)
+
+ir_cols <- c("barcode", "CTgene", "CTnt", "CTaa", "CTstrict")
+to_df <- function(x) x[, ir_cols, drop = FALSE]
+
+ir_data <- lapply(sample_names, function(s) {
+  rbind(to_df(combined_tcr[[s]]), to_df(combined_bcr[[s]]))
+})
+names(ir_data) <- sample_names
+
+seurat_object@misc$immune_repertoire <- ir_data
+
+exportFromSeurat(
+  seurat_object,
+  file = "my_data.crb",
+  experiment_name = "my_experiment",
+  organism = "hg",
+  groups = c("sample", "seurat_clusters")
+)
+```
+
+Each data.frame must contain the scRepertoire clonotype columns
+`barcode`, `CTgene`, `CTnt`, `CTaa`, and `CTstrict`. The `barcode`
+values should match the cell barcodes in the Seurat object’s metadata.
+Chains (e.g. TRA/TRB, IGH/IGK/IGL) are detected automatically from
+`CTgene`, and grouping variables (sample, condition, cell type, …) are
+read from the cell metadata at runtime — the clonotype tables themselves
+only need the five columns above.
+
+## Module interface
+
+### Settings panel
+
+The settings panel provides three controls:
+
+- **Clone call**: which clonotype identifier to use for analysis
+  (`gene`, `nt`, `aa`, or `strict`)
+- **Group by**: a metadata grouping variable for faceted comparisons
+- **Chain**: filter to TCR chains (TRA, TRB, TRG, TRD), BCR chains (IGH,
+  IGK, IGL), or all (`both`)
+
+When multiple samples are present, additional controls appear for
+scatter plot sample selection and multi-sample comparison.
+
+### Visualization tabs
+
+The module provides 19 tabbed visualizations. Each includes a contextual
+help panel explaining the biological interpretation with example
+guidance.
+
+#### Basic repertoire metrics
+
+- **Abundance**: ranks clonotypes by cell count; steep drop-off
+  indicates oligoclonal dominance
+- **Diversity**: Shannon entropy with bootstrap confidence intervals
+- **Homeostasis**: categorizes clonotypes into size classes from Rare to
+  Hyperexpanded
+- **Proportion**: cumulative fraction of the repertoire occupied by
+  top-ranked clonotypes
+
+#### Sequence properties
+
+- **Length**: CDR3 length distribution; shifts suggest antigen-driven
+  selection
+- **AA %**: positional amino acid composition at each CDR3 position
+- **Entropy**: Shannon entropy at each CDR3 position
+- **Property**: physicochemical profiles (Atchley, Kidera, and other
+  scales)
+- **K-mer**: top recurring short amino acid motifs
+
+#### Gene usage
+
+- **Gene usage / vizGenes / percentGenes**: V(D)J gene segment usage
+  frequencies
+- **percentVJ**: V-J gene pairing frequencies
+
+#### Cross-sample analysis
+
+When \>= 2 samples are present, additional tabs become available: -
+**Compare**: alluvial diagram tracking clonotypes across samples -
+**Overlap**: pairwise clonotype sharing heatmap - **Scatter**: clone
+frequency comparison between two samples - **SizeDist**: hierarchical
+clustering of samples by clone size distribution
+
+#### Quality control
+
+- **Quant**: total unique clonotype count per sample
+- **Rarefaction**: clonotype discovery curves for sequencing saturation
+  assessment
