@@ -20,7 +20,12 @@ if (!nzchar(inst_dir) || !file.exists(file.path(inst_dir, "app.R"))) {
 
 test_that("immune_repertoire tab is present with example data (has TCR)", {
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_present", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_present",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
 
   # example.crb carries real TCR data — the conditional tab should appear
@@ -36,7 +41,12 @@ test_that("first IR plot tab is Abundance, not Scatter", {
   # The default/landing tab should be a common overview plot (Abundance), not
   # the sample-comparison Scatter.
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_first_tab", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_first_tab",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
   app$run_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
@@ -57,7 +67,12 @@ test_that("Group by is visible on plots whose grouping it drives", {
   # only be hidden on Paired Scatter, where comparison is controlled by the
   # paired sample metadata selectors.
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_groupby_scope", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_groupby_scope",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
   app$run_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
@@ -97,7 +112,12 @@ test_that("Group by is visible on plots whose grouping it drives", {
 
 test_that("Chain is visible on plots whose scRepertoire API accepts it", {
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_chain_scope", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_chain_scope",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
   app$run_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
@@ -129,7 +149,12 @@ test_that("changing 'Group by' keeps the current plot tab", {
   # Changing the grouping must not reset the visualization tabset back to the
   # first tab (Abundance).
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_group_keep_tab", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_group_keep_tab",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
   app$run_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
@@ -161,7 +186,12 @@ test_that("settings dropdowns render all their options (not just selected)", {
   # actually choose other values. Assert the real <option> counts here — note
   # set_inputs() bypasses the DOM, so it cannot catch this regression.
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_dropdown_options", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_dropdown_options",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
   app$run_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
@@ -215,7 +245,12 @@ test_that("scatter sample selectors appear only on the Scatter tab", {
   # The Scatter X/Y selectors are scoped to the Scatter tab via conditionalPanel
   # so they don't clutter the settings panel on every other tab.
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_scatter_scope", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_scatter_scope",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
   app$run_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
@@ -258,7 +293,12 @@ test_that("scatter sample selectors appear only on the Scatter tab", {
 
 test_that("clonal scatter renders without error in default and grouped states", {
   local_app_support(inst_dir)
-  app <- AppDriver$new(inst_dir, name = "ir_scatter", height = 950, width = 1619)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_scatter",
+    height = 950,
+    width = 1619
+  )
   app$wait_for_idle(timeout = 20000)
   app$run_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'

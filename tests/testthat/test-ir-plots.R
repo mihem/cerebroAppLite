@@ -32,7 +32,9 @@ load_ir <- function() {
   lapply(ir, function(df) {
     add <- setdiff(meta_cols, colnames(df))
     idx <- match(df$barcode, md$cell_barcode)
-    for (col in add) df[[col]] <- md[[col]][idx]
+    for (col in add) {
+      df[[col]] <- md[[col]][idx]
+    }
     df
   })
 }
@@ -54,7 +56,11 @@ test_that("core clonal plots render a non-empty ggplot on example.crb", {
     "clonalAbundance"
   )
   expect_nonempty_ggplot(
-    scRepertoire::clonalHomeostasis(ir, cloneCall = "gene", group.by = "sample"),
+    scRepertoire::clonalHomeostasis(
+      ir,
+      cloneCall = "gene",
+      group.by = "sample"
+    ),
     "clonalHomeostasis"
   )
   expect_nonempty_ggplot(
@@ -72,12 +78,20 @@ test_that("gene-usage and CDR3 plots render on example.crb", {
   ir <- load_ir()
 
   expect_nonempty_ggplot(
-    scRepertoire::percentAA(ir, chain = "TRB", aa.length = 20, group.by = "sample"),
+    scRepertoire::percentAA(
+      ir,
+      chain = "TRB",
+      aa.length = 20,
+      group.by = "sample"
+    ),
     "percentAA"
   )
   expect_nonempty_ggplot(
     scRepertoire::percentGenes(
-      ir, chain = "TRB", gene = "Vgene", group.by = "sample"
+      ir,
+      chain = "TRB",
+      gene = "Vgene",
+      group.by = "sample"
     ),
     "percentGenes"
   )

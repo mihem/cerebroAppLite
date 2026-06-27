@@ -57,10 +57,13 @@ ir_data_annotated <- reactive({
           "grouping/splitting by metadata columns may be incomplete. ",
           "Check that IR barcodes match the cell barcodes (e.g. the '-1' suffix)."
         ),
-        n_miss, length(idx)
+        n_miss,
+        length(idx)
       ))
     }
-    for (col in add) df[[col]] <- md[[col]][idx]
+    for (col in add) {
+      df[[col]] <- md[[col]][idx]
+    }
     df
   })
 })

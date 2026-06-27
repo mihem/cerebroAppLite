@@ -10,7 +10,10 @@ inst_candidates <- c(
   normalizePath("../../inst", mustWork = FALSE),
   normalizePath(testthat::test_path("../../inst"), mustWork = FALSE)
 )
-local_inst <- inst_candidates[file.exists(file.path(inst_candidates, "shiny/v1.4"))][1]
+local_inst <- inst_candidates[file.exists(file.path(
+  inst_candidates,
+  "shiny/v1.4"
+))][1]
 if (!is.na(local_inst)) {
   shiny_root <- file.path(local_inst, "shiny/v1.4")
   example_crb <- file.path(local_inst, "extdata/v1.4/example.crb")
@@ -55,8 +58,10 @@ test_that("example.crb contains real immune repertoire data", {
   for (nm in names(ir)) {
     df <- ir[[nm]]
     expect_s3_class(df, "data.frame")
-    expect_true(all(c("barcode", "CTgene", "CTnt", "CTaa", "CTstrict") %in%
-      colnames(df)))
+    expect_true(all(
+      c("barcode", "CTgene", "CTnt", "CTaa", "CTstrict") %in%
+        colnames(df)
+    ))
     expect_true(nrow(df) > 0)
   }
 })
@@ -92,9 +97,13 @@ test_that("IR grouping variables are recoverable from cell metadata by barcode",
   expect_true(all(!is.na(idx)))
 
   # at least one grouping variable yields >= 2 levels over the IR cells
-  multilevel <- vapply(groups, function(g) {
-    length(unique(md[[g]][idx])) >= 2
-  }, logical(1))
+  multilevel <- vapply(
+    groups,
+    function(g) {
+      length(unique(md[[g]][idx])) >= 2
+    },
+    logical(1)
+  )
   expect_true(any(multilevel))
 })
 
@@ -139,7 +148,11 @@ test_that("core IR params update immediately to keep bindCache keys and values a
   content <- paste(readLines(data_file), collapse = "\n")
   ir_params_block <- regmatches(
     content,
-    regexpr("ir_params <- reactive\\(\\{[\\s\\S]*?\\n\\s*\\}\\)", content, perl = TRUE)
+    regexpr(
+      "ir_params <- reactive\\(\\{[\\s\\S]*?\\n\\s*\\}\\)",
+      content,
+      perl = TRUE
+    )
   )
   expect_length(ir_params_block, 1)
   expect_false(grepl(
@@ -151,13 +164,19 @@ test_that("core IR params update immediately to keep bindCache keys and values a
 
 test_that("removed Split data by control leaves no stale sample-column input", {
   mod_files <- c("data.R", "settings.R", "visualizations.R")
-  content <- paste(vapply(
-    mod_files,
-    function(f) {
-      paste(readLines(file.path(shiny_root, "immune_repertoire", f)), collapse = "\n")
-    },
-    character(1)
-  ), collapse = "\n")
+  content <- paste(
+    vapply(
+      mod_files,
+      function(f) {
+        paste(
+          readLines(file.path(shiny_root, "immune_repertoire", f)),
+          collapse = "\n"
+        )
+      },
+      character(1)
+    ),
+    collapse = "\n"
+  )
   # The old ir_sampleCol split logic was removed — verify no dead code remains.
   # "ir_sampleCol" / "Split data by" may appear in comments documenting the
   # removal; such documentation is fine. Check for actual code references only:
@@ -235,7 +254,9 @@ test_that("safeRenderPlot lets validate/req conditions pass through", {
         expr
       },
       error = function(e) {
-        if (inherits(e, "shiny.silent.error")) stop(e)
+        if (inherits(e, "shiny.silent.error")) {
+          stop(e)
+        }
         "ERROR_PLOT"
       }
     )
@@ -320,7 +341,10 @@ test_that("renderers enforce scRepertoire parameter constraints", {
   )
 
   # percentAA / positionalEntropy: aa.length is validated to a positive integer
-  expect_match(content, "if \\(is.na\\(aa_len\\) \\|\\| aa_len < 1\\) aa_len <- 20")
+  expect_match(
+    content,
+    "if \\(is.na\\(aa_len\\) \\|\\| aa_len < 1\\) aa_len <- 20"
+  )
 })
 
 test_that("ir_bindCache keys cover all per-plot ir_param() calls", {
@@ -343,12 +367,18 @@ test_that("ir_bindCache keys cover all per-plot ir_param() calls", {
     # Extract the render expression (first `{`...`})` body) and the
     # subsequent ir_bindCache(..., input$ir_p_XXX, ...) call, if any.
     render_body <- sub(
-      "^[^{]*\\{(.*?)\\}%>%\\s*$", "\\1", blk
+      "^[^{]*\\{(.*?)\\}%>%\\s*$",
+      "\\1",
+      blk
     )
     cache_body <- sub(
-      "^.*ir_bindCache\\((.*?)\\)", "\\1", blk
+      "^.*ir_bindCache\\((.*?)\\)",
+      "\\1",
+      blk
     )
-    if (identical(cache_body, blk)) next  # no ir_bindCache for this plot
+    if (identical(cache_body, blk)) {
+      next
+    } # no ir_bindCache for this plot
 
     # Collect ir_param() calls from the render expression
     param_ids <- regmatches(
@@ -358,7 +388,9 @@ test_that("ir_bindCache keys cover all per-plot ir_param() calls", {
     param_ids <- gsub('ir_param\\("([^"]+)"', '\\1', param_ids)
     param_ids <- unique(param_ids[param_ids != ""])
 
-    if (length(param_ids) == 0) next  # no dynamic params → nothing to check
+    if (length(param_ids) == 0) {
+      next
+    } # no dynamic params → nothing to check
 
     # Collect input$ keys from the cache call
     cache_keys <- regmatches(
@@ -377,7 +409,8 @@ test_that("ir_bindCache keys cover all per-plot ir_param() calls", {
   }
 
   expect_equal(
-    length(misses), 0L,
+    length(misses),
+    0L,
     info = paste(c("Cache key coverage gaps found:", misses), collapse = "\n  ")
   )
 })

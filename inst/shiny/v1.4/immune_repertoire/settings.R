@@ -30,7 +30,11 @@ output$ir_settings_UI <- renderUI({
   # group by ANY metadata column (sample, condition, treatment, cell type, ...)
   # rather than only columns embedded in the IR table itself.
   annotated <- ir_data_annotated()
-  data_cols <- if (!is.null(annotated)) names(annotated[[1]]) else names(raw[[1]])
+  data_cols <- if (!is.null(annotated)) {
+    names(annotated[[1]])
+  } else {
+    names(raw[[1]])
+  }
   groups <- tryCatch(getGroups(), error = function(e) character(0))
   available_groups <- intersect(groups, data_cols)
 
@@ -38,8 +42,15 @@ output$ir_settings_UI <- renderUI({
   # left as an empty grid cell). Server-side filtering keeps the layout compact.
   tab <- input$ir_tabs
   clonecall_hidden <- c(
-    "Isotype", "SHM Proxy", "Gene usage", "vizGenes", "percentGenes",
-    "percentVJ", "AA %", "Entropy", "Property"
+    "Isotype",
+    "SHM Proxy",
+    "Gene usage",
+    "vizGenes",
+    "percentGenes",
+    "percentVJ",
+    "AA %",
+    "Entropy",
+    "Property"
   )
   groupby_hidden <- c("Paired Scatter")
   chain_hidden <- c("vizGenes")
@@ -48,17 +59,28 @@ output$ir_settings_UI <- renderUI({
   # rows so a hidden control never leaves a blank gap.
   controls <- list()
   if (is.null(tab) || !(tab %in% clonecall_hidden)) {
-    controls <- c(controls, list(selectInput(
-      "ir_cloneCall", "Clone call:",
-      choices = c("gene", "nt", "aa", "strict"),
-      selected = "gene", selectize = FALSE
-    )))
+    controls <- c(
+      controls,
+      list(selectInput(
+        "ir_cloneCall",
+        "Clone call:",
+        choices = c("gene", "nt", "aa", "strict"),
+        selected = "gene",
+        selectize = FALSE
+      ))
+    )
   }
   if (is.null(tab) || !(tab %in% chain_hidden)) {
-    controls <- c(controls, list(selectInput(
-      "ir_chain", "Chain:",
-      choices = chain_choices, selected = "both", selectize = FALSE
-    )))
+    controls <- c(
+      controls,
+      list(selectInput(
+        "ir_chain",
+        "Chain:",
+        choices = chain_choices,
+        selected = "both",
+        selectize = FALSE
+      ))
+    )
   }
   if (is.null(tab) || !(tab %in% groupby_hidden)) {
     # Default to the first available grouping variable (generic — NOT hardcoded
@@ -73,11 +95,16 @@ output$ir_settings_UI <- renderUI({
     } else {
       ""
     }
-    controls <- c(controls, list(selectInput(
-      "ir_groupBy", "Group by:",
-      choices = c("None" = "", available_groups),
-      selected = default_gb, selectize = FALSE
-    )))
+    controls <- c(
+      controls,
+      list(selectInput(
+        "ir_groupBy",
+        "Group by:",
+        choices = c("None" = "", available_groups),
+        selected = default_gb,
+        selectize = FALSE
+      ))
+    )
   }
 
   tagList(
@@ -197,8 +224,22 @@ output$ir_compare_settings <- renderUI({
 ir_gene_families <- reactive({
   raw <- ir_data_raw()
   fams <- c(
-    "TRAV", "TRAJ", "TRBV", "TRBD", "TRBJ", "TRGV", "TRGJ", "TRDV", "TRDJ",
-    "IGHV", "IGHD", "IGHJ", "IGKV", "IGKJ", "IGLV", "IGLJ"
+    "TRAV",
+    "TRAJ",
+    "TRBV",
+    "TRBD",
+    "TRBJ",
+    "TRGV",
+    "TRGJ",
+    "TRDV",
+    "TRDJ",
+    "IGHV",
+    "IGHD",
+    "IGHJ",
+    "IGKV",
+    "IGKJ",
+    "IGLV",
+    "IGLJ"
   )
   if (is.null(raw)) {
     return(fams)
@@ -214,7 +255,9 @@ ir_gene_families <- reactive({
 ## use selectize = FALSE (selectize drops options in hidden/dynamic UI).
 output$ir_param_panel <- renderUI({
   tab <- input$ir_tabs
-  if (is.null(tab) || !exists("IR_PARAM_SPEC") || is.null(IR_PARAM_SPEC[[tab]])) {
+  if (
+    is.null(tab) || !exists("IR_PARAM_SPEC") || is.null(IR_PARAM_SPEC[[tab]])
+  ) {
     return(NULL)
   }
   spec <- IR_PARAM_SPEC[[tab]]
@@ -225,8 +268,12 @@ output$ir_param_panel <- renderUI({
   controls <- lapply(spec, function(p) {
     if (identical(p$type, "numeric")) {
       return(numericInput(
-        p$id, p$label,
-        value = p$value, min = p$min, max = p$max, step = p$step
+        p$id,
+        p$label,
+        value = p$value,
+        min = p$min,
+        max = p$max,
+        step = p$step
       ))
     }
     if (identical(p$type, "checkbox")) {
@@ -250,7 +297,8 @@ output$ir_param_panel <- renderUI({
       }
     }
     selectInput(
-      p$id, p$label,
+      p$id,
+      p$label,
       choices = choices,
       selected = selected,
       selectize = FALSE
