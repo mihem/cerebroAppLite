@@ -537,8 +537,14 @@ ir_plot_clonal_diversity <- function(
   }
 
   validate(
-    need(eff_x_axis %in% colnames(output_df), "X axis / group column is missing from the output table."),
-    need(group_col %in% colnames(output_df), "Selected grouping is not available.")
+    need(
+      eff_x_axis %in% colnames(output_df),
+      "X axis / group column is missing from the output table."
+    ),
+    need(
+      group_col %in% colnames(output_df),
+      "Selected grouping is not available."
+    )
   )
 
   # Build x-axis levels. When x_axis is NULL, the level order comes from the
@@ -546,15 +552,25 @@ ir_plot_clonal_diversity <- function(
   if (is.null(x_axis)) {
     x_levels <- unique(as.character(output_df[[group_col]]))
   } else {
-    x_levels <- sort(unique(unlist(lapply(plot_data, function(df) {
-      if (x_axis %in% colnames(df)) as.character(df[[x_axis]]) else character(0)
-    }), use.names = FALSE)))
+    x_levels <- sort(unique(unlist(
+      lapply(plot_data, function(df) {
+        if (x_axis %in% colnames(df)) {
+          as.character(df[[x_axis]])
+        } else {
+          character(0)
+        }
+      }),
+      use.names = FALSE
+    )))
   }
   x_levels <- x_levels[!is.na(x_levels)]
   if (length(x_levels) == 0) {
     x_levels <- unique(as.character(output_df[[eff_x_axis]]))
   }
-  output_df[[eff_x_axis]] <- factor(as.character(output_df[[eff_x_axis]]), levels = x_levels)
+  output_df[[eff_x_axis]] <- factor(
+    as.character(output_df[[eff_x_axis]]),
+    levels = x_levels
+  )
   output_df[[group_col]] <- factor(as.character(output_df[[group_col]]))
 
   metric_name <- gsub(
@@ -563,7 +579,10 @@ ir_plot_clonal_diversity <- function(
     metric,
     perl = TRUE
   )
-  fills <- grDevices::hcl.colors(length(levels(output_df[[group_col]])), palette)
+  fills <- grDevices::hcl.colors(
+    length(levels(output_df[[group_col]])),
+    palette
+  )
   names(fills) <- levels(output_df[[group_col]])
 
   ggplot2::ggplot(
@@ -609,7 +628,9 @@ output$ir_plot_clonalDiversity <- renderPlot({
   x_axis <- ir_param("ir_p_x_axis", "")
   x_axis <- if (is.null(x_axis) || !nzchar(x_axis)) NULL else x_axis
   n_boots <- as.numeric(ir_param("ir_p_n_boots", 20))
-  if (is.na(n_boots) || n_boots < 1) n_boots <- 20
+  if (is.na(n_boots) || n_boots < 1) {
+    n_boots <- 20
+  }
   safeRenderPlot(
     ir_plot_clonal_diversity(
       data = data,
@@ -655,7 +676,6 @@ output$ir_plot_clonalHomeostasis <- renderPlot({
     input$ir_cloneCall,
     input$ir_chain,
     input$ir_groupBy
-
   )
 
 output$ir_plot_clonalLength <- renderPlot({
@@ -796,7 +816,9 @@ output$ir_plot_clonalRarefaction <- renderPlot({
   req(!is.null(data))
   pars <- ir_params()
   n_boots <- as.numeric(ir_param("ir_p_rare_n_boots", 20))
-  if (is.na(n_boots) || n_boots < 1) n_boots <- 20
+  if (is.na(n_boots) || n_boots < 1) {
+    n_boots <- 20
+  }
   safeRenderPlot(
     scRepertoire::clonalRarefaction(
       data,
@@ -843,9 +865,18 @@ output$ir_plot_clonalScatter <- renderPlot({
   }
   groups <- ir_compare_groups()
   validate(
-    need(length(groups) >= 2, "Clonal scatter needs at least 2 groups to compare. Use 'Group by' to split the data into >= 2 groups."),
-    need(!is.null(x) && !is.null(y) && nzchar(x) && nzchar(y), "Select two groups to compare."),
-    need(x %in% groups && y %in% groups, "Selected groups are not available in the current grouping."),
+    need(
+      length(groups) >= 2,
+      "Clonal scatter needs at least 2 groups to compare. Use 'Group by' to split the data into >= 2 groups."
+    ),
+    need(
+      !is.null(x) && !is.null(y) && nzchar(x) && nzchar(y),
+      "Select two groups to compare."
+    ),
+    need(
+      x %in% groups && y %in% groups,
+      "Selected groups are not available in the current grouping."
+    ),
     need(x != y, "Select two different groups for the scatter comparison.")
   )
   safeRenderPlot(
@@ -885,7 +916,9 @@ output$ir_plot_clonalSizeDistribution <- renderPlot({
   # "NA/NaN ... sigmau"). The strict clone definition is the stable choice and
   # is also the most appropriate for a clone-size distribution, so enforce it.
   threshold <- as.numeric(ir_param("ir_p_sd_threshold", 1))
-  if (is.na(threshold) || threshold < 1) threshold <- 1
+  if (is.na(threshold) || threshold < 1) {
+    threshold <- 1
+  }
   safeRenderPlot(
     scRepertoire::clonalSizeDistribution(
       data,
@@ -962,7 +995,9 @@ output$ir_plot_vizGenes <- renderPlot({
   req(!is.null(data))
   pars <- ir_params()
   vg_x <- ir_param("ir_p_vg_x_axis", default_gene_family())
-  if (is.null(vg_x) || !nzchar(vg_x)) vg_x <- default_gene_family()
+  if (is.null(vg_x) || !nzchar(vg_x)) {
+    vg_x <- default_gene_family()
+  }
   safeRenderPlot(
     scRepertoire::vizGenes(
       data,
@@ -1073,7 +1108,9 @@ output$ir_plot_percentAA <- renderPlot({
   # Guard aa.length: a non-positive / NA value makes scRepertoire's positional
   # functions error. Fall back to the default when the input is invalid.
   aa_len <- as.numeric(ir_param("ir_p_aa_length", 20))
-  if (is.na(aa_len) || aa_len < 1) aa_len <- 20
+  if (is.na(aa_len) || aa_len < 1) {
+    aa_len <- 20
+  }
   safeRenderPlot(
     scRepertoire::percentAA(
       data,
@@ -1101,7 +1138,9 @@ output$ir_plot_positionalEntropy <- renderPlot({
   pars <- ir_params()
   # Guard aa.length (see percentAA): invalid values make scRepertoire error.
   aa_len <- as.numeric(ir_param("ir_p_pe_aa_length", 20))
-  if (is.na(aa_len) || aa_len < 1) aa_len <- 20
+  if (is.na(aa_len) || aa_len < 1) {
+    aa_len <- 20
+  }
   safeRenderPlot(
     scRepertoire::positionalEntropy(
       data,
@@ -1215,7 +1254,9 @@ output$ir_plot_positionalProperty <- renderPlot({
 output$ir_ui_percentKmer <- renderUI({
   # Top motifs is set in the settings panel (IR_PARAM_SPEC "K-mer").
   top_m <- as.numeric(ir_param("ir_p_top_motifs", 30))
-  if (is.na(top_m) || top_m < 1) top_m <- 30
+  if (is.na(top_m) || top_m < 1) {
+    top_m <- 30
+  }
   h <- max(450, top_m * 20)
   shinycssloaders::withSpinner(plotOutput(
     "ir_plot_percentKmer",
@@ -1230,7 +1271,9 @@ output$ir_plot_percentKmer <- renderPlot({
   req(!is.null(data))
   pars <- ir_params()
   top_m <- as.numeric(ir_param("ir_p_top_motifs", 30))
-  if (is.na(top_m) || top_m < 1) top_m <- 30
+  if (is.na(top_m) || top_m < 1) {
+    top_m <- 30
+  }
   safeRenderPlot(
     scRepertoire::percentKmer(
       data,

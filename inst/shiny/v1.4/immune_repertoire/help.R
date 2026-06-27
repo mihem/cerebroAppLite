@@ -539,7 +539,10 @@ ir_bcr_demo_data <- reactiveVal(NULL)
   n <- 200L
 
   make_ctgene <- function(iso) {
-    v <- sample(c("IGHV1-2", "IGHV1-18", "IGHV3-23", "IGHV3-30", "IGHV4-34"), 1L)
+    v <- sample(
+      c("IGHV1-2", "IGHV1-18", "IGHV3-23", "IGHV3-30", "IGHV4-34"),
+      1L
+    )
     d <- sample(c("IGHD2-2", "IGHD3-10", "IGHD6-13"), 1L)
     j <- sample(c("IGHJ4", "IGHJ5", "IGHJ6"), 1L)
     paste(v, d, j, iso, sep = "_")
@@ -557,32 +560,56 @@ ir_bcr_demo_data <- reactiveVal(NULL)
     isos <- sample(names(iso_probs), n, replace = TRUE, prob = iso_probs)
     clones <- sample(1L:40L, n, replace = TRUE)
     data.frame(
-      barcode    = vapply(seq_len(n), function(i) make_bc(i, prefix), ""),
-      CTgene     = vapply(isos, make_ctgene, ""),
-      CTnt       = vapply(seq_len(n), function(i) make_nt(), ""),
-      CTaa       = paste0(
-        "C", vapply(seq_len(n), function(i) {
-          paste(sample(
-            strsplit("ARNDCQEGHILKMFPSTWYV", "")[[1]],
-            15L, replace = TRUE
-          ), collapse = "")
-        }, "")
+      barcode = vapply(seq_len(n), function(i) make_bc(i, prefix), ""),
+      CTgene = vapply(isos, make_ctgene, ""),
+      CTnt = vapply(seq_len(n), function(i) make_nt(), ""),
+      CTaa = paste0(
+        "C",
+        vapply(
+          seq_len(n),
+          function(i) {
+            paste(
+              sample(
+                strsplit("ARNDCQEGHILKMFPSTWYV", "")[[1]],
+                15L,
+                replace = TRUE
+              ),
+              collapse = ""
+            )
+          },
+          ""
+        )
       ),
-      CTstrict   = vapply(clones, function(c) sprintf("IGH_clone_%03d", c), ""),
-      sample     = prefix,
-      cloneSize  = sample(1L:8L, n, replace = TRUE),
+      CTstrict = vapply(clones, function(c) sprintf("IGH_clone_%03d", c), ""),
+      sample = prefix,
+      cloneSize = sample(1L:8L, n, replace = TRUE),
       stringsAsFactors = FALSE
     )
   }
 
   demo <- list(
-    "Pre-vaccination" = make_df("Pre-vaccination", c(
-      IGHM = 0.60, IGHD = 0.20, IGHG1 = 0.10, IGHG2 = 0.05, IGHA1 = 0.05
-    )),
-    "Post-vaccination" = make_df("Post-vaccination", c(
-      IGHM = 0.20, IGHD = 0.05, IGHG1 = 0.30, IGHG2 = 0.15,
-      IGHG3 = 0.10, IGHA1 = 0.15, IGHE = 0.05
-    ))
+    "Pre-vaccination" = make_df(
+      "Pre-vaccination",
+      c(
+        IGHM = 0.60,
+        IGHD = 0.20,
+        IGHG1 = 0.10,
+        IGHG2 = 0.05,
+        IGHA1 = 0.05
+      )
+    ),
+    "Post-vaccination" = make_df(
+      "Post-vaccination",
+      c(
+        IGHM = 0.20,
+        IGHD = 0.05,
+        IGHG1 = 0.30,
+        IGHG2 = 0.15,
+        IGHG3 = 0.10,
+        IGHA1 = 0.15,
+        IGHE = 0.05
+      )
+    )
   )
   ir_bcr_demo_data(demo)
   demo
