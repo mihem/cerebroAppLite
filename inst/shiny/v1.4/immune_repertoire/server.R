@@ -6,6 +6,23 @@ has_scRepertoire <- function() {
     requireNamespace("scRepertoire", quietly = TRUE)
   }
 
+  ## ---- Missing-dependency notice ---------------------------------------- ##
+  ## scRepertoire is a Suggests dependency (GitHub/Bioconductor). When it is
+  ## not installed the immune repertoire UI cannot render, so instead of a
+  ## silent blank panel we show an explicit prompt telling the user how to
+  ## enable the feature. Shown in both the settings and visualizations boxes.
+  ir_scRepertoire_missing_ui <- function() {
+    div(
+      class = "alert alert-warning",
+      tags$b("scRepertoire is required for immune repertoire analysis."),
+      tags$br(),
+      "Please install it to use the TCR/BCR features:",
+      tags$pre(
+        "BiocManager::install(\"scRepertoire\")"
+      )
+    )
+  }
+
   ## ---- Container width guard: prevent "figure margins too large" during
   ## ---- tab switches when the output container has zero width. req() silently
   ## ---- halts rendering; Shiny re-triggers once the container has real space.

@@ -1,6 +1,8 @@
 ## ---- Visualizations UI ------------------------------------------------ ##
 output$ir_visualizations_UI <- renderUI({
-  req(has_scRepertoire())
+  if (!has_scRepertoire()) {
+    return(ir_scRepertoire_missing_ui())
+  }
   data <- ir_data()
   if (is.null(data)) {
     return(div(

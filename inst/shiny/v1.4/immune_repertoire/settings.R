@@ -1,6 +1,8 @@
 ## ---- Settings UI ------------------------------------------------------ ##
 output$ir_settings_UI <- renderUI({
-  req(has_scRepertoire())
+  if (!has_scRepertoire()) {
+    return(ir_scRepertoire_missing_ui())
+  }
   raw <- ir_data_raw()
   if (is.null(raw)) {
     return(div(
