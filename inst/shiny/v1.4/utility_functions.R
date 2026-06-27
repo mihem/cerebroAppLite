@@ -1172,3 +1172,12 @@ getExtraPlot <- function(name) {
     return(data_set()$getExtraPlot(name))
   }
 }
+
+## Wrapper for immune repertoire module.
+getImmuneRepertoire <- function() {
+  ds <- data_set()
+  if (!any(grepl("Cerebro", class(ds)))) {
+    return(list())
+  }
+  tryCatch(ds$getImmuneRepertoire(), error = function(e) list())
+}

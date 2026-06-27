@@ -141,6 +141,7 @@ compatibility with older .crb files).}
 \item \href{#method-Cerebro_v1.3-getMarkerGenes}{\code{Cerebro_v1.3$getMarkerGenes()}}
 \item \href{#method-Cerebro_v1.3-addEnrichedPathways}{\code{Cerebro_v1.3$addEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-getMethodsWithEnrichedPathways}{\code{Cerebro_v1.3$getMethodsWithEnrichedPathways()}}
+\item \href{#method-Cerebro_v1.3-getMethodsForEnrichedPathways}{\code{Cerebro_v1.3$getMethodsForEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-getGroupsWithEnrichedPathways}{\code{Cerebro_v1.3$getGroupsWithEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-getEnrichedPathways}{\code{Cerebro_v1.3$getEnrichedPathways()}}
 \item \href{#method-Cerebro_v1.3-addTrajectory}{\code{Cerebro_v1.3$addTrajectory()}}
@@ -1029,6 +1030,20 @@ belong to. Must be registered in the \code{groups} field.}
 Retrieve names of methods for which enriched pathways are available.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMethodsWithEnrichedPathways()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+\code{vector} of methods for which enriched pathways are available.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getMethodsForEnrichedPathways"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getMethodsForEnrichedPathways}{}}}
+\subsection{Method \code{getMethodsForEnrichedPathways()}}{
+Alias of \code{getMethodsWithEnrichedPathways()}, kept for backwards
+compatibility with the Shiny app, which calls this name.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getMethodsForEnrichedPathways()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{

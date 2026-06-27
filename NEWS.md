@@ -1,3 +1,27 @@
+# cerebroAppLite 1.7.3
+
+## Immune repertoire
+
+- **Immune repertoire**: new conditional tab for TCR/BCR clonotype analysis with 19
+  visualization methods driven by `scRepertoire`, covering clonal abundance, diversity,
+  homeostasis, CDR3 length/composition, V(D)J gene usage, k-mer motifs, and cross-sample
+  comparison. Each method includes contextual help with biological interpretation guidance.
+- **Sample splitting**: a sample-column dropdown lets users re-split the repertoire
+  by any shared metadata column; all visualizations recompute against the chosen
+  grouping instead of a fixed sample field.
+- New utility wrapper: `getImmuneRepertoire()`.
+- The bundled `example.crb` now carries real 10x immune-repertoire data
+  (`sc5p_v2_hs_PBMC_10k`, 5' gene expression + TCR + BCR from the same
+  experiment), so the immune repertoire tab — including TCR, BCR (isotype/SHM),
+  and cross-sample comparisons — works out of the box in a single combined
+  dataset. (This single 10x donor is randomly partitioned into three demo
+  samples so that cross-sample features have data; the sample labels do not
+  represent distinct biological donors.)
+- Immune repertoire grouping/splitting now works for **any** metadata column
+  (sample, condition, cell type, ...): grouping variables are taken from the
+  data set's metadata and joined onto the clonotype data by barcode, rather
+  than only columns embedded in the IR table.
+
 # cerebroAppLite 1.7.2
 
 ## Enhanced modules
