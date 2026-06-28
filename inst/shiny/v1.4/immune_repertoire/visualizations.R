@@ -16,6 +16,15 @@ output$ir_visualizations_UI <- renderUI({
   ## which is moved in with the other multi-sample tabs below.
   priority_tabs <- list(
     tabPanel(
+      # Clonal expansion overlaid on the cell UMAP — the default landing tab,
+      # so the first thing the user sees is where expanded clones sit.
+      "Clonal UMAP",
+      shinycssloaders::withSpinner(plotOutput(
+        "ir_plot_clonalUMAP",
+        height = 500
+      ))
+    ),
+    tabPanel(
       "Abundance",
       shinycssloaders::withSpinner(plotOutput(
         "ir_plot_clonalAbundance",
@@ -162,6 +171,108 @@ output$ir_visualizations_UI <- renderUI({
 ## Plot renderers
 ##------------------------------------------------------------------------##
 
+## ---- Clonal UMAP -------------------------------------------------------- ##
+## Overlays clone expansion level on the cell projection (UMAP/tSNE). Data is
+## built in data.R (ir_clonal_umap_data); here we draw the coloured scatter.
+## Point size / opacity come from the generic display options; font size and
+## title are applied by safeRenderPlot via ir_apply_display.
+IR_EXPANSION_COLORS <- c(
+  "Single (0 < X <= 1)" = "#C7A0CE",
+  "Small (1 < X <= 5)" = "#9C6FB0",
+  "Medium (5 < X <= 20)" = "#1FA187",
+  "Large (20 < X <= 100)" = "#B8860B",
+  "Hyperexpanded (100 < X)" = "#E8602D"
+)
+
+output$ir_plot_clonalUMAP <- renderPlot({
+  req_plot_space("ir_plot_clonalUMAP")
+  receptor <- ir_param("ir_p_umap_receptor")
+  projection <- ir_param("ir_p_umap_projection")
+  cloneCall <- ir_params()$cloneCall %||% "gene"
+  show_all <- isTRUE(ir_param("ir_p_umap_show_all", TRUE))
+  cells <- ir_umap_cells_to_show()
+  df <- ir_clonal_umap_data(
+    projection,
+    receptor,
+    cloneCall,
+    show_all = show_all,
+    cells = cells
+  )
+
+  safeRenderPlot(
+    {
+      if (is.null(df) || nrow(df) == 0) {
+        ggplot2::ggplot() +
+          ggplot2::annotate(
+            "text",
+            x = 0,
+            y = 0,
+            label = paste0(
+              "No clonal UMAP to display.\n",
+              "Needs a cell projection and ",
+              if (is.null(receptor)) "TCR/BCR" else receptor,
+              " clonotypes whose barcodes match the cells."
+            ),
+            size = 4.5,
+            colour = "#666666"
+          ) +
+          ggplot2::theme_void()
+      } else {
+        dp <- tryCatch(ir_display_params(), error = function(e) list())
+        point_size <- suppressWarnings(as.numeric(dp[["ir_d_point_size"]]))
+        if (length(point_size) != 1 || is.na(point_size)) {
+          point_size <- 1
+        }
+        alpha <- suppressWarnings(as.numeric(dp[["ir_d_alpha"]]))
+        if (length(alpha) != 1 || is.na(alpha)) {
+          alpha <- 0.8
+        }
+
+        # Split into the grey background (cells without the selected receptor,
+        # expansion = NA) and the coloured receptor cells, drawn on top.
+        bg <- df[is.na(df$expansion), , drop = FALSE]
+        fg <- df[!is.na(df$expansion), , drop = FALSE]
+
+        p <- ggplot2::ggplot()
+        if (nrow(bg) > 0) {
+          p <- p +
+            ggplot2::geom_point(
+              data = bg,
+              ggplot2::aes(x = .data$x, y = .data$y),
+              colour = "grey85",
+              size = point_size,
+              alpha = alpha
+            )
+        }
+        p +
+          ggplot2::geom_point(
+            data = fg,
+            ggplot2::aes(x = .data$x, y = .data$y, colour = .data$expansion),
+            size = point_size,
+            alpha = alpha
+          ) +
+          ggplot2::scale_colour_manual(
+            values = IR_EXPANSION_COLORS,
+            drop = FALSE,
+            name = "Clonotype"
+          ) +
+          ggplot2::labs(x = "UMAP_1", y = "UMAP_2") +
+          ggplot2::theme_classic() +
+          ggplot2::guides(
+            colour = ggplot2::guide_legend(override.aes = list(size = 3))
+          )
+      }
+    },
+    "clonalUMAP"
+  )
+}) %>%
+  ir_bindCache(
+    input$ir_p_umap_receptor,
+    input$ir_p_umap_projection,
+    input$ir_p_umap_show_all,
+    input$ir_cloneCall
+  )
+
 ## ---- BCR-specific renderers --------------------------------------------- ##
 output$ir_plot_isotype <- renderPlot({
   req_plot_space("ir_plot_isotype")
@@ -181,7 +292,10 @@ output$ir_plot_isotype <- renderPlot({
           cex = 0.9
         )
       } else {
-        print(p)
+        # Return the ggplot (not print()) so safeRenderPlot can apply display
+        # options and renderPlot prints it once. Printing here too would render
+        # twice.
+        p
       }
     },
     "isotype"
@@ -211,7 +325,10 @@ output$ir_plot_shmProxy <- renderPlot({
           cex = 0.9
         )
       } else {
-        print(p)
+        # Return the ggplot (not print()) so safeRenderPlot can apply display
+        # options and renderPlot prints it once. Printing here too would render
+        # twice.
+        p
       }
     },
     "shmProxy"
@@ -357,7 +474,7 @@ output$ir_plot_pairedScatter <- renderPlot({
           palette = "inferno"
         )
         p <- p + ggplot2::ggtitle(paste(lvls[1], "vs", lvls[2]))
-        print(p)
+        p
       } else {
         facet_lvls <- unique(meta[[facet_col]])
         panels <- list()
@@ -400,7 +517,7 @@ output$ir_plot_pairedScatter <- renderPlot({
           )
         } else {
           ncol_p <- min(4L, length(panels))
-          print(patchwork::wrap_plots(panels, ncol = ncol_p))
+          patchwork::wrap_plots(panels, ncol = ncol_p)
         }
       }
     },

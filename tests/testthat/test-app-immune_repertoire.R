@@ -37,9 +37,9 @@ test_that("immune_repertoire tab is present with example data (has TCR)", {
   app$stop()
 })
 
-test_that("first IR plot tab is Abundance, not Scatter", {
-  # The default/landing tab should be a common overview plot (Abundance), not
-  # the sample-comparison Scatter.
+test_that("first IR plot tab is Clonal UMAP", {
+  # The default/landing tab should be the Clonal UMAP overview, so the first
+  # thing shown is where expanded clones sit on the cell projection.
   local_app_support(inst_dir)
   app <- AppDriver$new(
     inst_dir,
@@ -56,7 +56,7 @@ test_that("first IR plot tab is Abundance, not Scatter", {
   first_tab <- app$get_js(
     "document.querySelector('#ir_tabs > li > a').textContent.trim();"
   )
-  expect_identical(first_tab, "Abundance")
+  expect_identical(first_tab, "Clonal UMAP")
 
   app$stop()
 })
@@ -205,6 +205,11 @@ test_that("settings dropdowns render all their options (not just selected)", {
     ))
   }
 
+  # The global controls (chain / group-by) are hidden on the default Clonal UMAP
+  # tab (which uses its own Receptor selector), so move to a tab that shows them.
+  app$set_inputs(ir_tabs = "Abundance", wait_ = FALSE)
+  app$wait_for_idle(timeout = 15000)
+
   # Group by: None + grouping variables (sample, seurat_clusters, cell_type)
   expect_gte(as.numeric(n_options("ir_groupBy")), 2)
   # Chain: both + detected chains (TRA/TRB/IGH/IGK/IGL) > 1
@@ -231,6 +236,10 @@ test_that("immune_repertoire tab can be opened and renders settings", {
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
   )
   app$wait_for_idle(timeout = 20000)
+
+  # Chain is hidden on the default Clonal UMAP tab; move to one that shows it.
+  app$set_inputs(ir_tabs = "Abundance", wait_ = FALSE)
+  app$wait_for_idle(timeout = 15000)
 
   # the chain selector (a core settings control) should be populated
   chain_present <- app$get_js(
@@ -328,6 +337,92 @@ test_that("immune_repertoire module loads without breaking main app", {
   # Data info tab should still render normally (1476 cells in the new example)
   cells_box <- app$get_value(output = "load_data_number_of_cells")
   expect_true(grepl("1,?476", cells_box$html))
+
+  app$stop()
+})
+
+test_that("Clonal UMAP tab renders with receptor + projection selectors", {
+  local_app_support(inst_dir)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_clonal_umap",
+    height = 950,
+    width = 1619
+  )
+  app$wait_for_idle(timeout = 20000)
+  app$run_js(
+    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
+  )
+  app$wait_for_idle(timeout = 20000)
+
+  # The Clonal UMAP tab should exist among the visualization tabs.
+  has_umap_tab <- app$get_js(
+    "(function(){
+      var as = document.querySelectorAll('#ir_tabs > li > a');
+      for (var i=0;i<as.length;i++){
+        if (as[i].textContent.trim() === 'Clonal UMAP') return true;
+      }
+      return false;
+    })();"
+  )
+  expect_true(isTRUE(has_umap_tab))
+
+  # Switch to it; the receptor + projection selectors should render with options.
+  app$set_inputs(ir_tabs = "Clonal UMAP", wait_ = FALSE)
+  app$wait_for_idle(timeout = 20000)
+
+  n_options <- function(id) {
+    app$get_js(sprintf(
+      "(function(){var e=document.querySelector('#%s');return e?e.querySelectorAll('option').length:0;})();",
+      id
+    ))
+  }
+  expect_gte(as.numeric(n_options("ir_p_umap_receptor")), 1)
+  expect_gte(as.numeric(n_options("ir_p_umap_projection")), 1)
+
+  # The plot output should render without surfacing a raw R error.
+  v <- app$get_value(output = "ir_plot_clonalUMAP")
+  expect_false(isTRUE(grepl(
+    "Error|undefined columns|subscript out of bounds",
+    v$html,
+    ignore.case = TRUE
+  )))
+
+  app$stop()
+})
+
+test_that("Display options panel exposes scatter params on scatter-type tabs", {
+  local_app_support(inst_dir)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_display_opts",
+    height = 950,
+    width = 1619
+  )
+  app$wait_for_idle(timeout = 20000)
+  app$run_js(
+    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
+  )
+  app$wait_for_idle(timeout = 20000)
+
+  control_exists <- function(id) {
+    app$get_js(sprintf(
+      "document.querySelector('#%s') !== null;",
+      id
+    ))
+  }
+
+  # Abundance (non-scatter): base display params present, scatter ones absent.
+  app$set_inputs(ir_tabs = "Abundance", wait_ = FALSE)
+  app$wait_for_idle(timeout = 15000)
+  expect_true(isTRUE(control_exists("ir_d_base_size")))
+  expect_false(isTRUE(control_exists("ir_d_point_size")))
+
+  # Clonal UMAP (scatter-type): point size + opacity also present.
+  app$set_inputs(ir_tabs = "Clonal UMAP", wait_ = FALSE)
+  app$wait_for_idle(timeout = 15000)
+  expect_true(isTRUE(control_exists("ir_d_point_size")))
+  expect_true(isTRUE(control_exists("ir_d_alpha")))
 
   app$stop()
 })

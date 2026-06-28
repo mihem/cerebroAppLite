@@ -33,10 +33,40 @@ req_plot_space <- function(output_id, min_width = 24L) {
   shiny::req(isTRUE(w >= min_width))
 }
 
+## ---- Apply generic display options to a ggplot ------------------------ ##
+## Reads the IR_DISPLAY_SPEC values (see ir_display_params()) and applies the
+## tab-agnostic ones — font size and title — to a ggplot. Point size / opacity
+## are scatter-specific and handled directly by the scatter renderers (so we
+## don't reach into ggplot layer internals here). Non-ggplot input (base-R
+## plots) is returned unchanged.
+ir_apply_display <- function(p, params = NULL) {
+  if (!inherits(p, "ggplot")) {
+    return(p)
+  }
+  if (is.null(params)) {
+    params <- tryCatch(ir_display_params(), error = function(e) list())
+  }
+  base_size <- suppressWarnings(as.numeric(params[["ir_d_base_size"]]))
+  if (length(base_size) == 1 && !is.na(base_size) && base_size > 0) {
+    p <- p + ggplot2::theme(text = ggplot2::element_text(size = base_size))
+  }
+  title <- params[["ir_d_title"]]
+  if (is.character(title) && length(title) == 1 && nzchar(title)) {
+    p <- p + ggplot2::labs(title = title)
+  }
+  p
+}
+
 safeRenderPlot <- function(expr, plot_name = "unknown") {
   tryCatch(
     {
-      expr
+      # Evaluate the plot expression, then apply the generic display options
+      # (font size / title) to any ggplot it produced. This single hook covers
+      # every renderer that funnels through safeRenderPlot, so individual
+      # renderers don't each need to call ir_apply_display(). Non-ggplot
+      # results (base-R plots) pass through unchanged.
+      result <- force(expr)
+      ir_apply_display(result)
     },
     error = function(e) {
       # validate()/need()/req() raise a "shiny.silent.error"; re-raise it so
@@ -342,7 +372,19 @@ detect_chains <- function(data) {
 ## invalidates the cache (prevents stale plots from the previous dataset).
 ir_bindCache <- function(x, ..., cache = "session") {
   if (utils::packageVersion("shiny") >= "1.6.0") {
-    shiny::bindCache(x, ..., data_to_load$path, cache = cache)
+    # Append the generic display options to every plot's cache key so a change
+    # to font size / title / point size / opacity busts the cache and the plot
+    # re-renders. Done here (one place) rather than in all 20+ call sites.
+    shiny::bindCache(
+      x,
+      ...,
+      input$ir_d_base_size,
+      input$ir_d_title,
+      input$ir_d_point_size,
+      input$ir_d_alpha,
+      data_to_load$path,
+      cache = cache
+    )
   } else {
     x
   }

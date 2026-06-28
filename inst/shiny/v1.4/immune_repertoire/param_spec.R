@@ -18,6 +18,32 @@
 ## ---------------------------------------------------------------------------
 
 IR_PARAM_SPEC <- list(
+  # Clonal UMAP: overlay clone expansion on the cell projection. Receptor and
+  # projection choices are dynamic (resolved in settings.R via the
+  # "<<receptors>>" / "<<projections>>" tokens), defaulting to the first option.
+  "Clonal UMAP" = list(
+    list(
+      id = "ir_p_umap_receptor",
+      label = "Receptor:",
+      type = "select",
+      choices = "<<receptors>>",
+      value = NULL
+    ),
+    list(
+      id = "ir_p_umap_projection",
+      label = "Projection:",
+      type = "select",
+      choices = "<<projections>>",
+      value = NULL
+    ),
+    list(
+      id = "ir_p_umap_show_all",
+      label = "Show all cells (grey background)",
+      type = "checkbox",
+      value = TRUE
+    )
+  ),
+
   "Diversity" = list(
     list(
       id = "ir_p_metric",
@@ -367,3 +393,68 @@ IR_PARAM_SPEC <- list(
     )
   )
 )
+
+## ---------------------------------------------------------------------------
+## IR_DISPLAY_SPEC — generic display/style parameters, applied to all IR plots
+##
+## Parallel to IR_PARAM_SPEC but for pure presentation (font size, title, and
+## for scatter-type plots point size / opacity). Rendered into a collapsible
+## "Display options" panel (see ir_display_panel in settings.R) and applied via
+## ir_apply_display(). Each param spec has the same shape as IR_PARAM_SPEC.
+##
+## Two reusable groups keep per-tab declarations DRY:
+##   IR_DISPLAY_BASE    — applies to every plot (font size, title)
+##   IR_DISPLAY_SCATTER — extra params only meaningful for point clouds
+## ir_display_params_for(tab) assembles the applicable set per tab.
+## ---------------------------------------------------------------------------
+
+IR_DISPLAY_BASE <- list(
+  list(
+    id = "ir_d_base_size",
+    label = "Font size:",
+    type = "numeric",
+    value = 12,
+    min = 6,
+    max = 30,
+    step = 1
+  ),
+  list(
+    id = "ir_d_title",
+    label = "Title:",
+    type = "text",
+    value = ""
+  )
+)
+
+IR_DISPLAY_SCATTER <- list(
+  list(
+    id = "ir_d_point_size",
+    label = "Point size:",
+    type = "numeric",
+    value = 1,
+    min = 0.1,
+    max = 6,
+    step = 0.1
+  ),
+  list(
+    id = "ir_d_alpha",
+    label = "Point opacity:",
+    type = "numeric",
+    value = 0.8,
+    min = 0.1,
+    max = 1,
+    step = 0.05
+  )
+)
+
+## Tabs whose plots are point clouds (scatter-type): get the scatter extras.
+IR_SCATTER_TABS <- c("Clonal UMAP", "Scatter")
+
+## Assemble the display params applicable to a given tab.
+ir_display_params_for <- function(tab) {
+  params <- IR_DISPLAY_BASE
+  if (!is.null(tab) && tab %in% IR_SCATTER_TABS) {
+    params <- c(params, IR_DISPLAY_SCATTER)
+  }
+  params
+}

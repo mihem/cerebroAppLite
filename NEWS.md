@@ -1,3 +1,15 @@
+# cerebroAppLite 1.7.4
+
+## Immune repertoire
+
+- **Clonal UMAP**: new tab overlaying clone-expansion level
+  (Single/Small/Medium/Large/Hyperexpanded) on the existing cell projection,
+  reusing the dataset's UMAP/tSNE coordinates. A Receptor selector (TCR/BCR,
+  only the classes present in the data) and a Projection selector drive it.
+- **Generic display options**: a collapsible "Display options" panel adds font
+  size and title to every IR plot, plus point size and opacity for the
+  scatter-type plots (Clonal UMAP, Scatter). Changing them re-renders the plot.
+
 # cerebroAppLite 1.7.3
 
 ## Immune repertoire

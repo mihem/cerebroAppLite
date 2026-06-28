@@ -107,6 +107,29 @@ ir_tab_help <- list(
       sep = "\n"
     )
   ),
+  "Clonal UMAP" = list(
+    short = "Clonal expansion on the cell UMAP",
+    summary = "Overlays each cell's clone-expansion level onto the existing cell projection (UMAP/tSNE), so you can see where expanded T/B clones sit.",
+    detail = paste(
+      "This reuses the cell projection you already computed (the same UMAP as the other tabs) and colours each cell by how large its clonotype is.",
+      "",
+      "Clones are binned into expansion levels by the number of cells sharing them:",
+      "• Single (0 < X <= 1)      — the clonotype appears in one cell",
+      "• Small (1 < X <= 5)",
+      "• Medium (5 < X <= 20)",
+      "• Large (20 < X <= 100)",
+      "• Hyperexpanded (100 < X) — strongly expanded clones",
+      "",
+      "Controls:",
+      "• Receptor: choose TCR or BCR (only the types present in your data are offered).",
+      "• Projection: which dimensional reduction to plot on.",
+      "• Clone call: how clonotype identity is defined (gene/nt/aa/strict).",
+      "• Display options: point size and opacity (and font/title) for the scatter.",
+      "",
+      "What to look for: expanded (orange/gold) cells clustering in a region suggest a localized clonal response — e.g. an activated/effector population.",
+      sep = "\n"
+    )
+  ),
   Diversity = list(
     short = "Repertoire diversity",
     summary = "Quantifies clonotype richness and evenness using Shannon entropy. Higher values reflect broader, more balanced repertoires.",
