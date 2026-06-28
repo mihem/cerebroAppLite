@@ -17,6 +17,71 @@
 ##   min/max/step : for numeric
 ## ---------------------------------------------------------------------------
 
+## ---- Global control visibility ----------------------------------------- ##
+IR_GLOBAL_CONTROL_IDS <- c("ir_cloneCall", "ir_chain", "ir_groupBy")
+IR_GLOBAL_CONTROL_HIDDEN <- list(
+  # Clonal UMAP colours by clone size and uses its own Receptor selector; the
+  # global Clone call is intentionally fixed there so hidden state cannot affect
+  # the plot. The other tabs either do not use cloneCall or enforce their own.
+  ir_cloneCall = c(
+    "Clonal UMAP",
+    "Isotype",
+    "SHM Proxy",
+    "Gene usage",
+    "vizGenes",
+    "percentGenes",
+    "percentVJ",
+    "AA %",
+    "Entropy",
+    "Property"
+  ),
+  ir_chain = c("vizGenes", "Clonal UMAP"),
+  ir_groupBy = c("Clonal UMAP")
+)
+
+ir_global_control_visible <- function(id, tab) {
+  hidden <- IR_GLOBAL_CONTROL_HIDDEN[[id]]
+  if (is.null(hidden)) {
+    hidden <- character(0)
+  }
+  is.null(tab) || !(tab %in% hidden)
+}
+
+ir_visible_global_ids <- function(tab) {
+  IR_GLOBAL_CONTROL_IDS[vapply(
+    IR_GLOBAL_CONTROL_IDS,
+    ir_global_control_visible,
+    logical(1),
+    tab = tab
+  )]
+}
+
+IR_SCATTER_SPEC <- list(
+  list(
+    id = "ir_p_graph",
+    label = "Graph:",
+    type = "select",
+    choices = c("proportion", "count"),
+    value = "proportion"
+  ),
+  list(
+    id = "ir_p_dot_size",
+    label = "Dot size:",
+    type = "select",
+    choices = c("total", "x", "y"),
+    value = "total"
+  )
+)
+
+IR_SCALE_SPEC <- list(
+  list(
+    id = "ir_p_scale",
+    label = "Scale (proportion):",
+    type = "checkbox",
+    value = FALSE
+  )
+)
+
 IR_PARAM_SPEC <- list(
   # Clonal UMAP: overlay clone expansion on the cell projection. Receptor and
   # projection choices are dynamic (resolved in settings.R via the
@@ -83,39 +148,9 @@ IR_PARAM_SPEC <- list(
     )
   ),
 
-  "Scatter" = list(
-    list(
-      id = "ir_p_graph",
-      label = "Graph:",
-      type = "select",
-      choices = c("proportion", "count"),
-      value = "proportion"
-    ),
-    list(
-      id = "ir_p_dot_size",
-      label = "Dot size:",
-      type = "select",
-      choices = c("total", "x", "y"),
-      value = "total"
-    )
-  ),
+  "Scatter" = IR_SCATTER_SPEC,
 
-  "Paired Scatter" = list(
-    list(
-      id = "ir_p_graph",
-      label = "Graph:",
-      type = "select",
-      choices = c("proportion", "count"),
-      value = "proportion"
-    ),
-    list(
-      id = "ir_p_dot_size",
-      label = "Dot size:",
-      type = "select",
-      choices = c("total", "x", "y"),
-      value = "total"
-    )
-  ),
+  "Paired Scatter" = IR_SCATTER_SPEC,
 
   "vizGenes" = list(
     list(
@@ -189,30 +224,9 @@ IR_PARAM_SPEC <- list(
   ),
 
   ## ---- scale-only plots -------------------------------------------------
-  "Abundance" = list(
-    list(
-      id = "ir_p_scale",
-      label = "Scale (proportion):",
-      type = "checkbox",
-      value = FALSE
-    )
-  ),
-  "Length" = list(
-    list(
-      id = "ir_p_scale",
-      label = "Scale (proportion):",
-      type = "checkbox",
-      value = FALSE
-    )
-  ),
-  "Quant" = list(
-    list(
-      id = "ir_p_scale",
-      label = "Scale (proportion):",
-      type = "checkbox",
-      value = FALSE
-    )
-  ),
+  "Abundance" = IR_SCALE_SPEC,
+  "Length" = IR_SCALE_SPEC,
+  "Quant" = IR_SCALE_SPEC,
 
   ## ---- clonal structure -------------------------------------------------
   "Proportion" = list(
@@ -517,6 +531,10 @@ ir_display_params_for <- function(tab) {
   params
 }
 
+IR_DESC_SUMMARY <- "How values are scaled: percent or proportion (share within each group) or raw count."
+IR_DESC_HEATMAP_BARPLOT <- "Heatmap (compact overview of many genes/groups) or barplot (easier to read exact values for few genes)."
+IR_DESC_AA_LENGTH <- "CDR3 length (in amino acids) to analyse position-by-position. Sequences of a different length are excluded."
+
 ## ---------------------------------------------------------------------------
 ## IR_PARAM_DESC — plain-language help for every control, keyed by input id.
 ##
@@ -531,8 +549,7 @@ IR_PARAM_DESC <- list(
   ## ---- Global controls ----
   ir_cloneCall = "How a 'clone' is defined when counting cells. gene = same V(D)J genes; nt = identical CDR3 nucleotide sequence; aa = identical CDR3 amino-acid sequence; strict = same genes AND same CDR3 nucleotides (most specific). Stricter definitions split near-identical cells into separate clones.",
   ir_chain = "Which receptor chain to analyse. 'All chains' combines them; otherwise restrict to one chain (e.g. TRB for the T-cell beta chain, IGH for the B-cell heavy chain). Choose a single chain when a plot should reflect just that chain's diversity or genes.",
-  ir_groupBy = "Metadata regrouping inside scRepertoire. On Paired Scatter this is shown as Compare by and directly defines the X/Y candidates: None uses original samples; a metadata column uses that column's levels. On Scatter and Compare it overrides the Comparison units when selected.",
-  ir_sampleCol = "Defines the comparison units that scRepertoire treats as samples. '(original)' uses the loaded repertoire list; choosing sample, condition, treatment, or cell type re-splits the repertoire so cross-sample plots compare those levels.",
+  ir_groupBy = "Metadata column that defines the comparison units. None uses the loaded samples (the repertoire list elements); choosing a column (sample, condition, treatment, cell type, ...) makes that column's levels the units scRepertoire compares. On Paired Scatter this is shown as Compare by and directly defines the X/Y candidates.",
 
   ## ---- Clonal UMAP ----
   ir_p_umap_receptor = "Which receptor to colour by: TCR (T cells) or BCR (B cells). Only the types present in your data are offered.",
@@ -550,14 +567,14 @@ IR_PARAM_DESC <- list(
 
   ## ---- vizGenes / gene usage ----
   ir_p_vg_x_axis = "Which gene-segment family to put on the x-axis (e.g. TRBV for TCR beta V genes).",
-  ir_p_vg_plot = "Heatmap (compact overview of many genes/groups) or barplot (easier to read exact values for few genes).",
-  ir_p_vg_summary = "How values are scaled: percent or proportion (share within each group) or raw count.",
+  ir_p_vg_plot = IR_DESC_HEATMAP_BARPLOT,
+  ir_p_vg_summary = IR_DESC_SUMMARY,
   ir_p_gu_genes = "Which gene-segment family to summarise (e.g. TRBV, IGHV).",
-  ir_p_gu_plot_type = "Heatmap or barplot, as above.",
-  ir_p_gu_summary = "percent / proportion (share within each group) or raw count.",
+  ir_p_gu_plot_type = IR_DESC_HEATMAP_BARPLOT,
+  ir_p_gu_summary = IR_DESC_SUMMARY,
   ir_p_pg_gene = "Which gene segment to break down: V, D or J gene.",
-  ir_p_pg_summary = "percent / proportion or raw count.",
-  ir_p_vj_summary = "percent / proportion or raw count for the V–J gene pairings.",
+  ir_p_pg_summary = IR_DESC_SUMMARY,
+  ir_p_vj_summary = IR_DESC_SUMMARY,
 
   ## ---- Overlap ----
   ir_p_overlap_method = "How clonotype sharing between two groups is scored. overlap/jaccard/cosine/morisita differ in how they weight clone sizes; raw is the count of shared clones. Higher means the groups share more of their repertoire.",
@@ -586,11 +603,11 @@ IR_PARAM_DESC <- list(
   ir_p_top_clones = "How many of the largest clones to track across the groups.",
 
   ## ---- CDR3 amino-acid composition ----
-  ir_p_aa_length = "CDR3 length (in amino acids) to analyse position-by-position. Sequences of a different length are excluded.",
-  ir_p_pe_aa_length = "CDR3 length (in amino acids) to analyse position-by-position.",
+  ir_p_aa_length = IR_DESC_AA_LENGTH,
+  ir_p_pe_aa_length = IR_DESC_AA_LENGTH,
   ir_p_pe_method = "Which entropy/diversity measure to compute at each CDR3 position.",
   ir_property_method = "The amino-acid property scale to profile along the CDR3 (e.g. Atchley, Kidera) — captures physico-chemical character such as hydrophobicity.",
-  ir_p_pp_aa_length = "CDR3 length (in amino acids) to profile position-by-position.",
+  ir_p_pp_aa_length = IR_DESC_AA_LENGTH,
 
   ## ---- Display options ----
   ir_d_base_size = "Base font size for the plot's text (axis labels, legend, title).",

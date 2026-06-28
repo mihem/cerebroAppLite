@@ -1,4 +1,4 @@
-# cerebroAppLite 1.7.4
+# cerebroAppLite 1.7.3
 
 ## Immune repertoire
 
@@ -23,9 +23,31 @@
   (Default / Alphanumeric) now reaches every plot whose scRepertoire function
   accepts `order.by`, and clonalHomeostasis gains a "Clone size thresholds"
   control (`cloneSize`). Both previously had no UI and were never passed.
-- **Paired Scatter** now uses "Compare by" to choose where the X/Y candidates
-  come from (original samples, or a metadata column's levels), and no longer
-  exposes the redundant "Comparison units" control.
+- **CDR3 length is now faceted, not overlaid.** The Length tab previously
+  passed `group.by` straight to `scRepertoire::clonalLength`, which draws every
+  group as coloured bars in a single panel. It now takes that function's export
+  table and redraws it with `facet_wrap`, so each group (sample, or the chosen
+  metadata column's levels) gets its own length-distribution panel on a shared
+  axis — "Group results by: sample" produces one plot per sample instead of a
+  single mixed plot.
+- **Grouping unified on a single control.** The separate "Comparison units"
+  selector has been removed from every tab: it re-split the repertoire list,
+  which only duplicated — with a narrower, sample-only column set — what
+  scRepertoire's own `group.by` already does (it rbinds the list and re-splits
+  on the chosen column). Comparison units are now defined solely by "Group
+  results by" ("Compare by" on Scatter / Compare / Paired Scatter): None
+  compares the loaded samples; a metadata column compares that column's levels.
+  This removes the case where setting one control had no visible effect because
+  the other already expressed the same split.
+
+## Projection
+
+- **2D projections keep a 1:1 aspect ratio.** The Main and Gene expression
+  projection plots previously stretched to fill the container, distorting
+  UMAP/tSNE embeddings. They are now constrained to a square (`scaleanchor` /
+  `scaleratio` on the plotly axes, in a centred `aspect-ratio: 1 / 1` box), so
+  distances along X and Y are comparable and the embedding is no longer skewed.
+  Multi-panel gene-expression layouts anchor each panel to its own axis.
 
 # cerebroAppLite 1.7.3
 
@@ -112,7 +134,6 @@ previous releases and refreshes documentation for the current codebase.
 - Switched Nix environment to `fixed-date` to avoid constant rebuilding
 - simplified workflow by removing `dev` and `sync-dev`
 
-
 # cerebroAppLite 1.6.0
 
 ## Bug fixes
@@ -144,7 +165,6 @@ previous releases and refreshes documentation for the current codebase.
 
 - Added pkgdown site at <https://mihem.github.io/cerebroAppLite/> with light/dark/auto theme switch, search, and all vignettes as articles
 - Site automatically builds and deploys to GitHub Pages on push to master
-
 
 # cerebroAppLite 1.5.3
 

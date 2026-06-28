@@ -68,67 +68,14 @@ ir_data_annotated <- reactive({
   })
 })
 
-## ---- Candidate columns for data splitting ---------------------------- ##
-## Split-by controls the list elements that scRepertoire treats as samples.
-## It is intentionally separate from group.by: split-by defines the comparison
-## units (x/y samples, compare samples), while group.by can still colour/facet
-## within those units when a function supports it.
-ir_sample_col_choices <- reactive({
-  data <- ir_data_annotated()
-  if (is.null(data)) {
-    return(character(0))
-  }
-  shared <- Reduce(intersect, lapply(data, colnames))
-  candidates <- setdiff(shared, ir_scr_cols)
-  ok <- vapply(
-    candidates,
-    function(col) {
-      vals <- unique(unlist(lapply(data, function(df) {
-        as.character(df[[col]])
-      })))
-      vals <- vals[!is.na(vals) & nzchar(vals)]
-      length(vals) >= 2L && length(vals) <= 200L
-    },
-    logical(1)
-  )
-  candidates[ok]
-})
-
 ## ---- Reactive: repertoire data --------------------------------------- ##
-## Returns the metadata-annotated repertoire list, optionally re-split by a
-## user-selected metadata column. "(original)" preserves the loaded list
-## elements; choosing a column such as sample, condition, treatment, or cell
-## type makes those levels the scRepertoire comparison units.
+## Returns the metadata-annotated repertoire list as loaded. Grouping is not
+## done here: scRepertoire's own group.by rbinds the list and re-splits on the
+## chosen column (.groupList), so an in-app re-split would only duplicate — with
+## a narrower, sample-only column set — what group.by already does. Comparison
+## units are therefore expressed solely through ir_groupBy / group.by.
 ir_data <- reactive({
-  data <- ir_data_annotated()
-  if (is.null(data)) {
-    return(NULL)
-  }
-  col <- input$ir_sampleCol
-  if (is.null(col) || col == "" || col == "(original)") {
-    return(data)
-  }
-  merged <- do.call(
-    rbind,
-    lapply(names(data), function(nm) {
-      df <- data[[nm]]
-      df$.orig_sample <- nm
-      df
-    })
-  )
-  if (is.null(merged) || nrow(merged) == 0L || !(col %in% colnames(merged))) {
-    return(data)
-  }
-  keep <- !is.na(merged[[col]]) & nzchar(as.character(merged[[col]]))
-  merged <- merged[keep, , drop = FALSE]
-  if (nrow(merged) == 0L) {
-    return(data)
-  }
-  split_list <- split(merged, merged[[col]])
-  lapply(split_list, function(df) {
-    df$.orig_sample <- NULL
-    df
-  })
+  ir_data_annotated()
 })
 
 ## ---- Helper: read a dynamic function-specific parameter --------------- ##
@@ -199,7 +146,7 @@ ir_compare_groups <- reactive({
   vals <- unique(unlist(lapply(data, function(df) {
     if (gb %in% colnames(df)) as.character(df[[gb]]) else character(0)
   })))
-  vals <- vals[!is.na(vals)]
+  vals <- vals[!is.na(vals) & nzchar(vals)]
   if (length(vals) == 0) names(data) else sort(vals)
 })
 
@@ -333,13 +280,6 @@ ir_receptor_types <- reactive({
 ir_umap_chains <- function(receptor) {
   if (identical(receptor, "BCR")) IR_BCR_CHAINS else IR_TCR_CHAINS
 }
-
-## ---- Barcodes to show in the Clonal UMAP (Group filters) -------------- ##
-## Returns the barcodes left after applying the per-group-column filters from
-## the left-column "Group filters" box, or NULL when no filtering is active
-## (show every cell). Replaced by a reactive in settings.R once the filter UI
-## exists; this default keeps the renderer safe (NULL = no filter).
-ir_umap_cells_to_show <- function() NULL
 
 ## ---- Clone-size bin breaks / labels (scRepertoire cloneSize defaults) -- ##
 ## A clone's size = number of cells carrying that clonotype (within the

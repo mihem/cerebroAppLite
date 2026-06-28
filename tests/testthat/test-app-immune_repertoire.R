@@ -118,7 +118,6 @@ test_that("Group by is visible on plots whose grouping it drives", {
     ),
     ""
   )
-  expect_equal(as.numeric(n_options("ir_sampleCol")), 0)
   expect_true(isTRUE(app$get_js(
     "(function(){return document.querySelector('#ir_pair_x_group') !== null && document.querySelector('#ir_pair_y_group') !== null;})();"
   )))

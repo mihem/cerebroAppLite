@@ -94,10 +94,18 @@ output[["overview_projection_UI"]] <- renderUI({
         ),
         tagList(
           shinycssloaders::withSpinner(
-            plotly::plotlyOutput(
-              "overview_projection",
-              width = "auto",
-              height = "85vh"
+            tags$div(
+              style = paste(
+                "width: 100%;",
+                "max-width: 85vh;",
+                "aspect-ratio: 1 / 1;",
+                "margin: 0 auto;"
+              ),
+              plotly::plotlyOutput(
+                "overview_projection",
+                width = "100%",
+                height = "100%"
+              )
             ),
             type = 8,
             hide.ui = FALSE

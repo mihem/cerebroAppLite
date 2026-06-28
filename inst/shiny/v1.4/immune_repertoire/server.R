@@ -331,18 +331,8 @@ bcr_shm_proxy_plot <- function(
 
 ## ---- Helper: per-sample metadata (columns constant within each sample) -- ##
 sample_level_meta <- function(data) {
-  scr_cols <- c(
-    "barcode",
-    "CTgene",
-    "CTnt",
-    "CTaa",
-    "CTstrict",
-    "clonalProportion",
-    "clonalFrequency",
-    "cloneSize"
-  )
   shared_cols <- Reduce(intersect, lapply(data, colnames))
-  meta_cols <- setdiff(shared_cols, scr_cols)
+  meta_cols <- setdiff(shared_cols, ir_scr_cols)
   constant <- vapply(
     meta_cols,
     function(col) {
@@ -413,18 +403,13 @@ detect_chains <- function(data) {
 ## invalidates the cache (prevents stale plots from the previous dataset).
 ir_bindCache <- function(x, ..., cache = "session") {
   if (utils::packageVersion("shiny") >= "1.6.0") {
-    # Append the generic display options to every plot's cache key so a change
-    # to font size / title / point size / opacity busts the cache and the plot
-    # re-renders. Done here (one place) rather than in all 20+ call sites.
+    # Keep only truly global plot state here. Plot-specific parameters belong
+    # in each renderer's own bindCache call.
     shiny::bindCache(
       x,
       ...,
       input$ir_d_base_size,
       input$ir_d_title,
-      input$ir_d_point_size,
-      input$ir_d_alpha,
-      input$ir_p_order_by,
-      input$ir_p_clone_size,
       data_to_load$path,
       cache = cache
     )

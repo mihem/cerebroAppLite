@@ -188,13 +188,13 @@ output$ir_plot_clonalUMAP <- renderPlot({
   req_plot_space("ir_plot_clonalUMAP")
   receptor <- ir_param("ir_p_umap_receptor")
   projection <- ir_param("ir_p_umap_projection")
-  cloneCall <- ir_params()$cloneCall %||% "gene"
+  clone_call <- "gene"
   show_all <- isTRUE(ir_param("ir_p_umap_show_all", TRUE))
   cells <- ir_umap_cells_to_show()
   df <- ir_clonal_umap_data(
     projection,
     receptor,
-    cloneCall,
+    clone_call,
     show_all = show_all,
     cells = cells
   )
@@ -270,7 +270,8 @@ output$ir_plot_clonalUMAP <- renderPlot({
     input$ir_p_umap_receptor,
     input$ir_p_umap_projection,
     input$ir_p_umap_show_all,
-    input$ir_cloneCall
+    input$ir_d_point_size,
+    input$ir_d_alpha
   )
 
 ## ---- BCR-specific renderers --------------------------------------------- ##
@@ -349,24 +350,8 @@ ir_sample_meta <- reactive({
   sample_level_meta(data)
 })
 
-ir_paired_scatter_groups <- reactive({
-  data <- ir_data_annotated()
-  if (is.null(data)) {
-    return(character(0))
-  }
-  gb <- input$ir_groupBy
-  if (is.null(gb) || !nzchar(gb)) {
-    return(names(data))
-  }
-  vals <- unique(unlist(lapply(data, function(df) {
-    if (gb %in% colnames(df)) as.character(df[[gb]]) else character(0)
-  })))
-  vals <- vals[!is.na(vals) & nzchar(vals)]
-  if (length(vals) == 0) names(data) else sort(vals)
-})
-
 output$ir_ui_pairedScatter <- renderUI({
-  groups <- ir_paired_scatter_groups()
+  groups <- ir_compare_groups()
   if (length(groups) < 2) {
     return(div(
       class = "alert alert-info",
@@ -472,7 +457,7 @@ output$ir_plot_pairedScatter <- renderPlot({
   req(!is.null(data))
   meta <- ir_sample_meta()
   pars <- ir_params()
-  groups <- ir_paired_scatter_groups()
+  groups <- ir_compare_groups()
   req(length(groups) >= 2)
   pair_mode <- input$ir_pair_compare
   facet_col <- input$ir_pair_facet
@@ -607,7 +592,8 @@ output$ir_plot_clonalAbundance <- renderPlot({
     input$ir_cloneCall,
     input$ir_chain,
     input$ir_groupBy,
-    input$ir_p_scale
+    input$ir_p_scale,
+    input$ir_p_order_by
   )
 
 output$ir_plot_clonalCompare <- renderPlot({
@@ -643,7 +629,8 @@ output$ir_plot_clonalCompare <- renderPlot({
     input$ir_compare_samples,
     input$ir_p_top_clones,
     input$ir_p_compare_graph,
-    input$ir_p_compare_prop
+    input$ir_p_compare_prop,
+    input$ir_p_order_by
   )
 
 output$ir_ui_clonalDiversity <- renderUI({
@@ -827,7 +814,8 @@ output$ir_plot_clonalDiversity <- renderPlot({
     input$ir_groupBy,
     input$ir_p_metric,
     input$ir_p_x_axis,
-    input$ir_p_n_boots
+    input$ir_p_n_boots,
+    input$ir_p_order_by
   )
 
 output$ir_plot_clonalHomeostasis <- renderPlot({
@@ -853,7 +841,9 @@ output$ir_plot_clonalHomeostasis <- renderPlot({
   ir_bindCache(
     input$ir_cloneCall,
     input$ir_chain,
-    input$ir_groupBy
+    input$ir_groupBy,
+    input$ir_p_clone_size,
+    input$ir_p_order_by
   )
 
 output$ir_plot_clonalLength <- renderPlot({
@@ -893,19 +883,25 @@ output$ir_plot_clonalLength <- renderPlot({
     )
   } else {
     # A grouping is selected: scRepertoire overlays the groups in one panel, so
-    # take its per-clonotype table and redraw with facet_wrap to give each group
-    # its own length-distribution panel on a shared axis.
+    # take its per-clonotype table and redraw with facet_wrap to give each
+    # selected group its own length-distribution panel on a shared axis.
+    order_by <- ir_order_by()
     tbl <- scRepertoire::clonalLength(
       data,
       cloneCall = clone_call,
       chain = pars$chain,
       group.by = pars$groupBy,
-      order.by = ir_order_by(),
+      order.by = order_by,
       exportTable = TRUE,
       palette = "inferno"
     )
     safeRenderPlot(
-      ir_length_facet_plot(tbl, scale = scale_on),
+      ir_length_facet_plot(
+        tbl,
+        scale = scale_on,
+        group_col = pars$groupBy,
+        group_levels = ir_length_group_levels(tbl, pars$groupBy, order_by)
+      ),
       "clonalLength"
     )
   }
@@ -914,7 +910,8 @@ output$ir_plot_clonalLength <- renderPlot({
     input$ir_cloneCall,
     input$ir_chain,
     input$ir_groupBy,
-    input$ir_p_scale
+    input$ir_p_scale,
+    input$ir_p_order_by
   )
 
 output$ir_plot_clonalOverlap <- renderPlot({
@@ -1183,7 +1180,8 @@ output$ir_plot_percentGeneUsage <- renderPlot({
     input$ir_groupBy,
     input$ir_p_gu_genes,
     input$ir_p_gu_plot_type,
-    input$ir_p_gu_summary
+    input$ir_p_gu_summary,
+    input$ir_p_order_by
   )
 
 output$ir_ui_vizGenes <- renderUI({
@@ -1225,7 +1223,8 @@ output$ir_plot_vizGenes <- renderPlot({
     input$ir_groupBy,
     input$ir_p_vg_x_axis,
     input$ir_p_vg_plot,
-    input$ir_p_vg_summary
+    input$ir_p_vg_summary,
+    input$ir_p_order_by
   )
 
 output$ir_ui_percentGenes <- renderUI({
@@ -1261,7 +1260,8 @@ output$ir_plot_percentGenes <- renderPlot({
     input$ir_chain,
     input$ir_groupBy,
     input$ir_p_pg_gene,
-    input$ir_p_pg_summary
+    input$ir_p_pg_summary,
+    input$ir_p_order_by
   )
 
 output$ir_ui_percentVJ <- renderUI({
@@ -1295,7 +1295,8 @@ output$ir_plot_percentVJ <- renderPlot({
     input$ir_cloneCall,
     input$ir_chain,
     input$ir_groupBy,
-    input$ir_p_vj_summary
+    input$ir_p_vj_summary,
+    input$ir_p_order_by
   )
 
 output$ir_ui_percentAA <- renderUI({
@@ -1337,7 +1338,8 @@ output$ir_plot_percentAA <- renderPlot({
     input$ir_cloneCall,
     input$ir_chain,
     input$ir_groupBy,
-    input$ir_p_aa_length
+    input$ir_p_aa_length,
+    input$ir_p_order_by
   )
 
 output$ir_plot_positionalEntropy <- renderPlot({
@@ -1370,7 +1372,8 @@ output$ir_plot_positionalEntropy <- renderPlot({
     input$ir_chain,
     input$ir_groupBy,
     input$ir_p_pe_aa_length,
-    input$ir_p_pe_method
+    input$ir_p_pe_method,
+    input$ir_p_order_by
   )
 
 ## ---- Positional Property: facet count per method ---------------------- ##
@@ -1460,7 +1463,8 @@ output$ir_plot_positionalProperty <- renderPlot({
     input$ir_chain,
     input$ir_groupBy,
     input$ir_property_method,
-    input$ir_p_pp_aa_length
+    input$ir_p_pp_aa_length,
+    input$ir_p_order_by
   )
 
 output$ir_ui_percentKmer <- renderUI({

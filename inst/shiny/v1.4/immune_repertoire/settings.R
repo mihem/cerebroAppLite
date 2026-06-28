@@ -42,34 +42,14 @@ output$ir_main_params_UI <- renderUI({
   groups <- tryCatch(getGroups(), error = function(e) character(0))
   available_groups <- intersect(groups, data_cols)
 
-  # Which tabs each global control does NOT apply to (so it is omitted, not
-  # left as an empty grid cell). Server-side filtering keeps the layout compact.
+  # Global control visibility comes from IR_GLOBAL_CONTROL_HIDDEN
+  # (param_spec.R), so the UI and help dialogs cannot drift.
   tab <- input$ir_tabs
-  clonecall_hidden <- c(
-    # Clonal UMAP colours by clone size and uses its own Receptor selector;
-    # the global Clone call only nudges what counts as the "same" clone and is
-    # noise for this view, so omit it here.
-    "Clonal UMAP",
-    "Isotype",
-    "SHM Proxy",
-    "Gene usage",
-    "vizGenes",
-    "percentGenes",
-    "percentVJ",
-    "AA %",
-    "Entropy",
-    "Property"
-  )
-  # Clonal UMAP uses its own Receptor selector instead of the global Chain, and
-  # colours by clone size rather than a group.by split, so hide both there.
-  groupby_hidden <- c("Clonal UMAP")
-  chain_hidden <- c("vizGenes", "Clonal UMAP")
-  samplecol_hidden <- c("Clonal UMAP", "Paired Scatter")
 
   # Collect only the controls that apply to the current tab, then flow them into
   # rows so a hidden control never leaves a blank gap.
   controls <- list()
-  if (is.null(tab) || !(tab %in% clonecall_hidden)) {
+  if (ir_global_control_visible("ir_cloneCall", tab)) {
     controls <- c(
       controls,
       list(selectInput(
@@ -81,7 +61,7 @@ output$ir_main_params_UI <- renderUI({
       ))
     )
   }
-  if (is.null(tab) || !(tab %in% chain_hidden)) {
+  if (ir_global_control_visible("ir_chain", tab)) {
     controls <- c(
       controls,
       list(selectInput(
@@ -93,20 +73,21 @@ output$ir_main_params_UI <- renderUI({
       ))
     )
   }
-  if (is.null(tab) || !(tab %in% groupby_hidden)) {
-    # Default to None so the comparison units come from Split/Compare units
-    # (the loaded samples, or the selected split column). Choosing Group by is
-    # an explicit override for functions where scRepertoire regroups internally.
+  if (ir_global_control_visible("ir_groupBy", tab)) {
+    # group.by is the single grouping control: None compares the loaded samples
+    # (the repertoire list elements); a metadata column makes that column's
+    # levels the comparison units. scRepertoire rbinds + re-splits internally
+    # (.groupList), so this fully defines what a plot compares.
     prev_gb <- isolate(input$ir_groupBy)
     default_gb <- if (!is.null(prev_gb) && prev_gb %in% available_groups) {
       prev_gb
     } else {
       ""
     }
-    group_label <- if (identical(tab, "Paired Scatter")) {
+    group_label <- if (
+      !is.null(tab) && tab %in% c("Paired Scatter", "Scatter", "Compare")
+    ) {
       "Compare by:"
-    } else if (tab %in% c("Scatter", "Compare")) {
-      "Override comparison groups:"
     } else {
       "Group results by:"
     }
@@ -121,26 +102,6 @@ output$ir_main_params_UI <- renderUI({
       ))
     )
   }
-  if (is.null(tab) || !(tab %in% samplecol_hidden)) {
-    sample_col_opts <- c("(original)" = "(original)", ir_sample_col_choices())
-    prev_sc <- isolate(input$ir_sampleCol)
-    default_sc <- if (!is.null(prev_sc) && prev_sc %in% sample_col_opts) {
-      prev_sc
-    } else {
-      "(original)"
-    }
-    controls <- c(
-      controls,
-      list(selectInput(
-        "ir_sampleCol",
-        "Comparison units:",
-        choices = sample_col_opts,
-        selected = default_sc,
-        selectize = FALSE
-      ))
-    )
-  }
-
   tagList(
     tags$style(
       "#ir_chain + .selectize-control .selectize-dropdown-content { max-height: none; }"
@@ -160,16 +121,6 @@ output$ir_main_params_UI <- renderUI({
     )
   )
 })
-
-observeEvent(
-  input$ir_sampleCol,
-  {
-    if (identical(input$ir_tabs, "Paired Scatter")) {
-      updateSelectInput(session, "ir_groupBy", selected = "")
-    }
-  },
-  ignoreInit = TRUE
-)
 
 ## ---- Additional parameters (left column, box 2) ----------------------- ##
 ## Secondary / presentation controls: the generic display options
@@ -547,40 +498,6 @@ ir_umap_cells_to_show <- reactive({
 ## in plain language, exactly the controls visible on the current tab. Text
 ## comes from IR_PARAM_DESC (param_spec.R) so it never drifts from the controls.
 
-## Which global controls (cloneCall/chain/groupBy) are shown on a given tab —
-## mirrors the hidden-lists logic in ir_main_params_UI above.
-ir_visible_global_ids <- function(tab) {
-  clonecall_hidden <- c(
-    "Clonal UMAP",
-    "Isotype",
-    "SHM Proxy",
-    "Gene usage",
-    "vizGenes",
-    "percentGenes",
-    "percentVJ",
-    "AA %",
-    "Entropy",
-    "Property"
-  )
-  groupby_hidden <- c("Clonal UMAP")
-  chain_hidden <- c("vizGenes", "Clonal UMAP")
-  samplecol_hidden <- c("Clonal UMAP", "Paired Scatter")
-  ids <- character(0)
-  if (is.null(tab) || !(tab %in% clonecall_hidden)) {
-    ids <- c(ids, "ir_cloneCall")
-  }
-  if (is.null(tab) || !(tab %in% chain_hidden)) {
-    ids <- c(ids, "ir_chain")
-  }
-  if (is.null(tab) || !(tab %in% groupby_hidden)) {
-    ids <- c(ids, "ir_groupBy")
-  }
-  if (is.null(tab) || !(tab %in% samplecol_hidden)) {
-    ids <- c(ids, "ir_sampleCol")
-  }
-  ids
-}
-
 ## Render a list of param ids as styled help cards (bold name + plain text).
 ir_param_help_cards <- function(ids) {
   ids <- ids[ids %in% names(IR_PARAM_DESC)]
@@ -609,8 +526,7 @@ IR_PARAM_LABELS <- local({
   labs <- list(
     ir_cloneCall = "Clone call",
     ir_chain = "Chain",
-    ir_groupBy = "Group by",
-    ir_sampleCol = "Comparison units"
+    ir_groupBy = "Group by"
   )
   for (tab in names(IR_PARAM_SPEC)) {
     for (p in IR_PARAM_SPEC[[tab]]) {

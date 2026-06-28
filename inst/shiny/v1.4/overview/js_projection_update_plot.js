@@ -17,14 +17,18 @@ const overview_projection_layout_2D = {
     mirror: true,
     showline: true,
     zeroline: false,
-    range: []
+    range: [],
+    constrain: 'domain'
   },
   yaxis: {
     autorange: true,
     mirror: true,
     showline: true,
     zeroline: false,
-    range: []
+    range: [],
+    scaleanchor: 'x',
+    scaleratio: 1,
+    constrain: 'domain'
   },
   hoverlabel: {
     font: {
