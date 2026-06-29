@@ -1,4 +1,4 @@
-# cerebroAppLite 1.7.3
+# cerebroAppLite 1.7.4
 
 ## Immune repertoire
 
@@ -39,15 +39,9 @@
   compares the loaded samples; a metadata column compares that column's levels.
   This removes the case where setting one control had no visible effect because
   the other already expressed the same split.
-
-## Projection
-
-- **2D projections keep a 1:1 aspect ratio.** The Main and Gene expression
-  projection plots previously stretched to fill the container, distorting
-  UMAP/tSNE embeddings. They are now constrained to a square (`scaleanchor` /
-  `scaleratio` on the plotly axes, in a centred `aspect-ratio: 1 / 1` box), so
-  distances along X and Y are comparable and the embedding is no longer skewed.
-  Multi-panel gene-expression layouts anchor each panel to its own axis.
+- **Unified plot heights**: the immune repertoire tabs now share a single plot
+  height (`ir_fill_plot` / `ir_fill_wrap` helpers) instead of repeating a
+  per-tab pixel value.
 
 # cerebroAppLite 1.7.3
 

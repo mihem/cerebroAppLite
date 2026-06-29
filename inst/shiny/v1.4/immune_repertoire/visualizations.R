@@ -241,7 +241,6 @@ output$ir_plot_clonalUMAP <- renderPlot({
             name = "Clonotype"
           ) +
           ggplot2::labs(x = "UMAP_1", y = "UMAP_2") +
-          ggplot2::coord_fixed() +
           ggplot2::theme_classic() +
           ggplot2::guides(
             colour = ggplot2::guide_legend(override.aes = list(size = 3))
