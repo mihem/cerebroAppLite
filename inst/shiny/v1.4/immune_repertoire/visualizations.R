@@ -58,10 +58,11 @@ output$ir_visualizations_UI <- renderUI({
       "Isotype",
       ir_fill_plot("ir_plot_isotype")
     ),
-    tabPanel(
-      "SHM Proxy",
-      ir_fill_plot("ir_plot_shmProxy")
-    ),
+    # Hidden per review (kept available; renderer/help/param_spec retained).
+    # tabPanel(
+    #   "SHM Proxy",
+    #   ir_fill_plot("ir_plot_shmProxy")
+    # ),
     tabPanel(
       "Paired Scatter",
       ir_fill_wrap(shinycssloaders::withSpinner(uiOutput(
@@ -70,36 +71,38 @@ output$ir_visualizations_UI <- renderUI({
     )
   )
 
-  ## Remaining tabs (Abundance now leads in priority_tabs above)
+  ## Remaining tabs. Most are hidden per review to keep the tab strip focused
+  ## on the commonly used plots; their renderers, help, and param_spec entries
+  ## are retained so any of them can be re-enabled by uncommenting its tabPanel.
   other_tabs <- list(
-    tabPanel(
-      "Length",
-      ir_fill_plot("ir_plot_clonalLength")
-    ),
-    tabPanel(
-      "Proportion",
-      ir_fill_plot("ir_plot_clonalProportion")
-    ),
-    tabPanel(
-      "Quant",
-      ir_fill_plot("ir_plot_clonalQuant")
-    ),
-    tabPanel("Rarefaction", ir_fill_wrap(uiOutput("ir_ui_clonalRarefaction"))),
-    tabPanel("Gene usage", ir_fill_wrap(uiOutput("ir_ui_percentGeneUsage"))),
-    tabPanel("vizGenes", ir_fill_wrap(uiOutput("ir_ui_vizGenes"))),
-    tabPanel("percentGenes", ir_fill_wrap(uiOutput("ir_ui_percentGenes"))),
-    tabPanel("percentVJ", ir_fill_wrap(uiOutput("ir_ui_percentVJ"))),
-    tabPanel("AA %", ir_fill_wrap(uiOutput("ir_ui_percentAA"))),
-    tabPanel(
-      "Entropy",
-      ir_fill_plot("ir_plot_positionalEntropy")
-    ),
-    tabPanel("Property", ir_fill_wrap(uiOutput("ir_ui_positionalProperty"))),
-    tabPanel(
-      # Top motifs now lives in the settings panel (IR_PARAM_SPEC "K-mer").
-      "K-mer",
-      ir_fill_wrap(uiOutput("ir_ui_percentKmer"))
-    )
+    # tabPanel(
+    #   "Length",
+    #   ir_fill_plot("ir_plot_clonalLength")
+    # ),
+    # tabPanel(
+    #   "Proportion",
+    #   ir_fill_plot("ir_plot_clonalProportion")
+    # ),
+    # tabPanel(
+    #   "Quant",
+    #   ir_fill_plot("ir_plot_clonalQuant")
+    # ),
+    # tabPanel("Rarefaction", ir_fill_wrap(uiOutput("ir_ui_clonalRarefaction"))),
+    # tabPanel("Gene usage", ir_fill_wrap(uiOutput("ir_ui_percentGeneUsage"))),
+    # tabPanel("vizGenes", ir_fill_wrap(uiOutput("ir_ui_vizGenes"))),
+    # tabPanel("percentGenes", ir_fill_wrap(uiOutput("ir_ui_percentGenes"))),
+    # tabPanel("percentVJ", ir_fill_wrap(uiOutput("ir_ui_percentVJ"))),
+    # tabPanel("AA %", ir_fill_wrap(uiOutput("ir_ui_percentAA"))),
+    # tabPanel(
+    #   "Entropy",
+    #   ir_fill_plot("ir_plot_positionalEntropy")
+    # ),
+    # tabPanel("Property", ir_fill_wrap(uiOutput("ir_ui_positionalProperty"))),
+    # tabPanel(
+    #   # Top motifs now lives in the settings panel (IR_PARAM_SPEC "K-mer").
+    #   "K-mer",
+    #   ir_fill_wrap(uiOutput("ir_ui_percentKmer"))
+    # )
   )
 
   ## Tabs requiring >= 2 samples
@@ -107,23 +110,23 @@ output$ir_visualizations_UI <- renderUI({
     other_tabs <- c(
       other_tabs,
       list(
-        tabPanel(
-          "Scatter",
-          helpText(
-            "Compares clonotype proportions between the two groups selected",
-            "below. Use 'Group by' to choose the grouping; the X/Y selectors",
-            "then pick which two groups to compare."
-          ),
-          ir_fill_plot("ir_plot_clonalScatter")
-        ),
+        # tabPanel(
+        #   "Scatter",
+        #   helpText(
+        #     "Compares clonotype proportions between the two groups selected",
+        #     "below. Use 'Group by' to choose the grouping; the X/Y selectors",
+        #     "then pick which two groups to compare."
+        #   ),
+        #   ir_fill_plot("ir_plot_clonalScatter")
+        # ),
         tabPanel(
           "Compare",
           ir_fill_plot("ir_plot_clonalCompare")
         ),
-        tabPanel(
-          "Overlap",
-          ir_fill_plot("ir_plot_clonalOverlap")
-        ),
+        # tabPanel(
+        #   "Overlap",
+        #   ir_fill_plot("ir_plot_clonalOverlap")
+        # ),
         tabPanel(
           "SizeDist",
           ir_fill_plot("ir_plot_clonalSizeDistribution")

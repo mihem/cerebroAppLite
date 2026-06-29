@@ -97,15 +97,7 @@ test_that("Group by is visible on plots whose grouping it drives", {
   app$wait_for_idle(timeout = 15000)
   expect_true(isTRUE(groupby_visible()))
 
-  app$set_inputs(ir_tabs = "Scatter", wait_ = FALSE)
-  app$wait_for_idle(timeout = 15000)
-  expect_true(isTRUE(groupby_visible()))
-
   app$set_inputs(ir_tabs = "Isotype", wait_ = FALSE)
-  app$wait_for_idle(timeout = 15000)
-  expect_true(isTRUE(groupby_visible()))
-
-  app$set_inputs(ir_tabs = "SHM Proxy", wait_ = FALSE)
   app$wait_for_idle(timeout = 15000)
   expect_true(isTRUE(groupby_visible()))
 
@@ -167,10 +159,6 @@ test_that("Chain is visible on plots whose scRepertoire API accepts it", {
   app$set_inputs(ir_tabs = "SizeDist", wait_ = FALSE)
   app$wait_for_idle(timeout = 15000)
   expect_true(isTRUE(chain_visible()))
-
-  app$set_inputs(ir_tabs = "vizGenes", wait_ = FALSE)
-  app$wait_for_idle(timeout = 15000)
-  expect_false(isTRUE(chain_visible()))
 
   app$stop()
 })
@@ -247,12 +235,6 @@ test_that("settings dropdowns render all their options (not just selected)", {
   # Clone call: gene/nt/aa/strict
   expect_gte(as.numeric(n_options("ir_cloneCall")), 2)
 
-  # Scatter selectors (Scatter tab) should list all samples, not just selected
-  app$set_inputs(ir_tabs = "Scatter", wait_ = FALSE)
-  app$wait_for_idle(timeout = 15000)
-  expect_gte(as.numeric(n_options("ir_scatter_x")), 2)
-  expect_gte(as.numeric(n_options("ir_scatter_y")), 2)
-
   app$stop()
 })
 
@@ -276,85 +258,6 @@ test_that("immune_repertoire tab can be opened and renders settings", {
     'document.querySelector("#ir_chain") !== null;'
   )
   expect_true(chain_present)
-
-  app$stop()
-})
-
-test_that("scatter sample selectors appear only on the Scatter tab", {
-  # The Scatter X/Y selectors are scoped to the Scatter tab via conditionalPanel
-  # so they don't clutter the settings panel on every other tab.
-  local_app_support(inst_dir)
-  app <- AppDriver$new(
-    inst_dir,
-    name = "ir_scatter_scope",
-    height = 950,
-    width = 1619
-  )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
-
-  # The Scatter selectors live inside a conditionalPanel keyed on input.ir_tabs.
-  # selectInput renders a selectize widget that hides the native <select>, so we
-  # check the conditionalPanel wrapper's computed display, not the <select>.
-  scatter_panel_visible <- function() {
-    # match the panel whose condition is exactly the Scatter selector panel
-    # (input.ir_tabs == 'Scatter'), not the Group-by exclusion panel which also
-    # mentions 'Scatter'.
-    app$get_js(
-      "(function(){
-        var cps = document.querySelectorAll('[data-display-if]');
-        for (var i=0;i<cps.length;i++){
-          var c = cps[i].getAttribute('data-display-if');
-          if (c.indexOf(\"== 'Scatter'\") !== -1){
-            return window.getComputedStyle(cps[i]).display !== 'none';
-          }
-        }
-        return false;
-      })();"
-    )
-  }
-
-  # default tab (Abundance) — scatter panel hidden
-  app$set_inputs(ir_tabs = "Abundance", wait_ = FALSE)
-  app$wait_for_idle(timeout = 15000)
-  expect_false(isTRUE(scatter_panel_visible()))
-
-  # Scatter tab — scatter panel visible
-  app$set_inputs(ir_tabs = "Scatter", wait_ = FALSE)
-  app$wait_for_idle(timeout = 15000)
-  expect_true(isTRUE(scatter_panel_visible()))
-
-  app$stop()
-})
-
-test_that("clonal scatter renders without error in default and grouped states", {
-  local_app_support(inst_dir)
-  app <- AppDriver$new(
-    inst_dir,
-    name = "ir_scatter",
-    height = 950,
-    width = 1619
-  )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
-
-  err_pat <- "clonalScatter|getlindex|get1index|undefined columns|names.*attribute"
-
-  # default state: example is split into >= 2 samples, scatter should render
-  v1 <- app$get_value(output = "ir_plot_clonalScatter")
-  expect_false(isTRUE(grepl(err_pat, v1$html, ignore.case = TRUE)))
-
-  # grouped state (the combination that previously errored)
-  app$set_inputs(ir_groupBy = "cell_type", wait_ = FALSE)
-  app$wait_for_idle(timeout = 20000)
-  v2 <- app$get_value(output = "ir_plot_clonalScatter")
-  expect_false(isTRUE(grepl(err_pat, v2$html, ignore.case = TRUE)))
 
   app$stop()
 })
