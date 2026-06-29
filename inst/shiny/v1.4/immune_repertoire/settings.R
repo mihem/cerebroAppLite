@@ -385,21 +385,8 @@ output$ir_display_panel <- renderUI({
     textInput(p$id, p$label, value = p$value)
   })
 
-  # two controls per row
-  rows <- list()
-  i <- 1
-  while (i <= length(controls)) {
-    if (i + 1 <= length(controls)) {
-      rows[[length(rows) + 1]] <- fluidRow(
-        column(6, controls[[i]]),
-        column(6, controls[[i + 1]])
-      )
-      i <- i + 2
-    } else {
-      rows[[length(rows) + 1]] <- fluidRow(column(6, controls[[i]]))
-      i <- i + 1
-    }
-  }
+  # one control per row
+  rows <- lapply(controls, function(ctrl) fluidRow(column(12, ctrl)))
 
   do.call(tagList, rows)
 })
