@@ -187,6 +187,25 @@ IR_EXPANSION_COLORS <- stats::setNames(
   )
 )
 
+## Render a scRepertoire ggplot as an interactive plotly figure. safeRenderPlot
+## still does the heavy lifting (display options, empty-state and error plots,
+## silent-error re-raise); we just convert its ggplot result with ggplotly and
+## fall back to a plotly message if conversion itself fails. Used by the simple
+## bar/point tabs; plots that ggplotly cannot represent well (alluvial, custom
+## facet/bootstrap renderers) keep renderPlot.
+ir_render_ggplotly <- function(expr, plot_name) {
+  p <- safeRenderPlot(expr, plot_name)
+  if (!inherits(p, "ggplot")) {
+    return(ir_empty_plotly("This plot is not available for the current view."))
+  }
+  tryCatch(
+    plotly::toWebGL(plotly::ggplotly(p)),
+    error = function(e) {
+      ir_empty_plotly(paste("Plot conversion error:", conditionMessage(e)))
+    }
+  )
+}
+
 ## Empty-state plotly figure with a centred message (used when there is nothing
 ## to draw), so the tab still shows an interactive canvas like the other UMAPs.
 ir_empty_plotly <- function(msg) {
@@ -323,32 +342,19 @@ output$ir_plot_clonalUMAP <- plotly::renderPlotly({
   )
 
 ## ---- BCR-specific renderers --------------------------------------------- ##
-output$ir_plot_isotype <- renderPlot({
+output$ir_plot_isotype <- plotly::renderPlotly({
   req_plot_space("ir_plot_isotype")
   data <- ir_data()
   req(!is.null(data))
   gb <- ir_params()$groupBy
   group_col <- if (is.null(gb)) "sample" else gb
-  safeRenderPlot(
-    {
-      p <- bcr_isotype_plot(data, group_col = group_col)
-      if (is.null(p)) {
-        plot.new()
-        text(
-          0.5,
-          0.5,
-          "No BCR isotype data available.\nRequires BCR data with CTgene column.",
-          cex = 0.9
-        )
-      } else {
-        # Return the ggplot (not print()) so safeRenderPlot can apply display
-        # options and renderPlot prints it once. Printing here too would render
-        # twice.
-        p
-      }
-    },
-    "isotype"
-  )
+  p <- bcr_isotype_plot(data, group_col = group_col)
+  if (is.null(p)) {
+    return(ir_empty_plotly(
+      "No BCR isotype data available. Requires BCR data with CTgene column."
+    ))
+  }
+  ir_render_ggplotly(p, "isotype")
 }) %>%
   ir_bindCache(
     input$ir_cloneCall,
@@ -618,13 +624,13 @@ output$ir_plot_pairedScatter <- renderPlot({
     input$ir_p_dot_size
   )
 
-output$ir_plot_clonalAbundance <- renderPlot({
+output$ir_plot_clonalAbundance <- plotly::renderPlotly({
   req(has_scRepertoire())
   req_plot_space("ir_plot_clonalAbundance")
   data <- ir_data()
   req(!is.null(data))
   pars <- ir_params()
-  safeRenderPlot(
+  ir_render_ggplotly(
     scRepertoire::clonalAbundance(
       data,
       cloneCall = pars$cloneCall,
@@ -866,13 +872,13 @@ output$ir_plot_clonalDiversity <- renderPlot({
     input$ir_p_order_by
   )
 
-output$ir_plot_clonalHomeostasis <- renderPlot({
+output$ir_plot_clonalHomeostasis <- plotly::renderPlotly({
   req(has_scRepertoire())
   req_plot_space("ir_plot_clonalHomeostasis")
   data <- ir_data()
   req(!is.null(data))
   pars <- ir_params()
-  safeRenderPlot(
+  ir_render_ggplotly(
     scRepertoire::clonalHomeostasis(
       data,
       cloneCall = pars$cloneCall,
