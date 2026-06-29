@@ -4,9 +4,19 @@
 ## default for the single-plot tabs.
 IR_PLOT_HEIGHT <- 450
 
-## Static single plot tab body.
-ir_fill_plot <- function(id, spinner = TRUE, height = IR_PLOT_HEIGHT) {
-  plot <- plotOutput(id, height = height)
+## Static single plot tab body. `plotly = TRUE` emits an interactive
+## plotlyOutput (zoom/pan/hover) instead of a static plotOutput.
+ir_fill_plot <- function(
+  id,
+  spinner = TRUE,
+  height = IR_PLOT_HEIGHT,
+  plotly = FALSE
+) {
+  plot <- if (plotly) {
+    plotly::plotlyOutput(id, height = height)
+  } else {
+    plotOutput(id, height = height)
+  }
   if (spinner) {
     plot <- shinycssloaders::withSpinner(plot)
   }
@@ -40,7 +50,7 @@ output$ir_visualizations_UI <- renderUI({
       # Clonal expansion overlaid on the cell UMAP — the default landing tab,
       # so the first thing the user sees is where expanded clones sit.
       "Clonal UMAP",
-      ir_fill_plot("ir_plot_clonalUMAP")
+      ir_fill_plot("ir_plot_clonalUMAP", plotly = TRUE)
     ),
     tabPanel(
       "Abundance",
@@ -177,7 +187,20 @@ IR_EXPANSION_COLORS <- stats::setNames(
   )
 )
 
-output$ir_plot_clonalUMAP <- renderPlot({
+## Empty-state plotly figure with a centred message (used when there is nothing
+## to draw), so the tab still shows an interactive canvas like the other UMAPs.
+ir_empty_plotly <- function(msg) {
+  plotly::plotly_empty(type = "scatter", mode = "markers") %>%
+    plotly::layout(
+      annotations = list(
+        text = msg,
+        showarrow = FALSE,
+        font = list(size = 14, color = "#666666")
+      )
+    )
+}
+
+output$ir_plot_clonalUMAP <- plotly::renderPlotly({
   req_plot_space("ir_plot_clonalUMAP")
   receptor <- ir_param("ir_p_umap_receptor")
   projection <- ir_param("ir_p_umap_projection")
@@ -192,24 +215,14 @@ output$ir_plot_clonalUMAP <- renderPlot({
     cells = cells
   )
 
-  safeRenderPlot(
+  fig <- tryCatch(
     {
       if (is.null(df) || nrow(df) == 0) {
-        ggplot2::ggplot() +
-          ggplot2::annotate(
-            "text",
-            x = 0,
-            y = 0,
-            label = paste0(
-              "No clonal UMAP to display.\n",
-              "Needs a cell projection and ",
-              if (is.null(receptor)) "TCR/BCR" else receptor,
-              " clonotypes whose barcodes match the cells."
-            ),
-            size = 4.5,
-            colour = "#666666"
-          ) +
-          ggplot2::theme_void()
+        ir_empty_plotly(paste0(
+          "No clonal UMAP to display. Needs a cell projection and ",
+          if (is.null(receptor)) "TCR/BCR" else receptor,
+          " clonotypes whose barcodes match the cells."
+        ))
       } else {
         dp <- tryCatch(ir_display_params(), error = function(e) list())
         point_size <- suppressWarnings(as.numeric(dp[["ir_d_point_size"]]))
@@ -220,51 +233,93 @@ output$ir_plot_clonalUMAP <- renderPlot({
         if (length(alpha) != 1 || is.na(alpha)) {
           alpha <- 0.8
         }
+        # plotly marker sizes read larger than ggplot's; scale up so the points
+        # are comparable to the other UMAPs.
+        marker_size <- point_size * 5
 
-        # Split into the grey background (cells without the selected receptor,
-        # expansion = NA) and the coloured receptor cells, drawn on top.
+        # Grey background = cells without the selected receptor (expansion = NA);
+        # coloured foreground = receptor cells with an expansion level.
         bg <- df[is.na(df$expansion), , drop = FALSE]
         fg <- df[!is.na(df$expansion), , drop = FALSE]
 
-        p <- ggplot2::ggplot()
+        p <- plotly::plot_ly(source = "ir_plot_clonalUMAP")
         if (nrow(bg) > 0) {
-          p <- p +
-            ggplot2::geom_point(
-              data = bg,
-              ggplot2::aes(x = .data$x, y = .data$y),
-              colour = "grey85",
-              size = point_size,
-              alpha = alpha
-            )
-        }
-        p +
-          ggplot2::geom_point(
-            data = fg,
-            ggplot2::aes(x = .data$x, y = .data$y, colour = .data$expansion),
-            size = point_size,
-            alpha = alpha
-          ) +
-          ggplot2::scale_colour_manual(
-            values = IR_EXPANSION_COLORS,
-            drop = FALSE,
-            name = "Clonotype"
-          ) +
-          ggplot2::labs(x = "UMAP_1", y = "UMAP_2") +
-          ggplot2::theme_classic() +
-          ggplot2::guides(
-            colour = ggplot2::guide_legend(override.aes = list(size = 3))
+          p <- plotly::add_trace(
+            p,
+            x = bg$x,
+            y = bg$y,
+            type = "scattergl",
+            mode = "markers",
+            marker = list(
+              size = marker_size,
+              color = "#D9D9D9",
+              opacity = alpha
+            ),
+            name = "Other cells",
+            hoverinfo = "skip",
+            showlegend = TRUE
           )
+        }
+        if (nrow(fg) > 0) {
+          # One trace per expansion level so the legend is clickable and each
+          # gets its turbo colour; keep the canonical level order.
+          for (lvl in names(IR_EXPANSION_COLORS)) {
+            sub <- fg[
+              !is.na(fg$expansion) & as.character(fg$expansion) == lvl,
+              ,
+              drop = FALSE
+            ]
+            if (nrow(sub) == 0) {
+              next
+            }
+            p <- plotly::add_trace(
+              p,
+              x = sub$x,
+              y = sub$y,
+              type = "scattergl",
+              mode = "markers",
+              marker = list(
+                size = marker_size,
+                color = IR_EXPANSION_COLORS[[lvl]],
+                opacity = alpha
+              ),
+              name = lvl,
+              text = sub$barcode,
+              hovertemplate = paste0(
+                "%{text}<br>",
+                lvl,
+                "<br>UMAP_1: %{x:.2f}<br>UMAP_2: %{y:.2f}<extra></extra>"
+              ),
+              showlegend = TRUE
+            )
+          }
+        }
+        title <- dp[["ir_d_title"]]
+        plotly::layout(
+          p,
+          xaxis = list(title = "UMAP_1", zeroline = FALSE),
+          yaxis = list(title = "UMAP_2", zeroline = FALSE),
+          legend = list(
+            itemsizing = "constant",
+            title = list(text = "Clonotype")
+          ),
+          title = if (is.character(title) && nzchar(title)) title else NULL
+        )
       }
     },
-    "clonalUMAP"
+    error = function(e) {
+      ir_empty_plotly(paste("Clonal UMAP error:", conditionMessage(e)))
+    }
   )
+  plotly::toWebGL(fig)
 }) %>%
   ir_bindCache(
     input$ir_p_umap_receptor,
     input$ir_p_umap_projection,
     input$ir_p_umap_show_all,
     input$ir_d_point_size,
-    input$ir_d_alpha
+    input$ir_d_alpha,
+    input$ir_d_title
   )
 
 ## ---- BCR-specific renderers --------------------------------------------- ##

@@ -408,7 +408,7 @@ test_that("Clonal UMAP does not depend on the hidden Clone call control", {
   block <- regmatches(
     content,
     regexpr(
-      "output\\$ir_plot_clonalUMAP <- renderPlot\\(\\{[\\s\\S]*?## ---- BCR-specific renderers",
+      "output\\$ir_plot_clonalUMAP <- plotly::renderPlotly\\(\\{[\\s\\S]*?## ---- BCR-specific renderers",
       content,
       perl = TRUE
     )

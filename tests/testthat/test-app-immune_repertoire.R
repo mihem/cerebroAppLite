@@ -313,13 +313,11 @@ test_that("Clonal UMAP tab renders with receptor + projection selectors", {
   expect_gte(as.numeric(n_options("ir_p_umap_receptor")), 1)
   expect_gte(as.numeric(n_options("ir_p_umap_projection")), 1)
 
-  # The plot output should render without surfacing a raw R error.
-  v <- app$get_value(output = "ir_plot_clonalUMAP")
-  expect_false(isTRUE(grepl(
-    "Error|undefined columns|subscript out of bounds",
-    v$html,
-    ignore.case = TRUE
-  )))
+  # The interactive plotly UMAP should render a plotly canvas (not an R error).
+  has_plotly <- app$get_js(
+    "document.querySelector('#ir_plot_clonalUMAP .plotly') !== null;"
+  )
+  expect_true(isTRUE(has_plotly))
 
   app$stop()
 })
@@ -413,13 +411,11 @@ test_that("Clonal UMAP has Show-all toggle and group filters", {
   )
   expect_true(isTRUE(has_group_filter))
 
-  # The UMAP plot should render without surfacing a raw R error.
-  v <- app$get_value(output = "ir_plot_clonalUMAP")
-  expect_false(isTRUE(grepl(
-    "Error|undefined columns|subscript out of bounds",
-    v$html,
-    ignore.case = TRUE
-  )))
+  # The interactive plotly UMAP should render a plotly canvas (not an R error).
+  has_plotly <- app$get_js(
+    "document.querySelector('#ir_plot_clonalUMAP .plotly') !== null;"
+  )
+  expect_true(isTRUE(has_plotly))
 
   app$stop()
 })
