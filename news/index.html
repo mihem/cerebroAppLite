@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,9 +62,32 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.7.4" id="cerebroapplite-174">cerebroAppLite 1.7.4<a class="anchor" aria-label="anchor" href="#cerebroapplite-174"></a></h2>
+<div class="section level3">
+<h3 id="immune-repertoire-1-7-4">Immune repertoire<a class="anchor" aria-label="anchor" href="#immune-repertoire-1-7-4"></a></h3>
+<ul><li>
+<strong>Clonal UMAP</strong>: new first tab overlaying clone-expansion level (Single/Small/Medium/Large/Hyperexpanded) on the existing cell projection, reusing the dataset’s UMAP/tSNE coordinates. A Receptor selector (TCR/BCR, only the classes present in the data) and a Projection selector drive it. A “Show all cells” option (on by default) draws cells without the selected receptor as a grey background, so expanded clones are shown in context. Group filters subset which cells appear by any metadata column.</li>
+<li>
+<strong>Generic display options</strong>: font size and title for every IR plot, plus point size and opacity for the scatter-type plots (Clonal UMAP, Scatter), in an “Additional parameters” box. Changing them re-renders the plot.</li>
+<li>
+<strong>Reworked layout</strong>: the immune repertoire page now uses the same left-parameters / right-visualization layout as the main projection tab, with Main parameters, Additional parameters, and Group filters boxes on the left.</li>
+<li>
+<strong>Parameter help</strong>: the info button on each parameter box opens a dialog explaining, in plain language, exactly the controls shown on the current tab.</li>
+<li>Clone call is no longer shown on the Clonal UMAP tab, where it only adds noise.</li>
+<li>
+<strong>More scRepertoire parameters wired up</strong>: a generic “Order groups” control (Default / Alphanumeric) now reaches every plot whose scRepertoire function accepts <code>order.by</code>, and clonalHomeostasis gains a “Clone size thresholds” control (<code>cloneSize</code>). Both previously had no UI and were never passed.</li>
+<li>
+<strong>CDR3 length is now faceted, not overlaid.</strong> The Length tab previously passed <code>group.by</code> straight to <code><a href="https://www.borch.dev/uploads/scRepertoire/reference/clonalLength.html" class="external-link">scRepertoire::clonalLength</a></code>, which draws every group as coloured bars in a single panel. It now takes that function’s export table and redraws it with <code>facet_wrap</code>, so each group (sample, or the chosen metadata column’s levels) gets its own length-distribution panel on a shared axis — “Group results by: sample” produces one plot per sample instead of a single mixed plot.</li>
+<li>
+<strong>Grouping unified on a single control.</strong> The separate “Comparison units” selector has been removed from every tab: it re-split the repertoire list, which only duplicated — with a narrower, sample-only column set — what scRepertoire’s own <code>group.by</code> already does (it rbinds the list and re-splits on the chosen column). Comparison units are now defined solely by “Group results by” (“Compare by” on Scatter / Compare / Paired Scatter): None compares the loaded samples; a metadata column compares that column’s levels. This removes the case where setting one control had no visible effect because the other already expressed the same split.</li>
+<li>
+<strong>Unified plot heights</strong>: the immune repertoire tabs now share a single plot height (<code>ir_fill_plot</code> / <code>ir_fill_wrap</code> helpers) instead of repeating a per-tab pixel value.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.7.3" id="cerebroapplite-173">cerebroAppLite 1.7.3<a class="anchor" aria-label="anchor" href="#cerebroapplite-173"></a></h2>
 <div class="section level3">

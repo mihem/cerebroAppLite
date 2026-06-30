@@ -112,19 +112,19 @@ exportFromSCE(
   use_delayed_array = FALSE,
   verbose = TRUE
 )
-#> [14:00:02] Initializing Cerebro object...
-#> [14:00:02] Collecting available meta data...
-#> [14:00:02] Extracting all meta data columns...
-#> [14:00:02] Extracting dimensional reductions...
-#> [14:00:02] Will export the following dimensional reductions: UMAP
-#> [14:00:03] No trajectories to extract...
-#> [14:00:03] Overview of Cerebro object:
+#> [05:36:57] Initializing Cerebro object...
+#> [05:36:57] Collecting available meta data...
+#> [05:36:57] Extracting all meta data columns...
+#> [05:36:57] Extracting dimensional reductions...
+#> [05:36:57] Will export the following dimensional reductions: UMAP
+#> [05:36:58] No trajectories to extract...
+#> [05:36:58] Overview of Cerebro object:
 #> class: Cerebro_v1.3
-#> cerebroApp version: 1.7.3
+#> cerebroApp version: 1.7.4
 #> experiment name: PBMC
 #> organism: hg
 #> date of analysis: 
-#> date of export: 2026-06-27
+#> date of export: 2026-06-30
 #> number of cells: 80
 #> number of genes: 230
 #> grouping variables (2): sample, cluster
@@ -137,6 +137,6 @@ exportFromSCE(
 #> trajectories:
 #> extra material:
 #> Immune repertoire:
-#> [14:00:03] Saving Cerebro object to: /tmp/nix-shell-4556-2374957467/Rtmphyp89s/pbmc_SCE.crb
-#> [14:00:03] Done!
+#> [05:36:58] Saving Cerebro object to: /tmp/nix-shell-4572-280593785/RtmpbAIlJp/pbmc_SCE.crb
+#> [05:36:58] Done!
 ```
