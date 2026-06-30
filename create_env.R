@@ -22,10 +22,13 @@ if (length(latest_date) == 0 || is.na(latest_date)) {
 cat("Using latest_date:", latest_date, "\n")
 
 # Use the BPCells revision built by the osmzhlab Attic cache, not GitHub main.
-pins_json <- readLines(sprintf(
-  "https://raw.githubusercontent.com/mihem/attic/main/reports/%s/pins.json",
-  latest_date
-), warn = FALSE)
+pins_json <- readLines(
+  sprintf(
+    "https://raw.githubusercontent.com/mihem/attic/main/reports/%s/pins.json",
+    latest_date
+  ),
+  warn = FALSE
+)
 pin_value <- function(name) {
   line <- grep(sprintf('"%s"', name), pins_json, value = TRUE)
   sub(sprintf('.*"%s"[[:space:]]*:[[:space:]]*"([^"]+)".*', name), "\\1", line)
