@@ -118,6 +118,56 @@ output$ir_main_params_UI <- renderUI({
     conditionalPanel(
       condition = "input.ir_tabs == 'Compare'",
       uiOutput("ir_compare_settings")
+    ),
+    conditionalPanel(
+      condition = "input.ir_tabs == 'Clone Sharing'",
+      selectInput(
+        "ir_sharing_unit",
+        "Sharing unit:",
+        choices = ir_sharing_unit_choices(),
+        selected = if ("sample" %in% ir_sharing_unit_choices()) {
+          "sample"
+        } else {
+          NULL
+        },
+        selectize = FALSE
+      )
+    ),
+    conditionalPanel(
+      condition = "input.ir_tabs == 'Motif Network'",
+      sliderInput(
+        "ir_motif_threshold",
+        "Hamming threshold:",
+        min = 1,
+        max = 2,
+        value = 1,
+        step = 1
+      ),
+      sliderInput(
+        "ir_motif_min_size",
+        "Hide clusters ≤ N nodes:",
+        min = 1,
+        max = 10,
+        value = 1,
+        step = 1
+      ),
+      checkboxInput(
+        "ir_motif_by_v",
+        "Split by V gene",
+        value = FALSE
+      ),
+      checkboxInput(
+        "ir_motif_show_isolated",
+        "Show unclustered CDR3s",
+        value = FALSE
+      ),
+      selectInput(
+        "ir_motif_color_by",
+        "Colour nodes by:",
+        choices = ir_motif_color_choices(),
+        selected = "",
+        selectize = FALSE
+      )
     )
   )
 })
@@ -212,17 +262,37 @@ output$ir_compare_settings <- renderUI({
   fluidRow(
     column(
       12,
-      # selectize = FALSE (native multi-select listbox): a multiple selectize
-      # inside a hidden conditionalPanel keeps only the pre-selected items and
-      # drops the rest of the available groups.
+      # Tag/token multi-select (selectize). This UI is rendered inside a hidden
+      # conditionalPanel (Compare tab not active), so selectize.js initialises
+      # while the container is display:none — measuring zero width and rendering
+      # its dropdown/tokens wrong, and historically dropping non-selected
+      # choices. The inline script below re-syncs and refreshes the selectize
+      # instance the first time the control becomes visible (Shiny fires
+      # `shiny:visualchange` on visibility changes), which fixes the layout and
+      # restores all choices without falling back to the plain listbox.
       selectInput(
         "ir_compare_samples",
-        "Groups to compare (select >= 2):",
+        "Groups to compare (select ≥ 2):",
         choices = available_samples,
         multiple = TRUE,
         selected = available_samples[1:min(2, length(available_samples))],
-        selectize = FALSE
-      )
+        selectize = TRUE
+      ),
+      tags$script(HTML(
+        "(function() {
+           var el = document.getElementById('ir_compare_samples');
+           if (!el) return;
+           function refresh() {
+             if (el.selectize && el.offsetParent !== null) {
+               el.selectize.sync();
+               el.selectize.refreshOptions(false);
+             }
+           }
+           $(el).on('shiny:visualchange', refresh);
+           // Also refresh once shortly after render in case it is already shown.
+           setTimeout(refresh, 0);
+         })();"
+      ))
     )
   )
 })
@@ -381,12 +451,36 @@ output$ir_display_panel <- renderUI({
         step = p$step
       ))
     }
-    # text (the only other display type)
+    if (identical(p$type, "select")) {
+      return(selectInput(
+        p$id,
+        p$label,
+        choices = p$choices,
+        selected = p$value,
+        selectize = FALSE
+      ))
+    }
+    # text fallback for any other display type
     textInput(p$id, p$label, value = p$value)
   })
 
-  # one control per row
-  rows <- lapply(controls, function(ctrl) fluidRow(column(12, ctrl)))
+  # One control per row. Controls flagged `gated_by_legend` are wrapped in a
+  # conditionalPanel so they disappear when the "Legend" control is set to Hide.
+  rows <- Map(
+    function(ctrl, p) {
+      row <- fluidRow(column(12, ctrl))
+      if (isTRUE(p$gated_by_legend)) {
+        conditionalPanel(
+          condition = "input.ir_d_legend_show == 'show'",
+          row
+        )
+      } else {
+        row
+      }
+    },
+    controls,
+    spec
+  )
 
   do.call(tagList, rows)
 })

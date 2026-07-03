@@ -33,7 +33,10 @@ IR_GLOBAL_CONTROL_HIDDEN <- list(
     "percentVJ",
     "AA %",
     "Entropy",
-    "Property"
+    "Property",
+    "Definition",
+    "Clone Sharing",
+    "Motif Network"
   ),
   ir_chain = c("vizGenes", "Clonal UMAP"),
   ir_groupBy = c("Clonal UMAP")
@@ -100,6 +103,13 @@ IR_PARAM_SPEC <- list(
       type = "select",
       choices = "<<projections>>",
       value = NULL
+    ),
+    list(
+      id = "ir_p_umap_group_by",
+      label = "Group results by:",
+      type = "select",
+      choices = "<<groups>>",
+      value = ""
     ),
     list(
       id = "ir_p_umap_show_all",
@@ -490,24 +500,16 @@ IR_DISPLAY_SCATTER <- list(
 ## Legend controls — applicable to every plot (each has a legend). Font size and
 ## key/point size apply on both the ggplot and plotly paths; position also lets
 ## the legend be hidden.
+## The `show` control gates the other three: when set to "Hide" the panel
+## collapses the position / font-size / point-size controls (see the
+## conditionalPanel wiring in settings.R's ir_display_panel).
 IR_DISPLAY_LEGEND <- list(
   list(
-    id = "ir_d_legend_size",
-    label = "Legend font size:",
-    type = "slider",
-    value = 12,
-    min = 6,
-    max = 30,
-    step = 1
-  ),
-  list(
-    id = "ir_d_legend_key",
-    label = "Legend point size:",
-    type = "slider",
-    value = 3,
-    min = 1,
-    max = 12,
-    step = 0.5
+    id = "ir_d_legend_show",
+    label = "Legend:",
+    type = "select",
+    choices = c("Show" = "show", "Hide" = "hide"),
+    value = "show"
   ),
   list(
     id = "ir_d_legend_pos",
@@ -517,10 +519,30 @@ IR_DISPLAY_LEGEND <- list(
       "Right" = "right",
       "Bottom" = "bottom",
       "Top" = "top",
-      "Left" = "left",
-      "Hidden" = "none"
+      "Left" = "left"
     ),
-    value = "right"
+    value = "right",
+    gated_by_legend = TRUE
+  ),
+  list(
+    id = "ir_d_legend_size",
+    label = "Legend font size:",
+    type = "slider",
+    value = 12,
+    min = 6,
+    max = 30,
+    step = 1,
+    gated_by_legend = TRUE
+  ),
+  list(
+    id = "ir_d_legend_key",
+    label = "Legend point size:",
+    type = "slider",
+    value = 3,
+    min = 1,
+    max = 12,
+    step = 0.5,
+    gated_by_legend = TRUE
   )
 )
 
@@ -593,6 +615,7 @@ IR_PARAM_DESC <- list(
   ## ---- Clonal UMAP ----
   ir_p_umap_receptor = "Which receptor to colour by: TCR (T cells) or BCR (B cells). Only the types present in your data are offered.",
   ir_p_umap_projection = "The cell map to draw on — the same UMAP/tSNE projections used elsewhere in the app. Pick which one to overlay the clones on.",
+  ir_p_umap_group_by = "Optional metadata column used to split Clonal UMAP into static square panels. None keeps the default interactive single UMAP.",
   ir_p_umap_show_all = "When on, every cell is drawn: cells without the selected receptor appear light grey, so the coloured (expanded) clones stand out in context. When off, only cells carrying the receptor are shown.",
 
   ## ---- Diversity ----

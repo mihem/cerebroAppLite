@@ -419,6 +419,39 @@ test_that("Clonal UMAP does not depend on the hidden Clone call control", {
   expect_no_match(block, "input\\$ir_cloneCall")
 })
 
+test_that("Clonal UMAP split layout avoids empty facet slots on wide canvases", {
+  viz <- file.path(shiny_root, "immune_repertoire", "visualizations.R")
+  skip_if_not(file.exists(viz))
+  content <- paste(readLines(viz), collapse = "\n")
+  block <- regmatches(
+    content,
+    regexpr(
+      "ir_umap_split_layout <- function\\([\\s\\S]*?\\n\\}\\n\\nir_umap_grouped_data",
+      content,
+      perl = TRUE
+    )
+  )
+  expect_length(block, 1)
+  block <- sub("\\n\\nir_umap_grouped_data$", "", block)
+  env <- new.env(parent = baseenv())
+  env$`%||%` <- function(x, y) if (is.null(x)) y else x
+  eval(parse(text = block), envir = env)
+
+  layout <- env$ir_umap_split_layout(3, width = 1200, height = 450)
+
+  expect_equal(layout$ncol, 3L)
+  expect_equal(layout$nrow, 1L)
+  expect_gte(layout$panel_px, 300)
+  expect_lte(layout$height, 500)
+
+  tall_layout <- env$ir_umap_split_layout(6, width = 900, height = 500)
+
+  expect_equal(tall_layout$ncol, 3L)
+  expect_equal(tall_layout$nrow, 2L)
+  expect_gte(tall_layout$panel_px, 300)
+  expect_gte(tall_layout$height, 600)
+})
+
 test_that("ir_bindCache keys cover all per-plot ir_param() calls", {
   # Each renderPlot that calls ir_param("ir_p_XXX") must include the
   # corresponding input$ir_p_XXX in its ir_bindCache(...) key list. If a

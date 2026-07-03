@@ -8,16 +8,26 @@
 ## resolved parent height collapses a static plot to zero.
 IR_PLOT_HEIGHT <- "calc(100vh - 250px)"
 
+## Paired Scatter carries an extra in-tab "Pair by" control row above the plot
+## (~74px measured), which the other tabs don't have. Subtract that on top of
+## the standard 250px chrome so the single (non-faceted) plot ends level with
+## the other tabs' plots and keeps the same ~25px bottom gap, instead of
+## overflowing past the viewport.
+IR_PAIRED_PLOT_HEIGHT <- "calc(100vh - 324px)"
+
 ## Static single plot tab body. `plotly = TRUE` emits an interactive
 ## plotlyOutput (zoom/pan/hover) instead of a static plotOutput.
 ir_fill_plot <- function(
   id,
   spinner = TRUE,
   height = IR_PLOT_HEIGHT,
-  plotly = FALSE
+  plotly = FALSE,
+  visnet = FALSE
 ) {
   plot <- if (plotly) {
     plotly::plotlyOutput(id, height = height)
+  } else if (visnet) {
+    visNetwork::visNetworkOutput(id, height = height)
   } else {
     plotOutput(id, height = height)
   }
@@ -54,7 +64,7 @@ output$ir_visualizations_UI <- renderUI({
       # Clonal expansion overlaid on the cell UMAP — the default landing tab,
       # so the first thing the user sees is where expanded clones sit.
       "Clonal UMAP",
-      ir_fill_plot("ir_plot_clonalUMAP", plotly = TRUE)
+      shinycssloaders::withSpinner(uiOutput("ir_ui_clonalUMAP"))
     ),
     tabPanel(
       "Abundance",
@@ -82,6 +92,18 @@ output$ir_visualizations_UI <- renderUI({
       ir_fill_wrap(shinycssloaders::withSpinner(uiOutput(
         "ir_ui_pairedScatter"
       )))
+    ),
+    tabPanel(
+      "Definition",
+      ir_fill_plot("ir_plot_cloneDefinition", plotly = TRUE)
+    ),
+    tabPanel(
+      "Clone Sharing",
+      ir_fill_plot("ir_plot_cloneSharing", plotly = TRUE)
+    ),
+    tabPanel(
+      "Motif Network",
+      ir_fill_plot("ir_plot_motifNetwork", visnet = TRUE)
     )
   )
 
@@ -236,6 +258,186 @@ ir_empty_plotly <- function(msg) {
     )
 }
 
+ir_umap_split_layout <- function(
+  n_groups,
+  width = NULL,
+  height = NULL,
+  min_px = 300L
+) {
+  n_groups <- max(1L, as.integer(n_groups %||% 1L))
+  width <- suppressWarnings(as.numeric(width))
+  height <- suppressWarnings(as.numeric(height))
+  if (length(width) != 1 || is.na(width) || width <= 0) {
+    width <- 900
+  }
+  if (length(height) != 1 || is.na(height) || height <= 0) {
+    height <- 650
+  }
+  max_cols <- max(1L, min(n_groups, floor(width / min_px)))
+  candidates <- seq_len(max_cols)
+  layouts <- lapply(candidates, function(ncol) {
+    nrow <- ceiling(n_groups / ncol)
+    draw_height <- max(height, nrow * min_px)
+    panel_px <- min(width / ncol, draw_height / nrow)
+    fill_ratio <- n_groups / (ncol * nrow)
+    data.frame(
+      ncol = ncol,
+      nrow = nrow,
+      panel_px = panel_px,
+      score = panel_px * fill_ratio
+    )
+  })
+  layouts <- do.call(rbind, layouts)
+  ok <- layouts$panel_px >= min_px
+  choices <- if (any(ok)) layouts[ok, , drop = FALSE] else layouts
+  best_score <- max(choices$score)
+  choices <- choices[choices$score == best_score, , drop = FALSE]
+  ncol <- max(choices$ncol)
+  nrow <- ceiling(n_groups / ncol)
+  draw_height <- max(height, nrow * min_px)
+  panel_px <- min(width / ncol, draw_height / nrow)
+  list(
+    ncol = ncol,
+    nrow = nrow,
+    width = ceiling(width),
+    height = ceiling(nrow * panel_px),
+    panel_px = panel_px
+  )
+}
+
+ir_umap_grouped_data <- function(df, group_by) {
+  if (is.null(group_by) || !nzchar(group_by)) {
+    return(df)
+  }
+  md <- tryCatch(getMetaData(), error = function(e) NULL)
+  if (
+    is.null(md) ||
+      !("cell_barcode" %in% colnames(md)) ||
+      !(group_by %in% colnames(md))
+  ) {
+    return(NULL)
+  }
+  idx <- match(df$barcode, md$cell_barcode)
+  group_values <- as.character(md[[group_by]][idx])
+  group_levels <- tryCatch(getGroupLevels(group_by), error = function(e) NULL)
+  if (is.null(group_levels) || length(group_levels) == 0) {
+    group_levels <- unique(group_values)
+  }
+  group_levels <- group_levels[
+    !is.na(group_levels) & nzchar(group_levels) & group_levels %in% group_values
+  ]
+  df$.umap_group <- factor(group_values, levels = group_levels)
+  df <- df[!is.na(df$.umap_group), , drop = FALSE]
+  if (nrow(df) == 0) {
+    return(NULL)
+  }
+  df
+}
+
+ir_umap_split_group_count <- function(group_by) {
+  md <- tryCatch(getMetaData(), error = function(e) NULL)
+  if (
+    is.null(md) ||
+      is.null(group_by) ||
+      !nzchar(group_by) ||
+      !("cell_barcode" %in% colnames(md)) ||
+      !(group_by %in% colnames(md))
+  ) {
+    return(1L)
+  }
+  cells <- tryCatch(ir_umap_cells_to_show(), error = function(e) NULL)
+  if (!is.null(cells)) {
+    md <- md[md$cell_barcode %in% cells, , drop = FALSE]
+  }
+  vals <- as.character(md[[group_by]])
+  vals <- vals[!is.na(vals) & nzchar(vals)]
+  max(1L, length(unique(vals)))
+}
+
+ir_umap_client_px <- function(keys, fallback) {
+  cd <- session$clientData
+  vals <- vapply(
+    keys,
+    function(key) {
+      suppressWarnings(as.numeric(cd[[key]] %||% NA_real_))
+    },
+    numeric(1)
+  )
+  vals <- vals[!is.na(vals) & vals > 0]
+  if (length(vals) == 0) {
+    return(fallback)
+  }
+  vals[[1]]
+}
+
+ir_umap_split_current_layout <- function(group_by) {
+  layout <- ir_umap_split_layout(
+    ir_umap_split_group_count(group_by),
+    width = ir_umap_client_px(
+      c(
+        "output_ir_plot_clonalUMAP_static_width",
+        "output_ir_ui_clonalUMAP_width",
+        "output_ir_visualizations_UI_width"
+      ),
+      fallback = 900
+    ),
+    height = ir_umap_client_px(
+      c(
+        "output_ir_ui_clonalUMAP_height",
+        "output_ir_visualizations_UI_height"
+      ),
+      fallback = 650
+    )
+  )
+  layout
+}
+
+ir_umap_split_output_height <- function(group_by) {
+  layout <- ir_umap_split_current_layout(group_by)
+  ceiling(layout$height)
+}
+
+ir_clonal_umap_ggplot <- function(df, group_by, point_size, alpha, ncol) {
+  bg <- df[is.na(df$expansion), , drop = FALSE]
+  fg <- df[!is.na(df$expansion), , drop = FALSE]
+  ggplot2::ggplot() +
+    ggplot2::geom_point(
+      data = bg,
+      ggplot2::aes(x = .data$x, y = .data$y),
+      colour = "grey85",
+      size = point_size,
+      alpha = alpha
+    ) +
+    ggplot2::geom_point(
+      data = fg,
+      ggplot2::aes(x = .data$x, y = .data$y, colour = .data$expansion),
+      size = point_size,
+      alpha = alpha
+    ) +
+    ggplot2::facet_wrap(stats::as.formula("~ .umap_group"), ncol = ncol) +
+    ggplot2::scale_colour_manual(
+      values = IR_EXPANSION_COLORS,
+      drop = FALSE,
+      name = "Clonotype"
+    ) +
+    ggplot2::coord_equal() +
+    ggplot2::labs(x = "UMAP_1", y = "UMAP_2") +
+    ggplot2::theme_classic() +
+    ggplot2::theme(aspect.ratio = 1)
+}
+
+output$ir_ui_clonalUMAP <- renderUI({
+  group_by <- ir_param("ir_p_umap_group_by", "")
+  if (is.null(group_by) || !nzchar(group_by)) {
+    return(ir_fill_plot("ir_plot_clonalUMAP", spinner = FALSE, plotly = TRUE))
+  }
+  ir_fill_plot(
+    "ir_plot_clonalUMAP_static",
+    spinner = FALSE,
+    height = paste0(ir_umap_split_output_height(group_by), "px")
+  )
+})
+
 output$ir_plot_clonalUMAP <- plotly::renderPlotly({
   req_plot_space("ir_plot_clonalUMAP")
   receptor <- ir_param("ir_p_umap_receptor")
@@ -341,8 +543,9 @@ output$ir_plot_clonalUMAP <- plotly::renderPlotly({
         if (!is.character(legend_pos) || length(legend_pos) != 1) {
           legend_pos <- "right"
         }
-        # Map the shared position choices onto plotly's legend orientation/anchor.
-        show_legend <- legend_pos != "none"
+        # Legend visibility is driven by the dedicated Show/Hide control; the
+        # position choices only place it when shown.
+        show_legend <- !identical(dp[["ir_d_legend_show"]], "hide")
         legend_cfg <- list(
           itemsizing = "constant",
           font = list(size = legend_size),
@@ -381,6 +584,95 @@ output$ir_plot_clonalUMAP <- plotly::renderPlotly({
     input$ir_p_umap_receptor,
     input$ir_p_umap_projection,
     input$ir_p_umap_show_all,
+    input$ir_p_umap_group_by,
+    input$ir_d_point_size,
+    input$ir_d_alpha
+  )
+
+output$ir_plot_clonalUMAP_static <- renderPlot(
+  {
+    req_plot_space("ir_plot_clonalUMAP_static")
+    receptor <- ir_param("ir_p_umap_receptor")
+    projection <- ir_param("ir_p_umap_projection")
+    group_by <- ir_param("ir_p_umap_group_by", "")
+    validate(need(nzchar(group_by), "Choose a grouping column."))
+    clone_call <- "gene"
+    show_all <- isTRUE(ir_param("ir_p_umap_show_all", TRUE))
+    cells <- ir_umap_cells_to_show()
+    df <- ir_clonal_umap_data(
+      projection,
+      receptor,
+      clone_call,
+      show_all = show_all,
+      cells = cells
+    )
+
+    safeRenderPlot(
+      {
+        if (is.null(df) || nrow(df) == 0) {
+          return(
+            ggplot2::ggplot() +
+              ggplot2::annotate(
+                "text",
+                x = 0,
+                y = 0,
+                label = paste0(
+                  "No clonal UMAP to display.\n",
+                  "Needs a cell projection and ",
+                  if (is.null(receptor)) "TCR/BCR" else receptor,
+                  " clonotypes whose barcodes match the cells."
+                ),
+                size = 4.5,
+                colour = "#666666"
+              ) +
+              ggplot2::theme_void()
+          )
+        }
+        df <- ir_umap_grouped_data(df, group_by)
+        validate(need(
+          !is.null(df) && nrow(df) > 0,
+          "No cells match this grouping."
+        ))
+        dp <- tryCatch(ir_display_params(), error = function(e) list())
+        point_size <- suppressWarnings(as.numeric(dp[["ir_d_point_size"]]))
+        if (length(point_size) != 1 || is.na(point_size)) {
+          point_size <- 1
+        }
+        alpha <- suppressWarnings(as.numeric(dp[["ir_d_alpha"]]))
+        if (length(alpha) != 1 || is.na(alpha)) {
+          alpha <- 0.8
+        }
+        n_groups <- length(levels(df$.umap_group))
+        layout <- ir_umap_split_layout(
+          n_groups,
+          width = session$clientData$output_ir_plot_clonalUMAP_static_width,
+          height = session$clientData$output_ir_plot_clonalUMAP_static_height
+        )
+        ir_clonal_umap_ggplot(
+          df,
+          group_by = group_by,
+          point_size = point_size,
+          alpha = alpha,
+          ncol = layout$ncol
+        )
+      },
+      "clonalUMAP"
+    )
+  },
+  width = function() {
+    group_by <- ir_param("ir_p_umap_group_by", "")
+    ceiling(ir_umap_split_current_layout(group_by)$width)
+  },
+  height = function() {
+    group_by <- ir_param("ir_p_umap_group_by", "")
+    ceiling(ir_umap_split_current_layout(group_by)$height)
+  }
+) %>%
+  ir_bindCache(
+    input$ir_p_umap_receptor,
+    input$ir_p_umap_projection,
+    input$ir_p_umap_show_all,
+    input$ir_p_umap_group_by,
     input$ir_d_point_size,
     input$ir_d_alpha
   )
@@ -531,20 +823,25 @@ output$ir_ui_pairedScatter <- renderUI({
 
 output$ir_ui_pairedScatter_plot <- renderUI({
   pair_mode <- input$ir_pair_compare
+  # Single-plot case (no compare mode): fill the viewport like every other tab,
+  # accounting for the extra Pair-by control row (IR_PAIRED_PLOT_HEIGHT).
   if (is.null(pair_mode) || !nzchar(pair_mode)) {
-    return(plotOutput("ir_plot_pairedScatter", height = "500px"))
+    return(plotOutput("ir_plot_pairedScatter", height = IR_PAIRED_PLOT_HEIGHT))
   }
   meta <- ir_sample_meta()
   req(!is.null(meta))
   facet_col <- input$ir_pair_facet
   if (is.null(facet_col) || facet_col == "") {
-    h <- 500
-  } else {
-    n_facets <- length(unique(meta[[facet_col]]))
-    ncol_p <- min(4L, n_facets)
-    nrow_p <- ceiling(n_facets / ncol_p)
-    h <- max(450, nrow_p * 420)
+    # Still a single panel — viewport-relative height, less the Pair-by row.
+    return(plotOutput("ir_plot_pairedScatter", height = IR_PAIRED_PLOT_HEIGHT))
   }
+  # Faceted: size by the number of facet rows so panels aren't squashed. This is
+  # intentionally a fixed pixel height (can exceed the viewport and scroll),
+  # because forcing many facets into one viewport height would flatten them.
+  n_facets <- length(unique(meta[[facet_col]]))
+  ncol_p <- min(4L, n_facets)
+  nrow_p <- ceiling(n_facets / ncol_p)
+  h <- max(450, nrow_p * 420)
   plotOutput("ir_plot_pairedScatter", height = paste0(h, "px"))
 })
 
@@ -1602,3 +1899,340 @@ output$ir_plot_percentKmer <- renderPlot({
     input$ir_p_motif_length,
     input$ir_p_min_depth
   )
+
+## ---- Definition: clone-definition resolution waterfall ----------------- ##
+## Bars count unique entities at cells -> V -> J -> V+J -> CDR3 -> V+CDR3 ->
+## V+J+CDR3. The clone definition is parsed from the CT* columns for the active
+## chain (ir_parse_segments); faceted by the active group.by column when chosen.
+output$ir_plot_cloneDefinition <- plotly::renderPlotly({
+  req(has_scRepertoire())
+  req_plot_space("ir_plot_cloneDefinition")
+  ir_render_ggplotly(
+    ir_build_definition_plot(
+      ir_data_annotated(),
+      specific_chain(),
+      ir_params()$groupBy
+    ),
+    "ir_plot_cloneDefinition"
+  )
+}) %>%
+  ir_bindCache(
+    input$ir_chain,
+    input$ir_groupBy
+  )
+
+## ---- Sharing: cross-group clonotype sharing ---------------------------- ##
+## Classifies each clonotype (V+J+CDR3 of the active chain) as Private /
+## Public(within-group) / Public(cross-group) using the chosen sharing unit and
+## the active group.by, then bars the class counts.
+output$ir_plot_cloneSharing <- plotly::renderPlotly({
+  req(has_scRepertoire())
+  req_plot_space("ir_plot_cloneSharing")
+  ir_render_ggplotly(
+    ir_build_sharing_plot(
+      ir_data_annotated(),
+      specific_chain(),
+      ir_param("ir_sharing_unit", "sample"),
+      ir_params()$groupBy
+    ),
+    "ir_plot_cloneSharing"
+  )
+}) %>%
+  ir_bindCache(
+    input$ir_chain,
+    input$ir_groupBy,
+    input$ir_sharing_unit
+  )
+
+## ---- Motif Network: Hamming CDR3 motif clusters ------------------------ ##
+## Builds the motif igraph from the active chain's CDR3s and draws it with
+## ggraph. Needs stringdist + ggraph (Suggests); shows an install hint if
+## missing. Node colour follows the "Colour nodes by" control.
+
+## Shared motif graph: built once from the active chain + clustering controls,
+## consumed by both the plot renderer and the legend auto-hide observer so the
+## graph is not constructed twice. Returns NULL when no cluster survives.
+ir_motif_graph <- reactive({
+  req(has_scRepertoire())
+  if (!has_motif_deps()) {
+    return(NULL)
+  }
+  threshold <- as.numeric(ir_param("ir_motif_threshold", 1))
+  if (is.na(threshold) || threshold < 1) {
+    threshold <- 1
+  }
+  min_size <- as.numeric(ir_param("ir_motif_min_size", 1))
+  if (is.na(min_size) || min_size < 1) {
+    min_size <- 1
+  }
+  by_v <- isTRUE(ir_param("ir_motif_by_v", FALSE))
+  show_isolated <- isTRUE(ir_param("ir_motif_show_isolated", FALSE))
+  ir_build_motif_graph(
+    ir_data_annotated(),
+    specific_chain(),
+    threshold = threshold,
+    by_v = by_v,
+    min_size = min_size,
+    show_isolated = show_isolated
+  )
+}) %>%
+  ir_bindCache(
+    input$ir_chain,
+    input$ir_motif_threshold,
+    input$ir_motif_min_size,
+    input$ir_motif_by_v,
+    input$ir_motif_show_isolated
+  )
+
+## When colouring by motif cluster and the number of colour levels exceeds the
+## auto-hide threshold, the per-cluster legend is unreadable and gets dropped
+## (see auto_hidden in data.R). Reflect that in the shared Legend Show/Hide
+## control: flip it to "Hide" and DISABLE it, so it is greyed out and matches
+## what is drawn — no live "Show" sitting over a legend the backend refuses to
+## draw. The control is a single spec-driven input shared across tabs, so the
+## disable must be reversed (enable) whenever the gate no longer applies —
+## metadata colouring, a low-cardinality cluster count, or another tab — or it
+## would stay stuck grey. ignoreInit = FALSE so the initial render is correct.
+observeEvent(
+  list(
+    ir_motif_graph(),
+    input$ir_motif_color_by
+  ),
+  {
+    g <- ir_motif_graph()
+    color_by <- ir_param("ir_motif_color_by", "")
+    by_cluster <- is.null(color_by) || !nzchar(color_by)
+    n_levels <- if (is.null(g)) 0L else length(unique(igraph::V(g)$cluster))
+    gate_hit <- !is.null(g) &&
+      by_cluster &&
+      n_levels > IR_MOTIF_MAX_LEGEND_CLUSTERS
+    if (gate_hit) {
+      if (!identical(input$ir_d_legend_show, "hide")) {
+        updateSelectInput(session, "ir_d_legend_show", selected = "hide")
+      }
+      shinyjs::disable("ir_d_legend_show")
+    } else {
+      shinyjs::enable("ir_d_legend_show")
+    }
+  },
+  ignoreInit = FALSE
+)
+
+output$ir_plot_motifNetwork <- visNetwork::renderVisNetwork({
+  req(has_scRepertoire())
+  req_plot_space("ir_plot_motifNetwork")
+  if (!has_motif_deps()) {
+    return(
+      visNetwork::visNetwork(
+        nodes = data.frame(
+          id = 1,
+          label = paste(
+            "Motif Network requires 'stringdist', 'ggraph', 'visNetwork'.",
+            'Install: install.packages(c("stringdist","ggraph","visNetwork"))',
+            sep = "\n"
+          ),
+          stringsAsFactors = FALSE
+        ),
+        edges = data.frame(from = integer(0), to = integer(0))
+      )
+    )
+  }
+  color_by <- ir_param("ir_motif_color_by", "")
+  # Generic display-panel legend controls (shared with the other tabs).
+  dp <- tryCatch(ir_display_params(), error = function(e) list())
+  show_legend <- dp[["ir_d_legend_show"]] %||% "show"
+  legend_pos <- dp[["ir_d_legend_pos"]] %||% "right"
+  vn <- ir_build_motif_visnet(
+    ir_motif_graph(),
+    color_by = color_by,
+    chain = specific_chain(),
+    show_legend = show_legend,
+    legend_pos = legend_pos
+  )
+  if (is.null(vn)) {
+    return(
+      visNetwork::visNetwork(
+        nodes = data.frame(
+          id = integer(0),
+          label = character(0),
+          stringsAsFactors = FALSE
+        ),
+        edges = data.frame(from = integer(0), to = integer(0))
+      )
+    )
+  }
+  net <- visNetwork::visNetwork(vn$nodes, vn$edges) %>%
+    # Node label styling (variable-residue letters inside points, consensus
+    # titles on text nodes) comes per-node from the data: font.size, font.color,
+    # and shape are set per row so point labels are white-on-colour and the
+    # consensus titles are dark text.
+    # Node size encodes clone_count. vis's default scaling stretches [min,max]
+    # to fill [8,40] regardless of how narrow the range is, so a 1-vs-2 clone
+    # difference blows up to a 5x radius gap. A custom, ABSOLUTE mapping keeps
+    # small clone sizes close together and only lets big clonal expansions grow
+    # large: norm = (value-1)/(value-1+20), so 1->8px, 2->~9.5px, 10->~18px,
+    # 100->~34px. The legend reads these same radii back, so it stays in sync.
+    visNetwork::visNodes(
+      scaling = list(
+        min = 8,
+        max = 40,
+        customScalingFunction = htmlwidgets::JS(
+          "function(min, max, total, value) {
+             var v = Math.max(0, value - 1);
+             return v / (v + 20);
+           }"
+        )
+      ),
+      font = list(face = "sans-serif")
+    ) %>%
+    visNetwork::visEdges(color = list(color = "grey60")) %>%
+    visNetwork::visPhysics(
+      solver = "forceAtlas2Based",
+      stabilization = list(iterations = 150)
+    ) %>%
+    visNetwork::visOptions(
+      highlightNearest = list(enabled = TRUE, degree = 1, hover = TRUE)
+    ) %>%
+    # Once the force layout settles, pin each consensus title (shape "text",
+    # physics off) just above the centroid of its cluster's points, so it reads
+    # as that cluster's heading and never drifts. Matching is by `cl`.
+    visNetwork::visEvents(
+      stabilized = sprintf(
+        "function() {
+      var self = this;
+      var all = self.body.data.nodes.get();
+      var pts = {};
+      all.forEach(function(nd) {
+        if (nd.shape === 'dot' && nd.cl != null) {
+          (pts[nd.cl] = pts[nd.cl] || []).push(nd.id);
+        }
+      });
+      var pos = self.getPositions();
+      var moves = [];
+      all.forEach(function(nd) {
+        if (nd.shape !== 'text' || nd.cl == null) { return; }
+        var ids = pts[nd.cl];
+        if (!ids || !ids.length) { return; }
+        var sx = 0, minY = Infinity;
+        ids.forEach(function(id) {
+          var p = pos[id];
+          if (!p) { return; }
+          sx += p.x;
+          if (p.y < minY) { minY = p.y; }
+        });
+        moves.push({ id: nd.id, x: sx / ids.length, y: minY - 42 });
+      });
+      if (moves.length) {
+        moves.forEach(function(m) { self.moveNode(m.id, m.x, m.y); });
+      }
+
+      // Clone-size legend: read the ACTUAL rendered radius vis gives each
+      // clone_count value, so the legend circles match the points exactly.
+      var reps = %s;
+      // Walk up from the vis canvas to the widget root, then find the swatch
+      // container the legend HTML left for us.
+      var root = self.body.container, cont = null;
+      while (root && !cont) {
+        cont = root.querySelector ? root.querySelector('.ir-size-swatches') : null;
+        root = root.parentElement;
+      }
+      if (reps && reps.length && cont) {
+        // Map every real clone_count value to the radius vis drew for it.
+        var r2 = {};
+        all.forEach(function(nd) {
+          if (nd.shape !== 'dot' || nd.value == null) { return; }
+          var no = self.body.nodes[nd.id];
+          if (no && no.shape && no.shape.radius) { r2[nd.value] = no.shape.radius; }
+        });
+        var vals = Object.keys(r2).map(Number);
+        var radiusFor = function(v) {
+          if (r2[v] != null) { return r2[v]; }
+          // nearest known value's radius (reps come from real values, so this
+          // is a safety net only).
+          var best = null, bd = Infinity;
+          vals.forEach(function(k) {
+            var d = Math.abs(k - v);
+            if (d < bd) { bd = d; best = k; }
+          });
+          return best == null ? 8 : r2[best];
+        };
+        var rads = reps.map(radiusFor);
+        var maxD = Math.max.apply(null, rads.map(function(r){ return 2*r; })) + 4;
+        var html = reps.map(function(v, i) {
+          var d = Math.round(2 * rads[i]);
+          return '<div style=\"display:flex;align-items:center;margin:6px 0;\">' +
+            '<span style=\"display:flex;width:' + maxD + 'px;justify-content:center;' +
+            'align-items:center;flex:none;margin-right:8px;\">' +
+            '<span style=\"display:block;border-radius:50%%;background:#b8c2d6;' +
+            'flex:none;width:' + d + 'px;height:' + d + 'px;\"></span></span>' +
+            '<span style=\"white-space:nowrap;\">' + v + '</span></div>';
+        }).join('');
+        cont.innerHTML = html;
+      }
+    }",
+        jsonlite::toJSON(
+          if (is.null(vn$size_legend)) numeric(0) else vn$size_legend$value,
+          auto_unbox = FALSE
+        )
+      )
+    )
+  if (!vn$hide_legend && !is.null(vn$legend) && nrow(vn$legend) > 0) {
+    # plotly-style legend as an HTML overlay pinned to the right of the graph.
+    # vis's own canvas legend clips long labels at the container edge, so we
+    # inject a real HTML block instead: a bold title over a column of coloured
+    # dots + text labels, built from the same palette the nodes use. onRender
+    # runs client-side after the widget draws; `el` is the widget container.
+    esc_html <- function(x) {
+      x <- as.character(x)
+      x <- gsub("&", "&amp;", x, fixed = TRUE)
+      x <- gsub("<", "&lt;", x, fixed = TRUE)
+      x <- gsub(">", "&gt;", x, fixed = TRUE)
+      gsub('"', "&quot;", x, fixed = TRUE)
+    }
+    rows <- paste0(
+      "<div style=\"display:flex;align-items:center;margin:6px 0;\">",
+      "<span style=\"display:inline-block;width:13px;height:13px;border-radius:50%;",
+      "background:",
+      esc_html(vn$legend$color),
+      ";margin-right:8px;flex:none;\"></span>",
+      "<span style=\"white-space:nowrap;\">",
+      esc_html(vn$legend$label),
+      "</span></div>",
+      collapse = ""
+    )
+    # Size legend: a "Clone size" sub-section whose grey circles are sized on
+    # the client to exactly match how vis draws the points (see the stabilized
+    # handler). Here we only emit the title + an empty container the handler
+    # fills once real radii are known. Omitted when vn$size_legend is NULL.
+    size_html <- ""
+    if (!is.null(vn$size_legend) && nrow(vn$size_legend) > 0) {
+      size_html <- paste0(
+        "<div style=\"font-size:16px;font-weight:bold;margin:14px 0 8px;\">",
+        "Clone size</div>",
+        "<div class=\"ir-size-swatches\"></div>"
+      )
+    }
+    legend_html <- paste0(
+      "<div class=\"ir-motif-legend\" style=\"position:absolute;top:16px;right:12px;",
+      "font-family:sans-serif;font-size:14px;color:#2a3f5f;z-index:5;",
+      "background:rgba(255,255,255,0.85);padding:4px 8px;pointer-events:none;\">",
+      "<div style=\"font-size:16px;font-weight:bold;margin-bottom:8px;\">",
+      esc_html(vn$legend_title),
+      "</div>",
+      rows,
+      size_html,
+      "</div>"
+    )
+    js <- sprintf(
+      "function(el, x) {
+         el.style.position = 'relative';
+         var old = el.querySelector('.ir-motif-legend');
+         if (old) { old.remove(); }
+         el.insertAdjacentHTML('beforeend', %s);
+       }",
+      jsonlite::toJSON(legend_html, auto_unbox = TRUE)
+    )
+    net <- htmlwidgets::onRender(net, js)
+  }
+  net
+})

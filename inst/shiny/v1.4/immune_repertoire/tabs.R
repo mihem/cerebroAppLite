@@ -36,7 +36,10 @@ observeEvent(input$ir_tabs, {
         "Entropy",
         "Isotype",
         "SHM Proxy",
-        "Paired Scatter"
+        "Paired Scatter",
+        "Definition",
+        "Clone Sharing",
+        "Motif Network"
       )
   ) {
     updateSelectInput(session, "ir_cloneCall", choices = NULL, selected = NULL)

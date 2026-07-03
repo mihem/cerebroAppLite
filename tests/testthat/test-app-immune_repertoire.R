@@ -420,6 +420,60 @@ test_that("Clonal UMAP has Show-all toggle and group filters", {
   app$stop()
 })
 
+test_that("Clonal UMAP switches to static facets only when grouped", {
+  local_app_support(inst_dir)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "ir_umap_grouped_static",
+    height = 950,
+    width = 1619
+  )
+  app$wait_for_idle(timeout = 20000)
+  app$run_js(
+    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
+  )
+  app$wait_for_idle(timeout = 20000)
+
+  exists_el <- function(sel) {
+    app$get_js(sprintf("document.querySelector('%s') !== null;", sel))
+  }
+
+  expect_true(isTRUE(exists_el("#ir_p_umap_group_by")))
+  expect_true(isTRUE(exists_el("#ir_plot_clonalUMAP .plotly")))
+  expect_false(isTRUE(exists_el("#ir_plot_clonalUMAP_static img")))
+
+  app$set_inputs(ir_p_umap_group_by = "sample", wait_ = FALSE)
+  app$wait_for_idle(timeout = 20000)
+
+  expect_false(isTRUE(exists_el("#ir_plot_clonalUMAP .plotly")))
+  expect_true(isTRUE(exists_el("#ir_plot_clonalUMAP_static img")))
+  plot_value <- app$get_value(output = "ir_plot_clonalUMAP_static")
+  panel_rows <- vapply(
+    plot_value$coordmap$panels,
+    function(panel) panel$row,
+    integer(1)
+  )
+  expect_identical(unique(panel_rows), 1L)
+  static_size <- app$get_js(
+    paste0(
+      "(function(){",
+      "var e=document.querySelector('#ir_plot_clonalUMAP_static');",
+      "var img=e?e.querySelector('img'):null;",
+      "return e?{",
+      "w:e.clientWidth,h:e.clientHeight,",
+      "imgW:img?img.naturalWidth:0,imgH:img?img.naturalHeight:0",
+      "}:null;",
+      "})();"
+    )
+  )
+  expect_gte(as.numeric(static_size$w), 300)
+  expect_gte(as.numeric(static_size$h), 300)
+  expect_gte(as.numeric(static_size$imgW), as.numeric(static_size$w) * 0.9)
+  expect_gte(as.numeric(static_size$imgH), 300)
+
+  app$stop()
+})
+
 test_that("Clone call is hidden on the Clonal UMAP tab", {
   local_app_support(inst_dir)
   app <- AppDriver$new(

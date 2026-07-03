@@ -44,7 +44,7 @@ req_plot_space <- function(output_id, min_px = 80L) {
 ## are scatter-specific and handled directly by the scatter renderers (so we
 ## don't reach into ggplot layer internals here). Non-ggplot input (base-R
 ## plots) is returned unchanged.
-ir_apply_display <- function(p, params = NULL) {
+ir_apply_display <- function(p, params = NULL, skip_legend = FALSE) {
   if (!inherits(p, "ggplot")) {
     return(p)
   }
@@ -77,11 +77,23 @@ ir_apply_display <- function(p, params = NULL) {
         )
       )
   }
-  legend_pos <- params[["ir_d_legend_pos"]]
-  if (
-    is.character(legend_pos) && length(legend_pos) == 1 && nzchar(legend_pos)
-  ) {
-    p <- p + ggplot2::theme(legend.position = legend_pos)
+  # Visibility comes from the dedicated Show/Hide control; position only places
+  # the legend when it is shown. Plots that manage legend position themselves
+  # (e.g. Motif Network with its auto-hide threshold) set skip_legend = TRUE,
+  # which skips this block while still getting font/key sizing above.
+  if (!skip_legend) {
+    if (identical(params[["ir_d_legend_show"]], "hide")) {
+      p <- p + ggplot2::theme(legend.position = "none")
+    } else {
+      legend_pos <- params[["ir_d_legend_pos"]]
+      if (
+        is.character(legend_pos) &&
+          length(legend_pos) == 1 &&
+          nzchar(legend_pos)
+      ) {
+        p <- p + ggplot2::theme(legend.position = legend_pos)
+      }
+    }
   }
   p
 }
@@ -110,7 +122,7 @@ ir_quiet_inext <- function(expr) {
   )
 }
 
-safeRenderPlot <- function(expr, plot_name = "unknown") {
+safeRenderPlot <- function(expr, plot_name = "unknown", skip_legend = FALSE) {
   tryCatch(
     {
       # Evaluate the plot expression, then apply the generic display options
@@ -119,7 +131,7 @@ safeRenderPlot <- function(expr, plot_name = "unknown") {
       # renderers don't each need to call ir_apply_display(). Non-ggplot
       # results (base-R plots) pass through unchanged.
       result <- force(expr)
-      ir_apply_display(result)
+      ir_apply_display(result, skip_legend = skip_legend)
     },
     error = function(e) {
       # validate()/need()/req() raise a "shiny.silent.error"; re-raise it so
