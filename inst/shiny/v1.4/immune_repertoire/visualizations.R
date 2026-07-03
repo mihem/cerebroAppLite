@@ -8,6 +8,13 @@
 ## resolved parent height collapses a static plot to zero.
 IR_PLOT_HEIGHT <- "calc(100vh - 250px)"
 
+## Paired Scatter carries an extra in-tab "Pair by" control row above the plot
+## (~74px measured), which the other tabs don't have. Subtract that on top of
+## the standard 250px chrome so the single (non-faceted) plot ends level with
+## the other tabs' plots and keeps the same ~25px bottom gap, instead of
+## overflowing past the viewport.
+IR_PAIRED_PLOT_HEIGHT <- "calc(100vh - 324px)"
+
 ## Static single plot tab body. `plotly = TRUE` emits an interactive
 ## plotlyOutput (zoom/pan/hover) instead of a static plotOutput.
 ir_fill_plot <- function(
@@ -54,7 +61,7 @@ output$ir_visualizations_UI <- renderUI({
       # Clonal expansion overlaid on the cell UMAP — the default landing tab,
       # so the first thing the user sees is where expanded clones sit.
       "Clonal UMAP",
-      ir_fill_plot("ir_plot_clonalUMAP", plotly = TRUE)
+      shinycssloaders::withSpinner(uiOutput("ir_ui_clonalUMAP"))
     ),
     tabPanel(
       "Abundance",
@@ -82,6 +89,14 @@ output$ir_visualizations_UI <- renderUI({
       ir_fill_wrap(shinycssloaders::withSpinner(uiOutput(
         "ir_ui_pairedScatter"
       )))
+    ),
+    tabPanel(
+      "Definition",
+      ir_fill_plot("ir_plot_cloneDefinition", plotly = TRUE)
+    ),
+    tabPanel(
+      "Clone Sharing",
+      ir_fill_plot("ir_plot_cloneSharing", plotly = TRUE)
     )
   )
 
@@ -235,6 +250,186 @@ ir_empty_plotly <- function(msg) {
       )
     )
 }
+
+ir_umap_split_layout <- function(
+  n_groups,
+  width = NULL,
+  height = NULL,
+  min_px = 300L
+) {
+  n_groups <- max(1L, as.integer(n_groups %||% 1L))
+  width <- suppressWarnings(as.numeric(width))
+  height <- suppressWarnings(as.numeric(height))
+  if (length(width) != 1 || is.na(width) || width <= 0) {
+    width <- 900
+  }
+  if (length(height) != 1 || is.na(height) || height <= 0) {
+    height <- 650
+  }
+  max_cols <- max(1L, min(n_groups, floor(width / min_px)))
+  candidates <- seq_len(max_cols)
+  layouts <- lapply(candidates, function(ncol) {
+    nrow <- ceiling(n_groups / ncol)
+    draw_height <- max(height, nrow * min_px)
+    panel_px <- min(width / ncol, draw_height / nrow)
+    fill_ratio <- n_groups / (ncol * nrow)
+    data.frame(
+      ncol = ncol,
+      nrow = nrow,
+      panel_px = panel_px,
+      score = panel_px * fill_ratio
+    )
+  })
+  layouts <- do.call(rbind, layouts)
+  ok <- layouts$panel_px >= min_px
+  choices <- if (any(ok)) layouts[ok, , drop = FALSE] else layouts
+  best_score <- max(choices$score)
+  choices <- choices[choices$score == best_score, , drop = FALSE]
+  ncol <- max(choices$ncol)
+  nrow <- ceiling(n_groups / ncol)
+  draw_height <- max(height, nrow * min_px)
+  panel_px <- min(width / ncol, draw_height / nrow)
+  list(
+    ncol = ncol,
+    nrow = nrow,
+    width = ceiling(width),
+    height = ceiling(nrow * panel_px),
+    panel_px = panel_px
+  )
+}
+
+ir_umap_grouped_data <- function(df, group_by) {
+  if (is.null(group_by) || !nzchar(group_by)) {
+    return(df)
+  }
+  md <- tryCatch(getMetaData(), error = function(e) NULL)
+  if (
+    is.null(md) ||
+      !("cell_barcode" %in% colnames(md)) ||
+      !(group_by %in% colnames(md))
+  ) {
+    return(NULL)
+  }
+  idx <- match(df$barcode, md$cell_barcode)
+  group_values <- as.character(md[[group_by]][idx])
+  group_levels <- tryCatch(getGroupLevels(group_by), error = function(e) NULL)
+  if (is.null(group_levels) || length(group_levels) == 0) {
+    group_levels <- unique(group_values)
+  }
+  group_levels <- group_levels[
+    !is.na(group_levels) & nzchar(group_levels) & group_levels %in% group_values
+  ]
+  df$.umap_group <- factor(group_values, levels = group_levels)
+  df <- df[!is.na(df$.umap_group), , drop = FALSE]
+  if (nrow(df) == 0) {
+    return(NULL)
+  }
+  df
+}
+
+ir_umap_split_group_count <- function(group_by) {
+  md <- tryCatch(getMetaData(), error = function(e) NULL)
+  if (
+    is.null(md) ||
+      is.null(group_by) ||
+      !nzchar(group_by) ||
+      !("cell_barcode" %in% colnames(md)) ||
+      !(group_by %in% colnames(md))
+  ) {
+    return(1L)
+  }
+  cells <- tryCatch(ir_umap_cells_to_show(), error = function(e) NULL)
+  if (!is.null(cells)) {
+    md <- md[md$cell_barcode %in% cells, , drop = FALSE]
+  }
+  vals <- as.character(md[[group_by]])
+  vals <- vals[!is.na(vals) & nzchar(vals)]
+  max(1L, length(unique(vals)))
+}
+
+ir_umap_client_px <- function(keys, fallback) {
+  cd <- session$clientData
+  vals <- vapply(
+    keys,
+    function(key) {
+      suppressWarnings(as.numeric(cd[[key]] %||% NA_real_))
+    },
+    numeric(1)
+  )
+  vals <- vals[!is.na(vals) & vals > 0]
+  if (length(vals) == 0) {
+    return(fallback)
+  }
+  vals[[1]]
+}
+
+ir_umap_split_current_layout <- function(group_by) {
+  layout <- ir_umap_split_layout(
+    ir_umap_split_group_count(group_by),
+    width = ir_umap_client_px(
+      c(
+        "output_ir_plot_clonalUMAP_static_width",
+        "output_ir_ui_clonalUMAP_width",
+        "output_ir_visualizations_UI_width"
+      ),
+      fallback = 900
+    ),
+    height = ir_umap_client_px(
+      c(
+        "output_ir_ui_clonalUMAP_height",
+        "output_ir_visualizations_UI_height"
+      ),
+      fallback = 650
+    )
+  )
+  layout
+}
+
+ir_umap_split_output_height <- function(group_by) {
+  layout <- ir_umap_split_current_layout(group_by)
+  ceiling(layout$height)
+}
+
+ir_clonal_umap_ggplot <- function(df, group_by, point_size, alpha, ncol) {
+  bg <- df[is.na(df$expansion), , drop = FALSE]
+  fg <- df[!is.na(df$expansion), , drop = FALSE]
+  ggplot2::ggplot() +
+    ggplot2::geom_point(
+      data = bg,
+      ggplot2::aes(x = .data$x, y = .data$y),
+      colour = "grey85",
+      size = point_size,
+      alpha = alpha
+    ) +
+    ggplot2::geom_point(
+      data = fg,
+      ggplot2::aes(x = .data$x, y = .data$y, colour = .data$expansion),
+      size = point_size,
+      alpha = alpha
+    ) +
+    ggplot2::facet_wrap(stats::as.formula("~ .umap_group"), ncol = ncol) +
+    ggplot2::scale_colour_manual(
+      values = IR_EXPANSION_COLORS,
+      drop = FALSE,
+      name = "Clonotype"
+    ) +
+    ggplot2::coord_equal() +
+    ggplot2::labs(x = "UMAP_1", y = "UMAP_2") +
+    ggplot2::theme_classic() +
+    ggplot2::theme(aspect.ratio = 1)
+}
+
+output$ir_ui_clonalUMAP <- renderUI({
+  group_by <- ir_param("ir_p_umap_group_by", "")
+  if (is.null(group_by) || !nzchar(group_by)) {
+    return(ir_fill_plot("ir_plot_clonalUMAP", spinner = FALSE, plotly = TRUE))
+  }
+  ir_fill_plot(
+    "ir_plot_clonalUMAP_static",
+    spinner = FALSE,
+    height = paste0(ir_umap_split_output_height(group_by), "px")
+  )
+})
 
 output$ir_plot_clonalUMAP <- plotly::renderPlotly({
   req_plot_space("ir_plot_clonalUMAP")
@@ -391,6 +586,95 @@ output$ir_plot_clonalUMAP <- plotly::renderPlotly({
     input$ir_p_umap_receptor,
     input$ir_p_umap_projection,
     input$ir_p_umap_show_all,
+    input$ir_p_umap_group_by,
+    input$ir_d_point_size,
+    input$ir_d_alpha
+  )
+
+output$ir_plot_clonalUMAP_static <- renderPlot(
+  {
+    req_plot_space("ir_plot_clonalUMAP_static")
+    receptor <- ir_param("ir_p_umap_receptor")
+    projection <- ir_param("ir_p_umap_projection")
+    group_by <- ir_param("ir_p_umap_group_by", "")
+    validate(need(nzchar(group_by), "Choose a grouping column."))
+    clone_call <- "gene"
+    show_all <- isTRUE(ir_param("ir_p_umap_show_all", TRUE))
+    cells <- ir_umap_cells_to_show()
+    df <- ir_clonal_umap_data(
+      projection,
+      receptor,
+      clone_call,
+      show_all = show_all,
+      cells = cells
+    )
+
+    safeRenderPlot(
+      {
+        if (is.null(df) || nrow(df) == 0) {
+          return(
+            ggplot2::ggplot() +
+              ggplot2::annotate(
+                "text",
+                x = 0,
+                y = 0,
+                label = paste0(
+                  "No clonal UMAP to display.\n",
+                  "Needs a cell projection and ",
+                  if (is.null(receptor)) "TCR/BCR" else receptor,
+                  " clonotypes whose barcodes match the cells."
+                ),
+                size = 4.5,
+                colour = "#666666"
+              ) +
+              ggplot2::theme_void()
+          )
+        }
+        df <- ir_umap_grouped_data(df, group_by)
+        validate(need(
+          !is.null(df) && nrow(df) > 0,
+          "No cells match this grouping."
+        ))
+        dp <- tryCatch(ir_display_params(), error = function(e) list())
+        point_size <- suppressWarnings(as.numeric(dp[["ir_d_point_size"]]))
+        if (length(point_size) != 1 || is.na(point_size)) {
+          point_size <- 1
+        }
+        alpha <- suppressWarnings(as.numeric(dp[["ir_d_alpha"]]))
+        if (length(alpha) != 1 || is.na(alpha)) {
+          alpha <- 0.8
+        }
+        n_groups <- length(levels(df$.umap_group))
+        layout <- ir_umap_split_layout(
+          n_groups,
+          width = session$clientData$output_ir_plot_clonalUMAP_static_width,
+          height = session$clientData$output_ir_plot_clonalUMAP_static_height
+        )
+        ir_clonal_umap_ggplot(
+          df,
+          group_by = group_by,
+          point_size = point_size,
+          alpha = alpha,
+          ncol = layout$ncol
+        )
+      },
+      "clonalUMAP"
+    )
+  },
+  width = function() {
+    group_by <- ir_param("ir_p_umap_group_by", "")
+    ceiling(ir_umap_split_current_layout(group_by)$width)
+  },
+  height = function() {
+    group_by <- ir_param("ir_p_umap_group_by", "")
+    ceiling(ir_umap_split_current_layout(group_by)$height)
+  }
+) %>%
+  ir_bindCache(
+    input$ir_p_umap_receptor,
+    input$ir_p_umap_projection,
+    input$ir_p_umap_show_all,
+    input$ir_p_umap_group_by,
     input$ir_d_point_size,
     input$ir_d_alpha
   )
@@ -541,20 +825,25 @@ output$ir_ui_pairedScatter <- renderUI({
 
 output$ir_ui_pairedScatter_plot <- renderUI({
   pair_mode <- input$ir_pair_compare
+  # Single-plot case (no compare mode): fill the viewport like every other tab,
+  # accounting for the extra Pair-by control row (IR_PAIRED_PLOT_HEIGHT).
   if (is.null(pair_mode) || !nzchar(pair_mode)) {
-    return(plotOutput("ir_plot_pairedScatter", height = "500px"))
+    return(plotOutput("ir_plot_pairedScatter", height = IR_PAIRED_PLOT_HEIGHT))
   }
   meta <- ir_sample_meta()
   req(!is.null(meta))
   facet_col <- input$ir_pair_facet
   if (is.null(facet_col) || facet_col == "") {
-    h <- 500
-  } else {
-    n_facets <- length(unique(meta[[facet_col]]))
-    ncol_p <- min(4L, n_facets)
-    nrow_p <- ceiling(n_facets / ncol_p)
-    h <- max(450, nrow_p * 420)
+    # Still a single panel — viewport-relative height, less the Pair-by row.
+    return(plotOutput("ir_plot_pairedScatter", height = IR_PAIRED_PLOT_HEIGHT))
   }
+  # Faceted: size by the number of facet rows so panels aren't squashed. This is
+  # intentionally a fixed pixel height (can exceed the viewport and scroll),
+  # because forcing many facets into one viewport height would flatten them.
+  n_facets <- length(unique(meta[[facet_col]]))
+  ncol_p <- min(4L, n_facets)
+  nrow_p <- ceiling(n_facets / ncol_p)
+  h <- max(450, nrow_p * 420)
   plotOutput("ir_plot_pairedScatter", height = paste0(h, "px"))
 })
 
@@ -1611,4 +1900,48 @@ output$ir_plot_percentKmer <- renderPlot({
     input$ir_p_top_motifs,
     input$ir_p_motif_length,
     input$ir_p_min_depth
+  )
+
+## ---- Definition: clone-definition resolution waterfall ----------------- ##
+## Bars count unique entities at cells -> V -> J -> V+J -> CDR3 -> V+CDR3 ->
+## V+J+CDR3. The clone definition is parsed from the CT* columns for the active
+## chain (ir_parse_segments); faceted by the active group.by column when chosen.
+output$ir_plot_cloneDefinition <- plotly::renderPlotly({
+  req(has_scRepertoire())
+  req_plot_space("ir_plot_cloneDefinition")
+  ir_render_ggplotly(
+    ir_build_definition_plot(
+      ir_data_annotated(),
+      specific_chain(),
+      ir_params()$groupBy
+    ),
+    "ir_plot_cloneDefinition"
+  )
+}) %>%
+  ir_bindCache(
+    input$ir_chain,
+    input$ir_groupBy
+  )
+
+## ---- Sharing: cross-group clonotype sharing ---------------------------- ##
+## Classifies each clonotype (V+J+CDR3 of the active chain) as Private /
+## Public(within-group) / Public(cross-group) using the chosen sharing unit and
+## the active group.by, then bars the class counts.
+output$ir_plot_cloneSharing <- plotly::renderPlotly({
+  req(has_scRepertoire())
+  req_plot_space("ir_plot_cloneSharing")
+  ir_render_ggplotly(
+    ir_build_sharing_plot(
+      ir_data_annotated(),
+      specific_chain(),
+      ir_param("ir_sharing_unit", "sample"),
+      ir_params()$groupBy
+    ),
+    "ir_plot_cloneSharing"
+  )
+}) %>%
+  ir_bindCache(
+    input$ir_chain,
+    input$ir_groupBy,
+    input$ir_sharing_unit
   )

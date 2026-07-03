@@ -33,7 +33,9 @@ IR_GLOBAL_CONTROL_HIDDEN <- list(
     "percentVJ",
     "AA %",
     "Entropy",
-    "Property"
+    "Property",
+    "Definition",
+    "Clone Sharing"
   ),
   ir_chain = c("vizGenes", "Clonal UMAP"),
   ir_groupBy = c("Clonal UMAP")
@@ -100,6 +102,13 @@ IR_PARAM_SPEC <- list(
       type = "select",
       choices = "<<projections>>",
       value = NULL
+    ),
+    list(
+      id = "ir_p_umap_group_by",
+      label = "Group results by:",
+      type = "select",
+      choices = "<<groups>>",
+      value = ""
     ),
     list(
       id = "ir_p_umap_show_all",
@@ -593,6 +602,7 @@ IR_PARAM_DESC <- list(
   ## ---- Clonal UMAP ----
   ir_p_umap_receptor = "Which receptor to colour by: TCR (T cells) or BCR (B cells). Only the types present in your data are offered.",
   ir_p_umap_projection = "The cell map to draw on — the same UMAP/tSNE projections used elsewhere in the app. Pick which one to overlay the clones on.",
+  ir_p_umap_group_by = "Optional metadata column used to split Clonal UMAP into static square panels. None keeps the default interactive single UMAP.",
   ir_p_umap_show_all = "When on, every cell is drawn: cells without the selected receptor appear light grey, so the coloured (expanded) clones stand out in context. When off, only cells carrying the receptor are shown.",
 
   ## ---- Diversity ----

@@ -90,6 +90,44 @@
 
 ## ---- Help text for each visualization tab ----------------------------- ##
 ir_tab_help <- list(
+  Definition = list(
+    short = "Clone-definition resolution",
+    summary = "Shows how the number of distinct clonotypes collapses as the definition tightens from single gene segments up to full V+J+CDR3.",
+    detail = paste(
+      "A 'clonotype' can be defined at different resolutions. Counting only V genes lumps many cells together; adding J, then the CDR3 sequence, splits them into finer and finer groups.",
+      "",
+      "This plot counts distinct entities at each resolution:",
+      "• cells — every receptor-bearing cell of the selected chain.",
+      "• V / J — unique V or J gene segments.",
+      "• V+J — unique V–J combinations.",
+      "• CDR3 — unique CDR3 amino-acid sequences.",
+      "• V+CDR3 and V+J+CDR3 — progressively stricter clone definitions.",
+      "",
+      "The chain follows the 'Chain' selector (TCR defaults to TRB, BCR to IGH). Choose a 'Group by' column to facet the plot per group.",
+      "",
+      "What to look for: a large gap between CDR3 and V+J+CDR3 means the same CDR3 arises on different V/J backbones (convergent recombination).",
+      sep = "\n"
+    )
+  ),
+  "Clone Sharing" = list(
+    short = "Cross-group clonotype sharing",
+    summary = "Classifies each clonotype as private to one unit, public within a group, or shared across groups.",
+    detail = paste(
+      "Some clonotypes appear in only one sample; others are found in several, and a few are shared across different conditions. This plot summarises that sharing.",
+      "",
+      "Each clonotype (V+J+CDR3 of the selected chain) is labelled:",
+      "• Private — seen in only one 'sharing unit' (default: sample).",
+      "• Public (within-group) — in ≥ 2 units, all in the same 'Group by' group.",
+      "• Public (cross-group) — spanning ≥ 2 groups.",
+      "",
+      "Controls:",
+      "• Sharing unit — the smallest unit across which sharing is counted.",
+      "• Group by — the grouping used for within/cross classification.",
+      "",
+      "With no 'Group by' selected the classes collapse to Private / Public.",
+      sep = "\n"
+    )
+  ),
   Abundance = list(
     short = "Clonal abundance distribution",
     summary = "Ranks clonotypes by cell count. Steep drop-off indicates oligoclonal dominance; gradual decline indicates diverse repertoire.",
@@ -662,7 +700,11 @@ observeEvent(input$ir_help_example_btn, {
       tags$hr(),
       tags$p(
         style = "color: var(--neutral-tertiary); font-size: 12px;",
-        "Generated from scRepertoire built-in demo data (2 TCR samples: Healthy vs Disease)."
+        if (tab %in% c("Isotype", "SHM Proxy")) {
+          "Generated from a synthetic BCR demo (2 samples: Pre- vs Post-vaccination)."
+        } else {
+          "Generated from scRepertoire built-in demo data (2 TCR samples: Healthy vs Disease)."
+        }
       ),
       plotOutput("ir_demo_plot", height = "450px")
     ),
@@ -814,6 +856,28 @@ output$ir_demo_plot <- renderPlot({
           demo,
           cloneCall = "gene",
           method = "ward.D2"
+        ),
+        "Definition" = ir_build_definition_plot(
+          demo,
+          chain = "TRB",
+          group_by = NULL
+        ),
+        "Clone Sharing" = ir_build_sharing_plot(
+          # Ensure a `sample` column (the sharing unit) on each demo frame,
+          # keyed by the list element name. scRepertoire 2.6.2's combineTCR()
+          # already adds one, so this is a defensive/idempotent guard that keeps
+          # the demo working regardless of the combineTCR version's behaviour.
+          Map(
+            function(df, nm) {
+              df$sample <- nm
+              df
+            },
+            demo,
+            names(demo)
+          ),
+          chain = "TRB",
+          unit_col = "sample",
+          group_by = NULL
         ),
         "Isotype" = bcr_isotype_plot(demo, group_col = "sample"),
         "SHM Proxy" = bcr_shm_proxy_plot(demo, group_col = "sample"),
