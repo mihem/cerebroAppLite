@@ -60,7 +60,8 @@ Imports:
   stringr,
   tidyselect(>= 1.1.0),
   utils,
-  viridis (>= 0.5.1)
+  viridis (>= 0.5.1),
+  visNetwork
 Suggests:
   BPCells,
   DelayedArray,
@@ -80,7 +81,6 @@ Suggests:
   stringdist,
   SummarizedExperiment,
   testthat (>= 3.0.0),
-  visNetwork,
   shinytest2 (>= 0.2.0)
 Remotes:
   bnprks/BPCells/r
