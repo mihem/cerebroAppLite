@@ -90,10 +90,14 @@ output$ir_visualizations_UI <- renderUI({
         "ir_ui_pairedScatter"
       )))
     ),
-    tabPanel(
-      "Definition",
-      ir_fill_plot("ir_plot_cloneDefinition", plotly = TRUE)
-    ),
+    # Hidden per review (kept available; renderer/help/param_spec retained).
+    # The clone-definition waterfall is an exploratory tool for choosing a
+    # clone-call resolution, not a finalised figure for a reader, so it is not
+    # in the default tab strip; uncomment to re-enable.
+    # tabPanel(
+    #   "Definition",
+    #   ir_fill_plot("ir_plot_cloneDefinition", plotly = TRUE)
+    # ),
     tabPanel(
       "Clone Sharing",
       ir_fill_plot("ir_plot_cloneSharing", plotly = TRUE)
