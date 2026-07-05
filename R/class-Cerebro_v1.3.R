@@ -1026,7 +1026,7 @@ Cerebro_v1.3 <- R6::R6Class(
       if (method %in% self$getMethodsForTrajectories() == FALSE) {
         stop(glue::glue('Method `{method}` is not available.'), call. = FALSE)
       } else {
-        if (trajectory_name %in% self$getTrajectories(method) == FALSE) {
+        if (trajectory_name %in% self$getNamesOfTrajectories(method) == FALSE) {
           stop(
             glue::glue(
               'Trajectory `{trajectory_name}` is not available for method `{method}`.'
