@@ -1,8 +1,8 @@
-# test-spatial.R — Tests for the spatial data backend (Session A)
+# test-spatial.R — Tests for the spatial data backend + Shiny tab
 #
-# Scope: backend data layer only. The interactive Spatial Shiny tab is ported
-# separately (Session B); wiring/UI guards are intentionally NOT asserted here
-# because the module is not mounted yet and those checks would fail.
+# Scope: the backend data layer (Session A) and the interactive Spatial Shiny
+# tab wiring (Session B). Backend contract tests come first; the module-parse
+# and UI/server wiring guards follow.
 
 shiny_root <- system.file("shiny/v1.4", package = "cerebroAppLite")
 # demo_spatial.crb is the synthetic Xenium demo that carries spatial data;
@@ -89,4 +89,72 @@ test_that("exportFromSeurat carries the spatial extraction path", {
   fn_text <- paste(deparse(exportFromSeurat), collapse = "\n")
   expect_match(fn_text, ".getSpatialData", fixed = TRUE)
   expect_match(fn_text, "addSpatialData", fixed = TRUE)
+})
+
+##----------------------------------------------------------------------------##
+## Session B: Shiny tab wiring guards.
+##----------------------------------------------------------------------------##
+
+test_that("all spatial module files parse without errors", {
+  spatial_dir <- file.path(shiny_root, "spatial")
+  skip_if_not(dir.exists(spatial_dir), message = "spatial module missing")
+  mod_files <- list.files(spatial_dir, pattern = "\\.R$", full.names = TRUE)
+  expect_true(length(mod_files) > 0)
+  for (fpath in mod_files) {
+    expect_no_error(parse(file = fpath))
+  }
+})
+
+test_that("group_filters widget the spatial tab depends on is present", {
+  # spatial/UI_projection_group_filters.R calls registerGroupFiltersUI() and
+  # registerGroupFiltersInfo(); those are only defined in the shared module,
+  # which must be shipped and sourced or the tab errors on mount.
+  widget <- file.path(
+    shiny_root,
+    "module",
+    "group_filters",
+    "group_filters_widget.R"
+  )
+  skip_if_not(file.exists(widget))
+  widget_src <- paste(readLines(widget), collapse = "\n")
+  for (fn in c("registerGroupFiltersUI", "registerGroupFiltersInfo")) {
+    expect_match(
+      widget_src,
+      paste0(fn, "[\\s]{0,3}<-[\\s]{0,3}function"),
+      perl = TRUE,
+      info = fn
+    )
+  }
+})
+
+test_that("spatial UI defines correct tabName", {
+  ui_file <- file.path(shiny_root, "spatial", "UI.R")
+  skip_if_not(file.exists(ui_file))
+  content <- paste(readLines(ui_file), collapse = "\n")
+  expect_match(content, 'tabName\\s*=\\s*"spatial"', perl = TRUE)
+})
+
+test_that("Spatial tab is wired into the app UI and server", {
+  # Guard the integration points so a future refactor that drops the wiring
+  # (module present but never mounted) fails loudly. Cross-line-tolerant regex
+  # per project convention (air may reflow).
+  ui_src <- paste(
+    readLines(file.path(shiny_root, "shiny_UI.R")),
+    collapse = "\n"
+  )
+  expect_match(ui_src, "spatial/UI\\.R")
+  expect_match(ui_src, "tab_spatial")
+  expect_match(ui_src, "sidebar_item_spatial_placeholder")
+
+  server_src <- paste(
+    readLines(file.path(shiny_root, "shiny_server.R")),
+    collapse = "\n"
+  )
+  expect_match(server_src, "spatial/server\\.R")
+  expect_match(server_src, "group_filters/group_filters_widget\\.R")
+  expect_match(
+    server_src,
+    'insertConditionalTab\\([\\s\\S]{0,80}"spatial"',
+    perl = TRUE
+  )
 })

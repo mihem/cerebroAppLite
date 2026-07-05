@@ -567,6 +567,12 @@ server <- function(input, output, session) {
     ## method would otherwise render a blank tab instead of the empty state.
     function() intersect(getMethodsForTrajectories(), c("monocle2"))
   )
+  insertConditionalTab(
+    "Spatial",
+    "spatial",
+    "map-pin",
+    function() availableSpatial()
+  )
 
   ## Cleanup snapshot artifacts that may have been left by test runs.
   snapshot_dir <- file.path(
@@ -587,6 +593,14 @@ server <- function(input, output, session) {
   }
 
   ##--------------------------------------------------------------------------##
+  ## Shared module: group-filters widget used by projection-style tabs.
+  source(
+    paste0(
+      Cerebro.options[["cerebro_root"]],
+      "/shiny/v1.4/module/group_filters/group_filters_widget.R"
+    ),
+    local = TRUE
+  )
   source(
     paste0(
       Cerebro.options[["cerebro_root"]],
@@ -605,6 +619,13 @@ server <- function(input, output, session) {
     paste0(
       Cerebro.options[["cerebro_root"]],
       "/shiny/v1.4/trajectory/server.R"
+    ),
+    local = TRUE
+  )
+  source(
+    paste0(
+      Cerebro.options[["cerebro_root"]],
+      "/shiny/v1.4/spatial/server.R"
     ),
     local = TRUE
   )
