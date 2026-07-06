@@ -452,7 +452,11 @@ output$ir_ui_clonalUMAP <- renderUI({
 })
 
 output$ir_plot_clonalUMAP <- plotly::renderPlotly({
-  req_plot_space("ir_plot_clonalUMAP")
+  ## No req_plot_space() here: plotly sizes itself client-side, and gating on
+  ## server-reported pixel dimensions caused a blank plot when the output div is
+  ## created at tab-open (e.g. arriving via the Main tab) — the renderer would
+  ## run once before the browser reported the new div's size and never re-fire.
+  ## req_plot_space is only needed for base-R/grid plots (see req_plot_space).
   receptor <- ir_param("ir_p_umap_receptor")
   projection <- ir_param("ir_p_umap_projection")
   clone_call <- "gene"

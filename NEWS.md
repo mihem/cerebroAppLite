@@ -35,6 +35,11 @@
   from the default tab strip: it is an exploratory check for choosing a
   clone-call resolution rather than a reader-facing figure. Uncomment its
   `tabPanel` to re-enable.
+- **Clonal UMAP** no longer renders blank when the Immune repertoire tab is
+  opened after visiting another tab (e.g. Main). The plotly renderer was gated
+  on server-reported plot dimensions, which are not yet available when its
+  output element is created on tab switch; plotly sizes itself client-side, so
+  that gate was removed.
 
 # cerebroAppLite 1.7.5
 
