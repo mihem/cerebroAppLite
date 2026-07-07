@@ -319,7 +319,7 @@ output[[
           TRUE
       ) {
         ## calculate smoothened trend line
-        trend_line = stats::ksmooth(
+        trend_line <- stats::ksmooth(
           cells_df[["pseudotime"]],
           cells_df[[color_variable]],
           "normal",

@@ -78,7 +78,7 @@ expression_projection_update_plot <- function(input) {
     ## convert edges of trajectory into list format to plot with plotly
     trajectory_edges <- trajectory[['edges']]
     for (i in 1:nrow(trajectory_edges)) {
-      line = list(
+      line <- list(
         type = "line",
         line = list(color = "black", width = 1),
         xref = "x",

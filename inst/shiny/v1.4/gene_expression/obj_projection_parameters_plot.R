@@ -18,14 +18,14 @@ expression_projection_parameters_plot_raw <- reactive({
   )
   # message('--> trigger "expression_projection_parameters_plot_raw"')
   if (input[["expression_projection_to_display"]] %in% availableProjections()) {
-    is_trajectory = FALSE
-    n_dimensions = ncol(getProjection(input[[
+    is_trajectory <- FALSE
+    n_dimensions <- ncol(getProjection(input[[
       "expression_projection_to_display"
     ]]))
   } else {
-    is_trajectory = TRUE
+    is_trajectory <- TRUE
     # currently, only trajectories with 2 dimensions are supported
-    n_dimensions = 2
+    n_dimensions <- 2
   }
   parameters <- list(
     projection = input[["expression_projection_to_display"]],

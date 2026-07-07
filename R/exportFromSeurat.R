@@ -594,8 +594,8 @@ exportFromSeurat <- function(
   }
 
   ## number of transcripts and expressed genes
-  temp_meta_data[["nUMI"]] = object@meta.data[[nUMI]]
-  temp_meta_data[["nGene"]] = object@meta.data[[nGene]]
+  temp_meta_data[["nUMI"]] <- object@meta.data[[nUMI]]
+  temp_meta_data[["nGene"]] <- object@meta.data[[nGene]]
 
   ## rest of meta data
   meta_data_columns <- names(object@meta.data)
