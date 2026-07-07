@@ -32,14 +32,36 @@ output[["spatial_projection_main_parameters_UI"]] <- renderUI({
 
   ## prepare background image choices
   background_choices <- c("No Background")
+
+  ## Real .crb data may carry a genuine histology image embedded in the spatial
+  ## slot. If any available spatial entry has one, offer it first — this is the
+  ## true tissue image, aligned automatically, not an externally-configured one.
+  has_embedded <- any(vapply(
+    availableSpatial(),
+    function(nm) {
+      sd <- tryCatch(getSpatialData(nm), error = function(e) NULL)
+      !is.null(sd) && !is.null(sd$histology_image)
+    },
+    logical(1)
+  ))
+  if (has_embedded) {
+    background_choices <- c(
+      background_choices,
+      "Tissue image (real)" = "__embedded__"
+    )
+  }
+
   if (
     exists("Cerebro.options") && !is.null(Cerebro.options[["spatial_images"]])
   ) {
     si <- Cerebro.options[["spatial_images"]]
-    matched <- FALSE
-    if (
+    have_selection <-
       exists("available_crb_files") && !is.null(available_crb_files$selected)
-    ) {
+    if (have_selection) {
+      ## Multi-dataset app: only offer the external image configured for the
+      ## CURRENTLY selected dataset. Do NOT fall back to another dataset's image
+      ## when this one has no entry — that would show, e.g., the Visium H&E behind
+      ## the Xenium cells.
       selected <- available_crb_files$selected
       match_idx <- which(available_crb_files$files == selected)
       if (length(match_idx) > 0) {
@@ -53,11 +75,10 @@ output[["spatial_projection_main_parameters_UI"]] <- renderUI({
             background_choices,
             setNames(img_paths, basename(img_paths))
           )
-          matched <- TRUE
         }
       }
-    }
-    if (!matched && length(si) > 0) {
+    } else if (length(si) > 0) {
+      ## Single-dataset app with no selection context: use the sole/first image.
       img_paths <- si[[1]]
       background_choices <- c(
         background_choices,

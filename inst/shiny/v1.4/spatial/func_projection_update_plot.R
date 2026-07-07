@@ -9,7 +9,23 @@ spatial_projection_update_plot <- function(input) {
   plot_parameters <- input[['plot_parameters']]
   color_assignments <- input[['color_assignments']]
   hover_info <- input[['hover_info']]
-  color_input <- metadata[[plot_parameters[['color_variable']]]]
+
+  ## Guard against a colour variable that does not exist in THIS dataset's
+  ## metadata. When the loaded .crb is switched, plot_parameters (debounced) and
+  ## metadata can be momentarily inconsistent — the colour column may still name
+  ## a variable from the previous dataset (Xenium "cluster" vs Slide-tags
+  ## "cell_type"). A missing column makes the downstream dplyr::group_by() error
+  ## and freezes the plot on the old data. Fall back to the first metadata column
+  ## so the render always succeeds and self-corrects on the next tick.
+  color_variable <- plot_parameters[['color_variable']]
+  if (
+    is.null(color_variable) ||
+      !(color_variable %in% colnames(metadata))
+  ) {
+    color_variable <- colnames(metadata)[1]
+    plot_parameters[['color_variable']] <- color_variable
+  }
+  color_input <- metadata[[color_variable]]
 
   ## get container dimensions
   container_dimensions <- shinyjs::js$getContainerDimensions()
@@ -22,7 +38,37 @@ spatial_projection_update_plot <- function(input) {
   background_image_data <- NULL
   image_bounds <- list()
 
+  ## Case 1: the real histology image embedded in the .crb. Its base64 data URI
+  ## and coordinate-space bounds travel with the data, so it renders directly and
+  ## aligns automatically — no file lookup, no manual flip/scale.
   if (
+    !is.null(plot_parameters[['background_image']]) &&
+      identical(plot_parameters[['background_image']], "__embedded__") &&
+      !is.null(plot_parameters[['embedded_image']])
+  ) {
+    background_image_data <- plot_parameters[['embedded_image']]
+    eb <- plot_parameters[['embedded_bounds']]
+    if (is.null(eb)) {
+      # fall back to the coordinate range if bounds were not stored
+      x_rng <- range(coordinates[[1]], na.rm = TRUE)
+      y_rng <- range(coordinates[[2]], na.rm = TRUE)
+      eb <- list(
+        xmin = x_rng[1],
+        xmax = x_rng[2],
+        ymin = y_rng[1],
+        ymax = y_rng[2]
+      )
+    }
+    image_bounds <- list(
+      xmin = eb[["xmin"]],
+      xmax = eb[["xmax"]],
+      ymin = eb[["ymin"]],
+      ymax = eb[["ymax"]],
+      img_width = 0,
+      img_height = 0
+    )
+    message("[spatial] using embedded histology image from .crb")
+  } else if (
     !is.null(plot_parameters[['background_image']]) &&
       plot_parameters[['background_image']] != "No Background"
   ) {
@@ -162,6 +208,33 @@ spatial_projection_update_plot <- function(input) {
     }
   }
 
+  ## Axis ranges. The JS stretches the background image to fill the whole plot
+  ## drawing area, so for the embedded real image to align with the cells the
+  ## axes must span the image's extent (not the spot bounding box). Override the
+  ## ranges with the embedded bounds when that image is active. The y-axis stays
+  ## in its natural (ascending) orientation: any top/bottom mismatch between the
+  ## raster and the points is corrected at BUILD time by flipping the stored
+  ## image (see encode_raster_png's `flip_y`), so no runtime reversal is needed —
+  ## and a runtime reversal would be silently dropped on the initial render
+  ## anyway, since `reset_axes` forces autorange there.
+  x_range_out <- plot_parameters[["x_range"]]
+  y_range_out <- plot_parameters[["y_range"]]
+  using_embedded <-
+    identical(plot_parameters[["background_image"]], "__embedded__") &&
+    !is.null(plot_parameters[["embedded_image"]]) &&
+    length(image_bounds) > 0
+  ## Whether an embedded image must be flipped vertically to sit the right way up
+  ## depends on how this dataset's point y relates to its image rows, which
+  ## differs per platform. It travels with the .crb as `embedded_flip_y` (set at
+  ## build time, ground-truth verified per dataset). External spatial_images keep
+  ## their own `background_flip_y`.
+  background_flip_y <- plot_parameters[["background_flip_y"]]
+  if (using_embedded) {
+    x_range_out <- c(image_bounds[["xmin"]], image_bounds[["xmax"]])
+    y_range_out <- c(image_bounds[["ymin"]], image_bounds[["ymax"]])
+    background_flip_y <- isTRUE(plot_parameters[["embedded_flip_y"]])
+  }
+
   ## follow this when the coloring variable is numeric
   if (is.numeric(color_input)) {
     ## put together meta data
@@ -170,9 +243,10 @@ spatial_projection_update_plot <- function(input) {
       traces = plot_parameters[['color_variable']],
       color_variable = plot_parameters[['color_variable']],
       background_image = background_image_data,
+      is_embedded = using_embedded,
       image_bounds = image_bounds,
       background_flip_x = plot_parameters[['background_flip_x']],
-      background_flip_y = plot_parameters[['background_flip_y']],
+      background_flip_y = background_flip_y,
       background_scale_x = plot_parameters[['background_scale_x']],
       background_scale_y = plot_parameters[['background_scale_y']],
       background_opacity = plot_parameters[['background_opacity']]
@@ -185,8 +259,8 @@ spatial_projection_update_plot <- function(input) {
       point_size = plot_parameters[["point_size"]],
       point_opacity = plot_parameters[["point_opacity"]],
       point_line = list(),
-      x_range = plot_parameters[["x_range"]],
-      y_range = plot_parameters[["y_range"]],
+      x_range = x_range_out,
+      y_range = y_range_out,
       reset_axes = reset_axes
     )
 
@@ -231,9 +305,10 @@ spatial_projection_update_plot <- function(input) {
       traces = list(),
       color_variable = plot_parameters[['color_variable']],
       background_image = background_image_data,
+      is_embedded = using_embedded,
       image_bounds = image_bounds,
       background_flip_x = plot_parameters[['background_flip_x']],
-      background_flip_y = plot_parameters[['background_flip_y']],
+      background_flip_y = background_flip_y,
       background_scale_x = plot_parameters[['background_scale_x']],
       background_scale_y = plot_parameters[['background_scale_y']],
       background_opacity = plot_parameters[['background_opacity']]
@@ -247,8 +322,8 @@ spatial_projection_update_plot <- function(input) {
       point_size = plot_parameters[["point_size"]],
       point_opacity = plot_parameters[["point_opacity"]],
       point_line = list(),
-      x_range = plot_parameters[["x_range"]],
-      y_range = plot_parameters[["y_range"]],
+      x_range = x_range_out,
+      y_range = y_range_out,
       reset_axes = reset_axes
     )
     if (plot_parameters[["draw_border"]]) {

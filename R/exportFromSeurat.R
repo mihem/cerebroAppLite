@@ -1093,10 +1093,15 @@ exportFromSeurat <- function(
     )
   }
 
-  seurat_version <- as.character(utils::packageVersion("Seurat"))
-  is_seurat_v5 <- utils::compareVersion(seurat_version, "5.0.0") >= 0
+  ## Spatial images live in the `@images` slot on Seurat v3+ objects, so this
+  ## path handles both Seurat v4 (VisiumV1, SlideSeq) and v5 (VisiumV2, FOV)
+  ## objects. `.getSpatialData()` resolves coordinates version-agnostically via
+  ## GetTissueCoordinates + S4 slot access, so no version branch is needed here.
+  has_images <- .spx_has_slot(object, "images") &&
+    !is.null(object@images) &&
+    length(object@images) > 0
 
-  if (is_seurat_v5 && !is.null(object@images) && length(object@images) > 0) {
+  if (has_images) {
     if (verbose) {
       message(
         paste0(

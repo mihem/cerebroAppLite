@@ -24,6 +24,24 @@ spatial_projection_parameters_plot_raw <- reactive({
 
   if (plot_type == "ImageDimPlot") {
     color_variable <- input[["spatial_projection_point_color"]]
+    ## When the loaded .crb is switched, the point-colour dropdown can still hold
+    ## a column name from the previous dataset (e.g. Xenium colours by "cluster",
+    ## Slide-tags by "cell_type"). Colouring by a column the new metadata lacks
+    ## makes the downstream dplyr::group_by() error out and the plot freezes on
+    ## the old dataset. Fall back to the first available grouping variable (or the
+    ## first metadata column) until the dropdown catches up.
+    meta_cols <- colnames(getMetaData())
+    if (
+      is.null(color_variable) ||
+        !(color_variable %in% meta_cols)
+    ) {
+      groups <- getGroups()
+      color_variable <- if (length(groups) > 0 && groups[1] %in% meta_cols) {
+        groups[1]
+      } else {
+        meta_cols[1]
+      }
+    }
   } else if (plot_type == "ImageFeaturePlot") {
     feature_to_display <- input[["spatial_projection_feature_to_display"]]
     req(feature_to_display)
@@ -134,6 +152,33 @@ spatial_projection_parameters_plot_raw <- reactive({
   spatial_data <- getSpatialData(input[["spatial_projection_to_display"]])
   n_dimensions <- ncol(spatial_data$coordinates)
 
+  ## A .crb built from real data may embed the genuine histology image (base64
+  ## data: URI) plus its extent in coordinate space. When present it is offered
+  ## as a background choice ("__embedded__") and rendered directly, aligned via
+  ## its stored bounds — no external file, no manual flip/scale.
+  embedded_image <- spatial_data$histology_image
+  embedded_bounds <- spatial_data$histology_image_bounds
+  ## Whether the renderer must flip the embedded image vertically depends on how
+  ## THIS dataset's point y relates to its image rows — it differs per platform,
+  ## so it is stored per-.crb as `histology_image_flip_y` (set at build time,
+  ## ground-truth verified). Default TRUE (the common case) when the flag is
+  ## absent, e.g. older .crb files.
+  embedded_flip_y <- spatial_data$histology_image_flip_y
+  if (is.null(embedded_flip_y)) {
+    embedded_flip_y <- TRUE
+  }
+
+  ## Normalise the background choice against the CURRENT dataset. When the user
+  ## switches from an image-bearing demo (where they picked "__embedded__") to
+  ## one without an embedded image (e.g. Xenium -> Slide-tags), the stale
+  ## "__embedded__" input value would otherwise leave `background_image` pointing
+  ## at an image this dataset does not have, wedging the plot update. Fall back to
+  ## no background whenever the embedded image is absent.
+  background_image <- input[["spatial_projection_background_image"]]
+  if (identical(background_image, "__embedded__") && is.null(embedded_image)) {
+    background_image <- "No Background"
+  }
+
   parameters <- list(
     projection = input[["spatial_projection_to_display"]],
     n_dimensions = n_dimensions,
@@ -146,7 +191,10 @@ spatial_projection_parameters_plot_raw <- reactive({
     group_labels = input[["spatial_projection_show_group_label"]],
     x_range = input[["spatial_projection_scale_x_manual_range"]],
     y_range = input[["spatial_projection_scale_y_manual_range"]],
-    background_image = input[["spatial_projection_background_image"]],
+    background_image = background_image,
+    embedded_image = embedded_image,
+    embedded_bounds = embedded_bounds,
+    embedded_flip_y = embedded_flip_y,
     background_flip_x = background_flip_x,
     background_flip_y = background_flip_y,
     background_scale_x = background_scale_x,

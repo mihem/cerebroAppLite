@@ -379,21 +379,39 @@
     .spx_try(fun(x, ...))
   }
 
+  ## Drop columns with NA/empty names and de-duplicate the rest. Some coordinate
+  ## sources (e.g. Slide-seq `GetTissueCoordinates`) return a data.frame with a
+  ## stray unnamed column; such a name later breaks column subsetting by name.
+  sanitize_cols <- function(df) {
+    if (is.null(df) || ncol(df) == 0) {
+      return(df)
+    }
+    nms <- colnames(df)
+    keep <- !is.na(nms) & nzchar(nms)
+    if (!all(keep)) {
+      df <- df[, keep, drop = FALSE]
+    }
+    if (ncol(df) > 0) {
+      colnames(df) <- make.unique(colnames(df))
+    }
+    df
+  }
+
   as_df <- function(x) {
     if (is.null(x) || .spx_is_try_error(x)) {
       return(NULL)
     }
     if (is.data.frame(x)) {
-      return(x)
+      return(sanitize_cols(x))
     }
     if (is.matrix(x)) {
-      return(as.data.frame(x, stringsAsFactors = FALSE))
+      return(sanitize_cols(as.data.frame(x, stringsAsFactors = FALSE)))
     }
     out <- .spx_try(as.data.frame(x, stringsAsFactors = FALSE))
     if (.spx_is_try_error(out) || is.null(out)) {
       return(NULL)
     }
-    out
+    sanitize_cols(out)
   }
 
   clean_name <- function(x) tolower(gsub("[^a-z0-9]+", "", x))
@@ -430,6 +448,11 @@
     "nucleus_x",
     "nucleus.global.x",
     "nucleus_global_x",
+    "CenterX_global_px",
+    "CenterX_local_px",
+    "CenterX_global_mm",
+    "xcoord",
+    "x_coord",
     "imagecol",
     "image_col",
     "pxl_col_in_fullres",
@@ -459,6 +482,11 @@
     "nucleus_y",
     "nucleus.global.y",
     "nucleus_global_y",
+    "CenterY_global_px",
+    "CenterY_local_px",
+    "CenterY_global_mm",
+    "ycoord",
+    "y_coord",
     "imagerow",
     "image_row",
     "pxl_row_in_fullres",

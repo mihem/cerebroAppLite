@@ -1104,7 +1104,12 @@ Cerebro_v1.3 <- R6::R6Class(
     #' Add spatial data.
     #'
     #' @param name Name of the spatial data entry (e.g. image name).
-    #' @param data \code{list} containing 'coordinates' (data.frame) and 'expression' (sparse matrix).
+    #' @param data \code{list} containing 'coordinates' (data.frame) and
+    #'   'expression' (sparse matrix). It may optionally carry an embedded
+    #'   histology image as 'image' (a base64 \code{data:} URI string) plus
+    #'   'image_bounds' (named list xmin/xmax/ymin/ymax in coordinate space)
+    #'   so the Spatial tab can render the real tissue background without an
+    #'   external file.
     addSpatialData = function(name, data) {
       if (
         !is.list(data) || !all(c("coordinates", "expression") %in% names(data))

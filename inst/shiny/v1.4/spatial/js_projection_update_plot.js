@@ -4,6 +4,28 @@ const spatial_projection_layout_2D = window.cerebroProjectionLayout.make2D({
   uirevision: 'true',
 });
 
+// When a real embedded histology image backs the plot, constrain the x/y axes
+// to equal data-unit scaling (scaleanchor) so the plot drawing area keeps the
+// image's aspect ratio. The background image is stretched to fill that area, so
+// without this a non-square image (e.g. the tall MERFISH DAPI mosaic) is
+// squashed and the points drift off the tissue. No-op for every other case, so
+// ordinary projections (UMAP etc.) are unaffected.
+function applyEmbeddedAspectLock(layout_here, params) {
+  const meta = params && params.meta ? params.meta : {};
+  const b = meta.image_bounds;
+  const isEmbedded = meta.is_embedded === true && b &&
+    isFinite(b.xmin) && isFinite(b.xmax) &&
+    isFinite(b.ymin) && isFinite(b.ymax) &&
+    (b.xmax - b.xmin) > 0 && (b.ymax - b.ymin) > 0;
+  if (!isEmbedded) return;
+  // scaleratio = 1 → one x data-unit and one y data-unit occupy the same number
+  // of pixels, so the drawing area's width:height equals (xmax-xmin):(ymax-ymin),
+  // i.e. the image's W:H (bounds are the image extent in coordinate units).
+  layout_here.yaxis = layout_here.yaxis || {};
+  layout_here.yaxis.scaleanchor = 'x';
+  layout_here.yaxis.scaleratio = 1;
+}
+
 // Inject CSS for spatial projection
 // CSS for plot widgets (legends, modebar, drag tip, scroll-down,
 // spatial bg) is now in inst/shiny/www/custom.css. The runtime <style>
@@ -162,6 +184,9 @@ shinyjs.applySpatialBackground = function () {
         bg.style.top    = size.t + 'px';
         bg.style.width  = size.w + 'px';
         bg.style.height = size.h + 'px';
+        // Centre the transform origin so a -1 scale (vertical flip) mirrors the
+        // image in place rather than translating it off the plot area.
+        bg.style.transformOrigin = '50% 50%';
         bg.style.transform = `scale(${finalScaleX}, ${finalScaleY})`;
       }
       bg.style.opacity = isNaN(opacity) ? 1 : opacity;
@@ -705,6 +730,12 @@ shinyjs.updatePlot2DContinuousSpatial = function (params) {
     layout_here.yaxis['autorange'] = false;
     layout_here.yaxis['range'] = params.data.y_range;
   }
+  // When a real embedded histology image is the background, lock the plot's
+  // x/y scales to equal data units (scaleanchor) so the drawing area keeps the
+  // image's aspect ratio. Otherwise the background div — which is stretched to
+  // fill the drawing area — is squashed for non-square images (e.g. the tall
+  // MERFISH DAPI mosaic), pulling points off the tissue.
+  applyEmbeddedAspectLock(layout_here, params);
   if (params.container && params.container.width && params.container.height) {
     layout_here.width = params.container.width;
     layout_here.height = params.container.height;
@@ -974,6 +1005,9 @@ shinyjs.updatePlot2DCategoricalSpatial = function (params) {
     layout_here.yaxis.autorange = false;
     layout_here.yaxis.range = [...params.data.y_range];
   }
+  // See note above: lock aspect to the embedded image so the stretched-to-fill
+  // background is not distorted for non-square images.
+  applyEmbeddedAspectLock(layout_here, params);
   if (params.container && params.container.width && params.container.height) {
     layout_here.width = params.container.width;
     layout_here.height = params.container.height;

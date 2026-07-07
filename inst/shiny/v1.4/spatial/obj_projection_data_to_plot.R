@@ -28,8 +28,11 @@ spatial_projection_data_to_plot_raw <- reactive({
       } else {
         cells_to_extract <- rownames(metadata)
       }
-      # Slice only the requested gene x cells to avoid materializing the full dense matrix on every call
-      expression_data <- getExpressionMatrix(
+      # Slice only the requested gene x cells to avoid materializing the full
+      # dense matrix on every call. getExpressionMatrix is a Cerebro R6 method,
+      # not a bare function — reach it through data_set() like the gene-
+      # expression module does.
+      expression_data <- data_set()$getExpressionMatrix(
         cells = cells_to_extract,
         genes = gene
       )

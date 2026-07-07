@@ -105,6 +105,60 @@ test_that("all spatial module files parse without errors", {
   }
 })
 
+test_that("ImageFeaturePlot reaches getExpressionMatrix as a Cerebro method", {
+  # getExpressionMatrix / getMeanExpressionForCells are Cerebro_v1.3 R6 methods,
+  # not bare functions — they must be called through data_set()$. A bare
+  # getExpressionMatrix(...) crashed the ImageFeaturePlot (gene-coloured) path
+  # with "could not find function". Guard every expression-method call in the
+  # spatial module against the bare form.
+  spatial_dir <- file.path(shiny_root, "spatial")
+  skip_if_not(dir.exists(spatial_dir), message = "spatial module missing")
+  methods <- c("getExpressionMatrix", "getMeanExpressionForCells")
+  for (fpath in list.files(spatial_dir, pattern = "\\.R$", full.names = TRUE)) {
+    src <- paste(readLines(fpath), collapse = "\n")
+    for (m in methods) {
+      # a call to the method NOT immediately preceded by `$`
+      bare <- gregexpr(
+        paste0("(^|[^$[:alnum:]_.])", m, "\\("),
+        src,
+        perl = TRUE
+      )[[1]]
+      expect_true(
+        bare[1] == -1,
+        info = paste0(
+          "bare ",
+          m,
+          "() in ",
+          basename(fpath),
+          " — use data_set()$"
+        )
+      )
+    }
+  }
+})
+
+test_that("plot update guards against a colour variable absent from metadata", {
+  # Switching the loaded .crb can leave the point-colour dropdown holding a
+  # column from the previous dataset (e.g. Xenium "cluster" vs Slide-tags
+  # "cell_type"). Colouring by a missing column makes the downstream
+  # dplyr::group_by() error and freezes the plot on the old data. The render
+  # function must fall back to a valid metadata column. Assert the guard survives
+  # (cross-line tolerant per project convention).
+  fpath <- file.path(shiny_root, "spatial", "func_projection_update_plot.R")
+  skip_if_not(file.exists(fpath), message = "spatial update module missing")
+  src <- paste(readLines(fpath), collapse = "\n")
+  expect_match(
+    src,
+    "color_variable[\\s\\S]{0,80}%in%[\\s\\S]{0,20}colnames\\(metadata\\)",
+    perl = TRUE
+  )
+  expect_match(
+    src,
+    "color_variable[\\s\\S]{0,40}<-[\\s\\S]{0,40}colnames\\(metadata\\)\\[1\\]",
+    perl = TRUE
+  )
+})
+
 test_that("group_filters widget the spatial tab depends on is present", {
   # spatial/UI_projection_group_filters.R calls registerGroupFiltersUI() and
   # registerGroupFiltersInfo(); those are only defined in the shared module,
@@ -310,19 +364,215 @@ test_that("createShinyApp drops unmatched spatial_images with a warning", {
   expect_null(cfg[["spatial_images"]])
 })
 
-test_that("bundled demo wires a spatial background image", {
-  # The bundled app must pair a (synthetic) histology background with the
-  # Xenium demo so the overlay feature is demonstrable out of the box.
+test_that("Visium ships its H&E as an EXTERNAL image, not embedded", {
+  # Visium deliberately demonstrates the external-image path: the H&E lives in a
+  # standalone PNG loaded via `spatial_images`, and the .crb carries NO embedded
+  # image (unlike MERFISH/Xenium). This keeps the .crb small and exercises the
+  # spatial_images code path as a live example.
+  png <- system.file(
+    "extdata/v1.4/demo_spatial_visium_he.png",
+    package = "cerebroAppLite"
+  )
+  skip_if(png == "" || !file.exists(png), message = "visium H&E png missing")
+  expect_gt(file.info(png)$size, 0)
+
+  crb_path <- system.file(
+    "extdata/v1.4/demo_spatial_visium.crb",
+    package = "cerebroAppLite"
+  )
+  skip_if(
+    crb_path == "" || !file.exists(crb_path),
+    message = "visium crb missing"
+  )
+  crb <- readRDS(crb_path)
+  sd <- crb$getSpatialData(crb$availableSpatial()[1])
+  expect_null(sd$histology_image)
+
+  # app.R must wire the external image via spatial_images for the Visium dataset
   app_src <- paste(
     readLines(system.file("app.R", package = "cerebroAppLite")),
     collapse = "\n"
   )
-  expect_match(app_src, "spatial_images")
-  expect_match(app_src, "demo_spatial_histology\\.svg")
+  expect_match(app_src, "spatial_images", fixed = TRUE)
+  expect_match(app_src, "demo_spatial_visium_he\\.png", perl = TRUE)
+})
 
-  img <- system.file(
-    "extdata/v1.4/demo_spatial_histology.svg",
-    package = "cerebroAppLite"
+test_that("bundled real demos embed a genuine tissue image in the .crb", {
+  # MERFISH and Xenium carry their REAL histology image (DAPI) inside the .crb
+  # under `histology_image`, with coordinate-space bounds, so the Spatial tab
+  # renders the true tissue background out of the box. (Visium uses an external
+  # image — tested above; Slide-seq/Slide-tags carry no image — tested below.)
+  for (f in c(
+    "demo_spatial_merfish",
+    "demo_spatial_xenium"
+  )) {
+    path <- system.file(
+      file.path("extdata/v1.4", paste0(f, ".crb")),
+      package = "cerebroAppLite"
+    )
+    skip_if(path == "" || !file.exists(path), message = paste0(f, " missing"))
+    crb <- readRDS(path)
+    sd <- crb$getSpatialData(crb$availableSpatial()[1])
+    expect_true(is.character(sd$histology_image), info = f)
+    expect_match(sd$histology_image, "^data:image/", info = f)
+    b <- sd$histology_image_bounds
+    expect_true(
+      all(c("xmin", "xmax", "ymin", "ymax") %in% names(b)),
+      info = f
+    )
+    # cells must fall inside the image's coordinate-space extent
+    coords <- sd$coordinates
+    expect_true(
+      min(coords$x) >= b$xmin &&
+        max(coords$x) <= b$xmax &&
+        min(coords$y) >= b$ymin &&
+        max(coords$y) <= b$ymax,
+      info = f
+    )
+  }
+})
+
+##----------------------------------------------------------------------------##
+## Real multi-platform demos: each shipped .crb (Visium / Slide-seq v2 / MERFISH
+## / Xenium / Slide-tags) must load with a usable spatial slot. These are built
+## from genuine public data by data-raw/build_spatial_demos.R.
+##----------------------------------------------------------------------------##
+
+real_spatial_demos <- c(
+  visium = "extdata/v1.4/demo_spatial_visium.crb",
+  slideseq = "extdata/v1.4/demo_spatial_slideseq.crb",
+  merfish = "extdata/v1.4/demo_spatial_merfish.crb",
+  xenium = "extdata/v1.4/demo_spatial_xenium.crb",
+  slidetags = "extdata/v1.4/demo_spatial_slidetags.crb"
+)
+
+test_that("each real spatial demo exposes coordinates with x/y", {
+  for (nm in names(real_spatial_demos)) {
+    path <- system.file(real_spatial_demos[[nm]], package = "cerebroAppLite")
+    skip_if(
+      path == "" || !file.exists(path),
+      message = paste0(nm, " demo missing")
+    )
+    crb <- readRDS(path)
+    images <- crb$availableSpatial()
+    expect_true(length(images) > 0, info = nm)
+    sd <- crb$getSpatialData(images[1])
+    expect_true(all(c("coordinates", "expression") %in% names(sd)), info = nm)
+    coords <- sd$coordinates
+    expect_true(all(c("x", "y") %in% colnames(coords)), info = nm)
+    expect_true(nrow(coords) > 0, info = nm)
+    # coordinates and expression must share cells so the tab can colour points
+    expect_true(
+      length(intersect(rownames(coords), colnames(sd$expression))) > 0,
+      info = nm
+    )
+    # x/y must be finite numerics, not all-NA
+    expect_true(any(is.finite(coords$x)) && any(is.finite(coords$y)), info = nm)
+  }
+})
+
+test_that("real spatial demos are wired into the bundled dropdown", {
+  # The three technology-labelled demos must appear in app.R's crb_file_to_load
+  # so the switcher offers them. Cross-line-tolerant per project convention.
+  app_src <- paste(
+    readLines(system.file("app.R", package = "cerebroAppLite")),
+    collapse = "\n"
   )
-  expect_true(nzchar(img) && file.exists(img))
+  for (f in real_spatial_demos) {
+    expect_match(
+      app_src,
+      gsub(".", "\\.", basename(f), fixed = TRUE),
+      perl = TRUE
+    )
+  }
+  # the labels must name the technology in brackets
+  expect_match(app_src, "Visium")
+  expect_match(app_src, "Slide-seq")
+  expect_match(app_src, "MERFISH")
+  expect_match(app_src, "Xenium")
+  expect_match(app_src, "Slide-tags")
+})
+
+test_that("image-free demos (Slide-seq, Slide-tags) carry no histology image", {
+  # These two platforms record positions, not a tissue photo, so a genuine
+  # absence of `histology_image` is the CORRECT state, not a build regression.
+  for (f in c("demo_spatial_slideseq", "demo_spatial_slidetags")) {
+    path <- system.file(
+      file.path("extdata/v1.4", paste0(f, ".crb")),
+      package = "cerebroAppLite"
+    )
+    skip_if(path == "" || !file.exists(path), message = paste0(f, " missing"))
+    crb <- readRDS(path)
+    sd <- crb$getSpatialData(crb$availableSpatial()[1])
+    expect_null(sd$histology_image, info = f)
+  }
+})
+
+test_that("embedded image demos carry the ground-truth-verified render flip flag", {
+  # The vertical-flip needed to display each embedded image the right way up is
+  # NOT uniform across platforms — it is stored per-.crb as
+  # `histology_image_flip_y`, set from a landmark comparison against a native
+  # reference (see data-raw/spatial.md). Guard the verified values so a rebuild
+  # cannot silently flip a demo upside-down. (Visium uses an EXTERNAL image, so
+  # its flip lives in app.R's spatial_images_flip_y, asserted separately.)
+  expected <- c(
+    demo_spatial_xenium = FALSE, # hippocampus lower-right (vs native DAPI)
+    demo_spatial_merfish = FALSE # villi orientation (vs native DAPI)
+  )
+  for (f in names(expected)) {
+    path <- system.file(
+      file.path("extdata/v1.4", paste0(f, ".crb")),
+      package = "cerebroAppLite"
+    )
+    skip_if(path == "" || !file.exists(path), message = paste0(f, " missing"))
+    crb <- readRDS(path)
+    sd <- crb$getSpatialData(crb$availableSpatial()[1])
+    expect_identical(sd$histology_image_flip_y, expected[[f]], info = f)
+  }
+})
+
+test_that("Visium external image flip is wired in app.R", {
+  # Visium's H&E is external, so its ground-truth-verified vertical flip (TRUE,
+  # matching Seurat's SpatialPlot) is carried by spatial_images_flip_y in app.R,
+  # not by a per-.crb flag.
+  app_src <- paste(
+    readLines(system.file("app.R", package = "cerebroAppLite")),
+    collapse = "\n"
+  )
+  expect_match(app_src, "spatial_images_flip_y", fixed = TRUE)
+})
+
+##----------------------------------------------------------------------------##
+## Regression: .getSpatialData must tolerate a coordinate source that carries an
+## NA-named / blank-named column (Slide-seq GetTissueCoordinates returns such a
+## frame). Before the as_df sanitiser this crashed with
+## "undefined columns selected".
+##----------------------------------------------------------------------------##
+
+test_that(".getSpatialData tolerates a real Slide-seq object (NA-named coord col)", {
+  # The ssHippo GetTissueCoordinates frame carries a column literally named NA,
+  # which used to crash the extractor with "undefined columns selected". This is
+  # the exact object behind demo_spatial_slideseq.crb. Skipped unless the source
+  # data package is installed (it is not a hard test dependency).
+  skip_if_not_installed("Seurat")
+  skip_if_not_installed("ssHippo.SeuratData")
+
+  suppressWarnings(suppressMessages(
+    utils::data("ssHippo", package = "ssHippo.SeuratData")
+  ))
+  obj <- get("ssHippo")
+  obj <- suppressWarnings(Seurat::UpdateSeuratObject(obj))
+  set.seed(1)
+  obj <- subset(obj, cells = sample(colnames(obj), 200))
+
+  # confirm the pathological column really is present in the raw source
+  tc <- Seurat::GetTissueCoordinates(obj)
+  expect_true(any(is.na(colnames(tc))))
+
+  extractor <- getFromNamespace(".getSpatialData", "cerebroAppLite")
+  res <- extractor(obj, image = "image", layer = "counts", assay = "Spatial")
+  expect_true(all(c("x", "y") %in% colnames(res$coordinates)))
+  expect_true(nrow(res$coordinates) > 0)
+  # the NA-named column must not have leaked through the sanitiser
+  expect_false(any(is.na(colnames(res$coordinates))))
 })
