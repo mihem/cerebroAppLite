@@ -1,10 +1,10 @@
 # test-trajectory.R — Tests for trajectory module
 
 shiny_root <- system.file("shiny/v1.4", package = "cerebroAppLite")
-# demo_trajectory.crb is the monocle2 demo that surfaces the Trajectory tab;
-# the other bundled demos (PBMC IR sets) carry no trajectory data.
+# The full T+B demo now carries the monocle2 B-cell trajectory (the former
+# standalone trajectory-only demo was consolidated into it).
 trajectory_crb <- system.file(
-  "extdata/v1.4/demo_trajectory.crb",
+  "extdata/v1.4/demo_full_tcr_bcr.crb",
   package = "cerebroAppLite"
 )
 
@@ -37,7 +37,7 @@ test_that("trajectory UI defines correct tabName", {
   expect_match(content, 'tabName\\s*=\\s*"trajectory"', perl = TRUE)
 })
 
-test_that("demo_trajectory.crb trajectory class methods work", {
+test_that("full T+B demo trajectory class methods work", {
   skip_if_not(file.exists(trajectory_crb))
   crb <- readRDS(trajectory_crb)
   methods <- crb$getMethodsForTrajectories()
@@ -46,7 +46,7 @@ test_that("demo_trajectory.crb trajectory class methods work", {
   expect_true("monocle2" %in% methods)
 })
 
-test_that("demo_trajectory.crb trajectory data is accessible and complete", {
+test_that("full T+B demo trajectory data is accessible and complete", {
   skip_if_not(file.exists(trajectory_crb))
   crb <- readRDS(trajectory_crb)
   methods <- crb$getMethodsForTrajectories()
@@ -62,6 +62,7 @@ test_that("demo_trajectory.crb trajectory data is accessible and complete", {
   expect_true(nrow(traj$meta) > 0)
   expect_true("pseudotime" %in% colnames(traj$meta))
   expect_true("state" %in% colnames(traj$meta))
+  expect_true("B_cell_maturation" %in% crb$getNamesOfTrajectories("monocle2"))
 })
 
 test_that("utility wrappers for trajectory exist", {
