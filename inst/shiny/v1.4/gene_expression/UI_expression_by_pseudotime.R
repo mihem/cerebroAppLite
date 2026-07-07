@@ -152,7 +152,7 @@ output[["expression_by_pseudotime"]] <- plotly::renderPlotly({
   ## add trend line if activated
   if (input[["expression_by_pseudotime_show_trend_line"]] == TRUE) {
     ## calculate smoothened trend line
-    trend_line = stats::ksmooth(
+    trend_line <- stats::ksmooth(
       cells_df$pseudotime,
       cells_df$level,
       "normal",

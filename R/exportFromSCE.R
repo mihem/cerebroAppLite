@@ -369,8 +369,8 @@ exportFromSCE <- function(
   }
 
   ## number of transcripts and expressed genes
-  temp_meta_data[["nUMI"]] = SingleCellExperiment::colData(object)[[nUMI]]
-  temp_meta_data[["nGene"]] = SingleCellExperiment::colData(object)[[nGene]]
+  temp_meta_data[["nUMI"]] <- SingleCellExperiment::colData(object)[[nUMI]]
+  temp_meta_data[["nGene"]] <- SingleCellExperiment::colData(object)[[nGene]]
 
   ## rest of meta data
   meta_data_columns <- names(SingleCellExperiment::colData(object))
