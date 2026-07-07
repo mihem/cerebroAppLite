@@ -156,15 +156,24 @@ shinyjs.applySpatialBackground = function () {
 
     const flipX = bg.dataset.flipX === 'true';
     const flipY = bg.dataset.flipY === 'true';
+    // Static per-dataset alignment scale from the build config (external images).
     const scaleX = parseFloat(bg.dataset.scaleX) || 1;
     const scaleY = parseFloat(bg.dataset.scaleY) || 1;
+    // Interactive appearance nudges from the Additional-parameters controls.
+    // These are applied ON TOP of the mapped placement and NEVER touch the
+    // scatter plot — they only re-style this background <div>.
+    const userScale = parseFloat(bg.dataset.userScale) || 1;
+    const rotate = parseFloat(bg.dataset.rotate) || 0;
+    const offsetX = parseFloat(bg.dataset.offsetX) || 0; // in data (x) units
+    const offsetY = parseFloat(bg.dataset.offsetY) || 0; // in data (y) units
     const opacity = parseFloat(bg.dataset.opacity);
     const imgW = parseInt(bg.dataset.imgWidth) || 0;
     const imgH = parseInt(bg.dataset.imgHeight) || 0;
 
-    // flip is a mirror on top of the placement; scale is an extra user nudge.
-    const finalScaleX = (flipX ? -1 : 1) * scaleX;
-    const finalScaleY = (flipY ? -1 : 1) * scaleY;
+    // flip is a mirror on top of the placement; scale multiplies (build-config
+    // alignment scale × interactive user scale).
+    const finalScaleX = (flipX ? -1 : 1) * scaleX * userScale;
+    const finalScaleY = (flipY ? -1 : 1) * scaleY * userScale;
 
     const size =
       plotContainer._fullLayout && plotContainer._fullLayout._size
@@ -175,18 +184,29 @@ shinyjs.applySpatialBackground = function () {
     const rect = size ? spatialBgRectFromBounds(plotContainer) : null;
 
     if (rect) {
-      // Position the div at the mapped rect. flip/scale are applied as a CSS
-      // transform about the rect centre so they mirror in place without moving
-      // the image off its mapped location.
+      // Position the div at the mapped rect. The interactive move/flip/scale/
+      // rotate are then applied as ONE CSS transform about the rect centre, so
+      // they shift/mirror/spin the image in place without moving the points.
       bg.style.left = rect.left + 'px';
       bg.style.top = rect.top + 'px';
       bg.style.width = rect.width + 'px';
       bg.style.height = rect.height + 'px';
       bg.style.transformOrigin = '50% 50%';
-      bg.style.transform =
-        finalScaleX === 1 && finalScaleY === 1
-          ? ''
-          : `scale(${finalScaleX}, ${finalScaleY})`;
+      // Move is specified in DATA units so it stays locked to the cells across
+      // zoom/resize: convert Δdata → Δpixel through the same axis mapping.
+      const fl = plotContainer._fullLayout;
+      const dxPix = fl.xaxis.l2p(offsetX) - fl.xaxis.l2p(0);
+      const dyPix = fl.yaxis.l2p(offsetY) - fl.yaxis.l2p(0);
+      // Order (applied right→left): flip+scale, then rotate, then translate.
+      const parts = [];
+      if (dxPix !== 0 || dyPix !== 0) {
+        parts.push(`translate(${dxPix}px, ${dyPix}px)`);
+      }
+      if (rotate !== 0) parts.push(`rotate(${rotate}deg)`);
+      if (finalScaleX !== 1 || finalScaleY !== 1) {
+        parts.push(`scale(${finalScaleX}, ${finalScaleY})`);
+      }
+      bg.style.transform = parts.join(' ');
       if (imgW > 0 && imgH > 0) {
         // native-resolution <img>, stretched to the mapped rect
         if (!bg._imgEl) {
@@ -288,12 +308,44 @@ shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX,
     parent.insertBefore(bg, plotContainer);
   }
 
-  if (backgroundImage !== undefined) bg.dataset.backgroundImage = backgroundImage || '';
-  if (flipX !== undefined) bg.dataset.flipX = String(flipX);
-  if (flipY !== undefined) bg.dataset.flipY = String(flipY);
+  if (backgroundImage !== undefined) {
+    // When the image itself CHANGES (dataset switch, or picking a different
+    // background), the user-interaction state belongs to the OLD image and must
+    // not carry over. Clear the interaction-owned fields so the block below
+    // re-seeds flip/opacity from the NEW image's dataset defaults, and reset the
+    // interactive nudges (offset/scale/rotate) that were relative to the old
+    // image. Same image (a plain scatter re-render) → leave everything intact.
+    const imageChanged = bg.dataset.backgroundImage !== (backgroundImage || '');
+    if (imageChanged) {
+      delete bg.dataset.flipX;
+      delete bg.dataset.flipY;
+      delete bg.dataset.opacity;
+      delete bg.dataset.userScale;
+      delete bg.dataset.rotate;
+      delete bg.dataset.offsetX;
+      delete bg.dataset.offsetY;
+    }
+    bg.dataset.backgroundImage = backgroundImage || '';
+  }
+  // scaleX/scaleY are the build-config alignment scale — an IMAGE property that
+  // must follow the dataset, so they are refreshed on every render.
   if (scaleX !== undefined) bg.dataset.scaleX = String(scaleX || 1);
   if (scaleY !== undefined) bg.dataset.scaleY = String(scaleY || 1);
-  if (opacity !== undefined) bg.dataset.opacity = String(opacity === null ? 1 : opacity);
+  // flipX/flipY/opacity are USER-interaction state, owned by the independent
+  // appearance channel (updateSpatialBackgroundAppearance). The render pass must
+  // NOT clobber them, or a scatter-plot re-render (colour/point-size/% change)
+  // would reset the user's flip/opacity back to the dataset defaults. So only
+  // SEED them here — the first time an image is shown, before the user has
+  // touched anything — and leave them alone on every subsequent render.
+  if (flipX !== undefined && bg.dataset.flipX === undefined) {
+    bg.dataset.flipX = String(flipX);
+  }
+  if (flipY !== undefined && bg.dataset.flipY === undefined) {
+    bg.dataset.flipY = String(flipY);
+  }
+  if (opacity !== undefined && bg.dataset.opacity === undefined) {
+    bg.dataset.opacity = String(opacity === null ? 1 : opacity);
+  }
   if (imageBounds !== undefined && imageBounds) {
     bg.dataset.imgWidth = String(imageBounds.img_width || 0);
     bg.dataset.imgHeight = String(imageBounds.img_height || 0);
@@ -327,6 +379,52 @@ shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX,
     plotContainer.on('plotly_afterplot', shinyjs.applySpatialBackground);
     plotContainer.dataset.bgListenerAttached = 'true';
   }
+};
+
+// Independent background-appearance channel. The Additional-parameters controls
+// (opacity, move, flip, scale, rotate) call THIS — not the plot updater — so
+// adjusting the background only re-styles the background <div> and never
+// re-renders the scatter plot. This is the decoupling: the dimensional-reduction
+// plot is a function of its own parameters alone; the image is a passenger.
+//
+// shinyjs passes ALL R arguments packed into a single `params` object (see
+// shinyjs.getParams); it does NOT spread them into positional formals. So this
+// takes one object and unpacks it — the R side calls with named arguments
+// (opacity=, offsetX=, ...). null/undefined fields are left unchanged, so R can
+// push a single field or all of them.
+shinyjs.updateSpatialBackgroundAppearance = function (params) {
+  params = shinyjs.getParams(params, {
+    opacity: null,
+    offsetX: null,
+    offsetY: null,
+    flipX: undefined,
+    flipY: undefined,
+    scale: null,
+    rotate: null,
+  });
+  const bg = document.getElementById('spatial_projection_background');
+  // No background div yet (no image chosen) → nothing to style. When an image is
+  // later selected, syncSpatialBackground seeds the div and applies current data.
+  if (!bg) return;
+  if (params.opacity !== undefined && params.opacity !== null) {
+    bg.dataset.opacity = String(params.opacity);
+  }
+  if (params.offsetX !== undefined && params.offsetX !== null) {
+    bg.dataset.offsetX = String(params.offsetX);
+  }
+  if (params.offsetY !== undefined && params.offsetY !== null) {
+    bg.dataset.offsetY = String(params.offsetY);
+  }
+  if (params.flipX !== undefined) bg.dataset.flipX = String(params.flipX);
+  if (params.flipY !== undefined) bg.dataset.flipY = String(params.flipY);
+  if (params.scale !== undefined && params.scale !== null) {
+    bg.dataset.userScale = String(params.scale || 1);
+  }
+  if (params.rotate !== undefined && params.rotate !== null) {
+    bg.dataset.rotate = String(params.rotate);
+  }
+  // Re-style the div only. Plotly is never touched here.
+  shinyjs.applySpatialBackground();
 };
 
 // Helper: Create drag handle element

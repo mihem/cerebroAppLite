@@ -37,6 +37,28 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
     }
   }
 
+  ## Offset sliders move the background image in DATA units, so their range is
+  ## sized to the current dataset's coordinate span (± the larger of x/y span).
+  ## That keeps one range usable whether the coordinates run 0–5k (Xenium) or
+  ## 0–9k (MERFISH). Falls back to a generous default if coordinates are absent.
+  offset_limit <- 5000
+  offset_step <- 25
+  tryCatch(
+    {
+      sp <- getSpatialData(input[["spatial_projection_to_display"]])
+      co <- sp$coordinates
+      span <- max(
+        diff(range(co$x, na.rm = TRUE)),
+        diff(range(co$y, na.rm = TRUE))
+      )
+      if (is.finite(span) && span > 0) {
+        offset_limit <- ceiling(span / 100) * 100
+        offset_step <- max(1, round(span / 400))
+      }
+    },
+    error = function(e) NULL
+  )
+
   tagList(
     sliderInput(
       "spatial_projection_point_size",
@@ -69,6 +91,120 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
       value = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
         "default"
       ]]
+    ),
+    ## Background-image adjustments. Shown only when an image is selected. Every
+    ## control here is DECOUPLED from the scatter plot: it re-styles the image
+    ## <div> via the independent JS channel and never re-renders the points.
+    conditionalPanel(
+      condition = paste0(
+        "input.spatial_projection_background_image && ",
+        "input.spatial_projection_background_image !== 'No Background'"
+      ),
+      tags$hr(style = "margin: 12px 0 8px;"),
+      tags$div(
+        style = "font-weight: 600; margin-bottom: 6px;",
+        "Background image"
+      ),
+      sliderInput(
+        "spatial_projection_background_opacity",
+        label = "Image opacity",
+        min = 0,
+        max = 1,
+        value = 0.6,
+        step = 0.05
+      ),
+      ## Move: slider for coarse dragging + numeric box for exact keyboard entry
+      ## and unit-level nudging. The slider (`..._offset_x`) stays the AUTHORITATIVE
+      ## input the appearance observer reads; the numeric box (`..._offset_x_num`)
+      ## is a two-way mirror synced by an observer in obj_projection_parameters_plot.R.
+      tags$label(
+        `for` = "spatial_projection_background_offset_x",
+        class = "control-label",
+        "Move horizontally"
+      ),
+      tags$div(
+        style = "display: flex; gap: 8px; align-items: center;",
+        tags$div(
+          style = "flex: 1 1 auto;",
+          sliderInput(
+            "spatial_projection_background_offset_x",
+            label = NULL,
+            min = -offset_limit,
+            max = offset_limit,
+            value = 0,
+            step = offset_step
+          )
+        ),
+        tags$div(
+          style = "flex: 0 0 90px;",
+          numericInput(
+            "spatial_projection_background_offset_x_num",
+            label = NULL,
+            value = 0,
+            step = 1
+          )
+        )
+      ),
+      tags$label(
+        `for` = "spatial_projection_background_offset_y",
+        class = "control-label",
+        "Move vertically"
+      ),
+      tags$div(
+        style = "display: flex; gap: 8px; align-items: center;",
+        tags$div(
+          style = "flex: 1 1 auto;",
+          sliderInput(
+            "spatial_projection_background_offset_y",
+            label = NULL,
+            min = -offset_limit,
+            max = offset_limit,
+            value = 0,
+            step = offset_step
+          )
+        ),
+        tags$div(
+          style = "flex: 0 0 90px;",
+          numericInput(
+            "spatial_projection_background_offset_y_num",
+            label = NULL,
+            value = 0,
+            step = 1
+          )
+        )
+      ),
+      sliderInput(
+        "spatial_projection_background_scale",
+        label = "Scale (about centre)",
+        min = 0.2,
+        max = 3,
+        value = 1,
+        step = 0.05
+      ),
+      sliderInput(
+        "spatial_projection_background_rotate",
+        label = "Rotate (about centre)",
+        min = -180,
+        max = 180,
+        value = 0,
+        step = 1
+      ),
+      checkboxInput(
+        "spatial_projection_background_flip_x",
+        label = "Flip horizontally",
+        value = FALSE
+      ),
+      checkboxInput(
+        "spatial_projection_background_flip_y",
+        label = "Flip vertically",
+        value = FALSE
+      ),
+      actionButton(
+        "spatial_projection_background_reset",
+        label = "Reset image",
+        icon = icon("undo"),
+        width = "100%"
+      )
     )
   )
 })

@@ -151,6 +151,7 @@ tab_spatial <- tabItem(
       "updatePlot3DContinuousSpatial",
       "updatePlot2DCategoricalSpatial",
       "updatePlot3DCategoricalSpatial",
+      "updateSpatialBackgroundAppearance",
       "getContainerDimensions",
       "spatialClearSelection",
       "showScrollDownIndicator",

@@ -48,13 +48,21 @@ spatial_projection_parameters_plot_raw <- reactive({
     color_variable <- feature_to_display
   }
 
-  background_opacity <- if (
-    is.null(input[["spatial_projection_background_opacity"]])
-  ) {
-    1
-  } else {
-    input[["spatial_projection_background_opacity"]]
-  }
+  ## Background APPEARANCE (opacity, move, flip, scale, rotate) is deliberately
+  ## NOT read here. Those are decoupled from the scatter plot: they flow through
+  ## an independent observer -> shinyjs.updateSpatialBackgroundAppearance, which
+  ## only re-styles the background <div>. Reading them in this reactive would make
+  ## the whole plot re-render (Plotly.react) on every opacity/move tick, which is
+  ## exactly the coupling we removed. isolate() the initial opacity so the first
+  ## render of a freshly chosen image starts at the current slider value without
+  ## creating a reactive dependency on it.
+  background_opacity <- isolate({
+    if (is.null(input[["spatial_projection_background_opacity"]])) {
+      1
+    } else {
+      input[["spatial_projection_background_opacity"]]
+    }
+  })
 
   background_flip_x <- FALSE
   background_flip_y <- FALSE
@@ -221,4 +229,111 @@ spatial_projection_parameters_other <- reactiveValues(
 observeEvent(input[['spatial_projection_to_display']], {
   # message('--> set "spatial: reset_axes"')
   spatial_projection_parameters_other[['reset_axes']] <- TRUE
+})
+
+##----------------------------------------------------------------------------##
+## Background image APPEARANCE — decoupled channel.
+##
+## opacity / move / flip / scale / rotate are pushed straight to the background
+## <div> via shinyjs.updateSpatialBackgroundAppearance. This does NOT go through
+## spatial_projection_parameters_plot / spatial_projection_update_plot, so the
+## scatter plot is never re-rendered when the user nudges the background — the
+## dimensional-reduction plot stays a function of its own parameters alone.
+##----------------------------------------------------------------------------##
+observe({
+  ## Depend on each appearance control. These are the ONLY inputs that reach the
+  ## background div directly; everything else about the plot is untouched.
+  opacity <- input[["spatial_projection_background_opacity"]]
+  offset_x <- input[["spatial_projection_background_offset_x"]]
+  offset_y <- input[["spatial_projection_background_offset_y"]]
+  flip_x <- input[["spatial_projection_background_flip_x"]]
+  flip_y <- input[["spatial_projection_background_flip_y"]]
+  scale <- input[["spatial_projection_background_scale"]]
+  rotate <- input[["spatial_projection_background_rotate"]]
+
+  ## Pass NULL for any control that has not been created yet (e.g. before an
+  ## image is chosen); the JS side leaves the corresponding style unchanged.
+  ## Named arguments — shinyjs packs them into one `params` object that the JS
+  ## side unpacks via getParams (positional formals would NOT be spread).
+  shinyjs::js$updateSpatialBackgroundAppearance(
+    opacity = if (is.null(opacity)) NULL else opacity,
+    offsetX = if (is.null(offset_x)) NULL else offset_x,
+    offsetY = if (is.null(offset_y)) NULL else offset_y,
+    flipX = if (is.null(flip_x)) NULL else isTRUE(flip_x),
+    flipY = if (is.null(flip_y)) NULL else isTRUE(flip_y),
+    scale = if (is.null(scale)) NULL else scale,
+    rotate = if (is.null(rotate)) NULL else rotate
+  )
+})
+
+##----------------------------------------------------------------------------##
+## Reset the background-image adjustments back to identity.
+##----------------------------------------------------------------------------##
+observeEvent(input[["spatial_projection_background_reset"]], {
+  updateSliderInput(
+    session,
+    "spatial_projection_background_offset_x",
+    value = 0
+  )
+  updateSliderInput(
+    session,
+    "spatial_projection_background_offset_y",
+    value = 0
+  )
+  updateSliderInput(session, "spatial_projection_background_scale", value = 1)
+  updateSliderInput(session, "spatial_projection_background_rotate", value = 0)
+  updateCheckboxInput(
+    session,
+    "spatial_projection_background_flip_x",
+    value = FALSE
+  )
+  updateCheckboxInput(
+    session,
+    "spatial_projection_background_flip_y",
+    value = FALSE
+  )
+})
+
+##----------------------------------------------------------------------------##
+## Two-way sync between each Move slider (coarse drag, authoritative) and its
+## numeric box (exact keyboard entry / unit-level nudge). The slider is the value
+## the appearance observer above reads; the numeric box only mirrors it. Each
+## direction updates the OTHER control, guarded by an equality check so the two
+## observers can't ping-pong into an infinite loop.
+##----------------------------------------------------------------------------##
+local({
+  sync_move <- function(slider_id, numeric_id) {
+    ## slider -> numeric
+    observeEvent(input[[slider_id]], {
+      new_val <- input[[slider_id]]
+      if (
+        is.null(new_val) ||
+          !is.finite(new_val) ||
+          isTRUE(isolate(input[[numeric_id]]) == new_val)
+      ) {
+        return()
+      }
+      updateNumericInput(session, numeric_id, value = new_val)
+    })
+    ## numeric -> slider
+    observeEvent(input[[numeric_id]], {
+      new_val <- input[[numeric_id]]
+      if (
+        is.null(new_val) ||
+          !is.finite(new_val) ||
+          isTRUE(isolate(input[[slider_id]]) == new_val)
+      ) {
+        return()
+      }
+      updateSliderInput(session, slider_id, value = new_val)
+    })
+  }
+  sync_move(
+    "spatial_projection_background_offset_x",
+    "spatial_projection_background_offset_x_num"
+  )
+  sync_move(
+    "spatial_projection_background_offset_y",
+    "spatial_projection_background_offset_y_num"
+  )
 })

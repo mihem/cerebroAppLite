@@ -123,26 +123,14 @@ output[["spatial_projection_main_parameters_UI"]] <- renderUI({
       )
     ),
     if (length(background_choices) > 1) {
-      tagList(
-        selectInput(
-          "spatial_projection_background_image",
-          label = "Background image",
-          choices = background_choices,
-          selected = "No Background"
-        ),
-        conditionalPanel(
-          condition = "input.spatial_projection_background_image && input.spatial_projection_background_image !== 'No Background'",
-          tagList(
-            sliderInput(
-              inputId = "spatial_projection_background_opacity",
-              label = "Image opacity",
-              min = 0,
-              max = 1,
-              value = 0.6,
-              step = 0.05
-            )
-          )
-        )
+      ## Only the image PICKER lives in Main parameters. All the appearance
+      ## adjustments (opacity, move, flip, scale, rotate) live in Additional
+      ## parameters and are decoupled from the scatter plot.
+      selectInput(
+        "spatial_projection_background_image",
+        label = "Background image",
+        choices = background_choices,
+        selected = "No Background"
       )
     }
   )
