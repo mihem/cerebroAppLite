@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,7 @@
     <li><a class="dropdown-item" href="../articles/enriched_pathways.html">Enriched Pathways</a></li>
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
     <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
+    <li><a class="dropdown-item" href="../articles/trajectory_analysis.html">Trajectory Analysis</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -63,9 +64,21 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/v1.7.7/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.7.8" id="cerebroapplite-178">cerebroAppLite 1.7.8<a class="anchor" aria-label="anchor" href="#cerebroapplite-178"></a></h2>
+<div class="section level3">
+<h3 id="trajectory-tab-1-7-8">Trajectory tab<a class="anchor" aria-label="anchor" href="#trajectory-tab-1-7-8"></a></h3>
+<ul><li>
+<strong>Trajectory module</strong>: restores the pseudotime trajectory explorer from the original cerebroApp v1.3 (projection coloured by state/pseudotime, states by group, expression metrics along pseudotime, per-state gene/transcript counts). The code is Roman Hillje’s original implementation, restructured into the v1.4 sub-file layout with no functional change.</li>
+<li>
+<strong>Conditional tab</strong>: the Trajectory tab is inserted dynamically (<code>insertConditionalTab</code>) only for data sets whose <code>.crb</code> carries trajectory data — the same content-driven sidebar mechanism used by the Immune Repertoire and Extra material tabs.</li>
+<li>
+<strong>Demo data</strong>: the monocle2 pseudotime trajectory is now bundled inside the <code>demo_full_tcr_bcr.crb</code> demo (computed on its B-cell subset) instead of a separate <code>demo_trajectory.crb</code>, so one demo shows TCR + BCR + trajectory. The trajectory is reproducible via <code>data-raw/build_trajectory_demo.R</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.7.7" id="cerebroapplite-177">cerebroAppLite 1.7.7<a class="anchor" aria-label="anchor" href="#cerebroapplite-177"></a></h2>
 <div class="section level3">

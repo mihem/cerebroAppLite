@@ -1,5 +1,25 @@
 # Changelog
 
+## cerebroAppLite 1.7.8
+
+### Trajectory tab
+
+- **Trajectory module**: restores the pseudotime trajectory explorer
+  from the original cerebroApp v1.3 (projection coloured by
+  state/pseudotime, states by group, expression metrics along
+  pseudotime, per-state gene/transcript counts). The code is Roman
+  Hillje’s original implementation, restructured into the v1.4 sub-file
+  layout with no functional change.
+- **Conditional tab**: the Trajectory tab is inserted dynamically
+  (`insertConditionalTab`) only for data sets whose `.crb` carries
+  trajectory data — the same content-driven sidebar mechanism used by
+  the Immune Repertoire and Extra material tabs.
+- **Demo data**: the monocle2 pseudotime trajectory is now bundled
+  inside the `demo_full_tcr_bcr.crb` demo (computed on its B-cell
+  subset) instead of a separate `demo_trajectory.crb`, so one demo shows
+  TCR + BCR + trajectory. The trajectory is reproducible via
+  `data-raw/build_trajectory_demo.R`.
+
 ## cerebroAppLite 1.7.7
 
 ### Multiple data sets (multi-crb)

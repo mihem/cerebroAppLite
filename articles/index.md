@@ -43,3 +43,5 @@
   Material](https://mihem.github.io/cerebroAppLite/articles/extra_material.md):
 - [Immune Repertoire Analysis in
   cerebroAppLite](https://mihem.github.io/cerebroAppLite/articles/immune_repertoire_analysis.md):
+- [Trajectory
+  Analysis](https://mihem.github.io/cerebroAppLite/articles/trajectory_analysis.md):
