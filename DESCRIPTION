@@ -38,6 +38,7 @@ Imports:
   GSVA (>= 1.30.0),
   httr (>= 1.4.0),
   igraph,
+  later,
   Matrix (>= 1.2),
   methods,
   msigdbr (>= 6.2.1),

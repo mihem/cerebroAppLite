@@ -139,7 +139,8 @@ output[["spatial_projection_main_parameters_UI"]] <- renderUI({
 serverSideGeneSelector(
   session,
   "spatial_projection_feature_to_display",
-  extra_triggers = function() input[["spatial_projection_plot_type"]]
+  extra_triggers = function() input[["spatial_projection_plot_type"]],
+  active = function() length(availableSpatial()) > 0
 )
 
 ## Render even when tab is hidden so that input values are available for
