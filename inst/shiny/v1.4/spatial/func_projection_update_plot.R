@@ -13,7 +13,7 @@ spatial_projection_update_plot <- function(input) {
   ## Guard against a colour variable that does not exist in THIS dataset's
   ## metadata. When the loaded .crb is switched, plot_parameters (debounced) and
   ## metadata can be momentarily inconsistent — the colour column may still name
-  ## a variable from the previous dataset (Xenium "cluster" vs Slide-tags
+  ## a variable from the previous dataset (Xenium "cluster" vs MERFISH
   ## "cell_type"). A missing column makes the downstream dplyr::group_by() error
   ## and freezes the plot on the old data. Fall back to the first metadata column
   ## so the render always succeeds and self-corrects on the next tick.

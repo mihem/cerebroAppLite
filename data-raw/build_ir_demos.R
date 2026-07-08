@@ -1,16 +1,18 @@
 #!/usr/bin/env Rscript
-#' Build three *distinct* demo .crb files for the multi-crb / immune-repertoire
-#' demo.
+#' Build the immune-repertoire demo .crb.
 #'
-#' Unlike a naive "same data, different IR slot" demo, these three data sets
-#' differ in their **cell composition** (so the UMAP and cell-type mix actually
-#' change when you switch), carry **user-facing sample names**, and receive
-#' **cell-type-constrained** clonotypes (TCR -> T cells, BCR -> B cells) so the
-#' immune repertoire is biologically plausible rather than random noise:
+#' The SHIPPED demo is `demo_full_tcr_bcr.crb` ("PBMC - Full (T+B)") — the full
+#' cell subset carrying both TCR and BCR (and, via build_trajectory_demo.R, a
+#' monocle2 trajectory), so one dataset covers everything. Clonotypes are
+#' **cell-type-constrained** (TCR -> T cells, BCR -> B cells) so the immune
+#' repertoire is biologically plausible rather than random noise.
 #'
-#'   demo_healthy_t.crb   "PBMC - Healthy (T/NK)"   T + Mono subset,  TCR only
-#'   demo_bcell_rich.crb  "PBMC - B-cell rich"      B + some T subset, BCR only
-#'   demo_full_tcr_bcr.crb "PBMC - Full (T+B)"      all cells, TCR->T + BCR->B
+#' This script ALSO builds two narrower subsets, kept for a multi-sample
+#' switcher demo but NOT shipped by default (the Full set is their superset):
+#'
+#'   demo_full_tcr_bcr.crb "PBMC - Full (T+B)"      all cells, TCR->T + BCR->B  [SHIPPED]
+#'   demo_healthy_t.crb   "PBMC - Healthy (T/NK)"   T + Mono subset,  TCR only  [optional]
+#'   demo_bcell_rich.crb  "PBMC - B-cell rich"      B + some T subset, BCR only [optional]
 #'
 #' Clonotype source: 10x Genomics public dataset vdj_v1_hs_pbmc3 (Human PBMC,
 #' 5' VDJ), Cell Ranger 3.1.0. Purely public data; the only identity handling

@@ -10,14 +10,13 @@ Genuinely-measured, public spatial-transcriptomics `.crb` demos shipped in `inst
 | `demo_spatial_slideseq.crb` | Mouse hippocampus (Slide-seq v2) | `SeuratData::ssHippo` | 5,000 | — (see note) |
 | `demo_spatial_merfish.crb` | Mouse ileum (MERFISH) | `MerfishData::MouseIleumPetukhov2021` | 5,000 | ✅ DAPI mosaic |
 | `demo_spatial_xenium.crb` | Mouse brain (Xenium) | 10x `Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP` (public) | 5,000 | ✅ DAPI morphology |
-| `demo_spatial_slidetags.crb` | Human cortex (Slide-tags) | Open Problems / Zenodo cortex `.h5ad` | 4,065 | — (see note) |
 
-The five files above are **real measured data** and no longer ship a synthetic background. They deliberately demonstrate **both** background-image paths the app supports:
+The four files above are **real measured data** and no longer ship a synthetic background. They deliberately demonstrate **both** background-image paths the app supports:
 - **MERFISH** and **Xenium** *embed* their genuine histology image (DAPI mosaic / DAPI morphology) inside the `.crb` under `histology_image`, with the image extent in coordinate space (`histology_image_bounds`). The Spatial tab offers this as the "Tissue image (real)" background.
 - **Visium** loads its genuine H&E from an *external* PNG (`demo_spatial_visium_he.png`) via the `spatial_images` option in `inst/app.R` — a live example of the external-image path, which also keeps the Visium `.crb` smaller. The tab offers it by filename.
 
 Both paths align the image to the cells automatically and honour a vertical-flip flag (`histology_image_flip_y` for embedded, `spatial_images_flip_y` for external).
-Slide-seq and Slide-tags carry no image by design (see the notes below): the bead / nucleus scatter is the complete spatial view.
+Slide-seq carries no image by design (see the note below): the bead scatter is the complete spatial view.
 
 ### Image ↔ point alignment (the flip decision and the aspect lock)
 
@@ -35,27 +34,22 @@ Getting the real image to line up with the points needs two things, because the 
 
 The old synthetic `demo_spatial.crb` + `demo_spatial_histology.svg` still exist on disk as test fixtures for the external-`spatial_images` overlay path, but are no longer wired into the bundled app dropdown.
 
-## Why Slide-seq and Slide-tags have no background image
+## Why Slide-seq has no background image
 
-This is structural, not an oversight, and for the same underlying reason in both cases: the platform records positions, not a tissue photo.
+This is structural, not an oversight: the platform records positions, not a tissue photo. The `SlideSeq` S4 class in SeuratObject has only a `coordinates` slot — it carries no tissue raster, unlike Visium's `VisiumV2` (`image` slot) or the imaging `FOV` (which can hold a mosaic). Slide-seq images beads to recover their positions, but the public `ssHippo` object stores only those bead coordinates, not an H&E/DAPI photo.
 
-Slide-seq: the `SlideSeq` S4 class in SeuratObject has only a `coordinates` slot — it carries no tissue raster, unlike Visium's `VisiumV2` (`image` slot) or the imaging `FOV` (which can hold a mosaic). Slide-seq images beads to recover their positions, but the public `ssHippo` object stores only those bead coordinates, not an H&E/DAPI photo.
+So the bead scatter *is* the complete spatial view; there is no real image to overlay.
 
-Slide-tags: the spatial signal is a coordinate pair per nucleus (`obsm/spatial`) derived from photo-cleaved spatial DNA barcodes; the actual assay downstream is standard droplet snRNA-seq, which produces no image. The `.h5ad` therefore carries coordinates and expression only.
-
-So in both cases the bead / nucleus scatter *is* the complete spatial view; there is no real image to overlay.
-
-## Why these five
+## Why these four
 
 They deliberately span the structural axes that decide whether the extraction pipeline copes with a platform: how coordinates are stored, whether a tissue image exists, and the Seurat object version.
 
-**Spot vs. bead vs. in-situ imaging vs. spatial-barcoding:**
+**Spot vs. bead vs. in-situ imaging:**
 
 - Visium = 55 µm spots, coords in the `VisiumV2` image (`imagerow`/`imagecol`).
 - Slide-seq v2 = 10 µm beads, coords in the `SlideSeq` image slot (`x`/`y`).
 - MERFISH = single-cell imaging, coords via `GetTissueCoordinates` on an `FOV` with `Centroids` — the same route `LoadVizgen` / `LoadXenium` produce.
 - Xenium = in-situ single-cell imaging; here built from the raw 10x outs (`.h5` matrix + `cells.csv.gz` centroids) into the same `FOV`/`Centroids` object, with real DAPI morphology as the background. Cells sit in **micron** coordinates while the morphology raster is in **pixels**, so the image extent in coordinate space is `dims × pixel_size` (0.2125 µm/px) — a scale conversion Visium/MERFISH do not need.
-- Slide-tags = spatial-barcoded single nuclei; coords are a plain `obsm/spatial` pair per nucleus, the easiest case (coordinates *are* metadata).
 
 **Seurat v4 vs. v5 object:**
 
@@ -64,7 +58,7 @@ They deliberately span the structural axes that decide whether the extraction pi
 **Package-shipped vs. network-fetched source:**
 
 - Visium, Slide-seq and MERFISH load from R packages (`SeuratData`, `MerfishData`).
-- Xenium and Slide-tags fetch raw data over the network (10x CDN zip / Open Problems Zenodo `.h5ad`), but their build functions **auto-download it on first run** (via `ensure_download` / `ensure_unzipped`) into `data-raw/xenium/` or `data-raw/slidetags/`, skipping the download when the file is already there. So the whole build is self-contained — one `Rscript` call — and only no-ops with a message if a download actually fails.
+- Xenium fetches raw data over the network (10x CDN zip), but its build function **auto-downloads it on first run** (via `ensure_download` / `ensure_unzipped`) into `data-raw/xenium/`, skipping the download when the file is already there. So the whole build is self-contained — one `Rscript` call — and only no-ops with a message if a download actually fails.
 
 ## Rebuild
 
@@ -74,26 +68,25 @@ From the package root, with `cerebroAppLite`, `Seurat`, `SeuratData` and `Merfis
 Rscript data-raw/build_spatial_demos.R
 ```
 
-That single command runs the whole link → `.crb` pipeline. Three builds (Visium, Slide-seq, MERFISH) pull data from R packages; the other two auto-download their raw data on first run (and skip the download when it is already present):
+That single command runs the whole link → `.crb` pipeline. Three builds (Visium, Slide-seq, MERFISH) pull data from R packages; Xenium auto-downloads its raw data on first run (and skips the download when it is already present):
 
 - **Xenium** auto-fetches the 10x mouse brain coronal CTX+HP outs bundle (~3.5 GB) and unzips it under `data-raw/xenium/brain/`. Its DAPI morphology image is a JPEG2000 OME-TIFF that R's `tiff`/`EBImage` cannot decode, so the build reads it with the Bioconductor package `RBioFormats` (a pure-R wrapper over the Java Bio-Formats library — no Python); if `RBioFormats` is missing it ships coordinates without the image.
-- **Slide-tags** auto-fetches the Open Problems / Zenodo cortex `.h5ad` (~80 MB) to `data-raw/slidetags/`, parsed with `hdf5r` (no `anndata` dependency).
 
 The exact source URLs are recorded in the `acquire` blocks in [`DATASETS.md`](DATASETS.md); the build performs those downloads for you, so you no longer need to run them by hand.
 
 The script (`build_spatial_demos.R`):
 
-1. Loads each dataset, coercing the assay name to `Spatial` and (for `ssHippo`) running `UpdateSeuratObject()` to repair the legacy `SlideSeq` class before any `validObject`/`subset` call. The object stays a `SlideSeq` image — that is the point: it exercises the non-v5 path. Xenium is assembled from the raw `.h5` matrix + `cells.csv.gz` centroids into an `FOV`/`Centroids` object; Slide-tags is parsed from `.h5ad` (CSC counts + `obsm/spatial` + `obs/cell_type`).
+1. Loads each dataset, coercing the assay name to `Spatial` and (for `ssHippo`) running `UpdateSeuratObject()` to repair the legacy `SlideSeq` class before any `validObject`/`subset` call. The object stays a `SlideSeq` image — that is the point: it exercises the non-v5 path. Xenium is assembled from the raw `.h5` matrix + `cells.csv.gz` centroids into an `FOV`/`Centroids` object.
 2. Down-samples to ~5,000 cells (stratified by cluster / cell class) and trims the embedded expression matrix (Visium to 1,200 genes, others to ~2,000; small imaging panels like MERFISH's 241 and Xenium's 280 are kept whole) so the shipped `.crb` stays small. `nUMI`/`nGene` are computed on the full gene set beforehand.
 3. Runs a light `NormalizeData → PCA → UMAP` (and `FindClusters` where the source has no cell types) so `exportFromSeurat` has a `data` layer, a UMAP reduction and a grouping variable to colour by.
 4. For Visium, MERFISH and Xenium, extracts the real histology raster, encodes it to a base64 PNG data URI, and injects it into the spatial slot as `histology_image` with `histology_image_bounds` (the image's extent in coordinate space; for Xenium that means converting the pixel raster to microns via `pixel_size`).
 5. Calls `exportFromSeurat(...)`, then **verifies** the written `.crb`: the spatial slot is non-empty, its `coordinates` has `x`/`y`, and the coordinate cells intersect the expression cells.
 
-Output overwrites the five spatial `.crb` files in `inst/extdata/v1.4/`.
+Output overwrites the four spatial `.crb` files in `inst/extdata/v1.4/`.
 
 ## Try it
 
-Launch the bundled app; the "Select sample dataset" switcher lists all five under their technology labels. Selecting one reveals the conditional **Spatial** tab, which renders the real coordinates coloured by cluster / cell type, over the real tissue image where available.
+Launch the bundled app; the "Select sample dataset" switcher lists all four under their technology labels. Selecting one reveals the conditional **Spatial** tab, which renders the real coordinates coloured by cluster / cell type, over the real tissue image where available.
 
 ```r
 library(cerebroAppLite)
@@ -102,8 +95,7 @@ createShinyApp(
     "Mouse brain (Visium)"             = system.file("extdata/v1.4/demo_spatial_visium.crb",    package = "cerebroAppLite"),
     "Mouse hippocampus (Slide-seq v2)" = system.file("extdata/v1.4/demo_spatial_slideseq.crb",  package = "cerebroAppLite"),
     "Mouse ileum (MERFISH)"            = system.file("extdata/v1.4/demo_spatial_merfish.crb",   package = "cerebroAppLite"),
-    "Mouse brain (Xenium)"             = system.file("extdata/v1.4/demo_spatial_xenium.crb",    package = "cerebroAppLite"),
-    "Human cortex (Slide-tags)"        = system.file("extdata/v1.4/demo_spatial_slidetags.crb", package = "cerebroAppLite")
+    "Mouse brain (Xenium)"             = system.file("extdata/v1.4/demo_spatial_xenium.crb",    package = "cerebroAppLite")
   )
 )
 ```

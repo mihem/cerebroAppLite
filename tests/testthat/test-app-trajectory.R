@@ -1,8 +1,8 @@
 # test-app-trajectory.R — shinytest2 integration tests for trajectory module
 #
-# The bundled app loads three demo data sets; the default landing set
-# ("PBMC - Full (T+B)" -> demo_full_tcr_bcr.crb) now carries the monocle2
-# B-cell trajectory, so the Trajectory tab is present from the start.
+# The bundled app's default landing set ("PBMC - Full (T+B)" ->
+# demo_full_tcr_bcr.crb) carries the monocle2 B-cell trajectory, so the
+# Trajectory tab is present from the start.
 
 library(shinytest2)
 

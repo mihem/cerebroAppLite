@@ -26,7 +26,7 @@ spatial_projection_parameters_plot_raw <- reactive({
     color_variable <- input[["spatial_projection_point_color"]]
     ## When the loaded .crb is switched, the point-colour dropdown can still hold
     ## a column name from the previous dataset (e.g. Xenium colours by "cluster",
-    ## Slide-tags by "cell_type"). Colouring by a column the new metadata lacks
+    ## MERFISH by "cell_type"). Colouring by a column the new metadata lacks
     ## makes the downstream dplyr::group_by() error out and the plot freezes on
     ## the old dataset. Fall back to the first available grouping variable (or the
     ## first metadata column) until the dropdown catches up.
@@ -169,16 +169,16 @@ spatial_projection_parameters_plot_raw <- reactive({
   ## Whether the renderer must flip the embedded image vertically depends on how
   ## THIS dataset's point y relates to its image rows — it differs per platform,
   ## so it is stored per-.crb as `histology_image_flip_y` (set at build time,
-  ## ground-truth verified). Default TRUE (the common case) when the flag is
-  ## absent, e.g. older .crb files.
+  ## ground-truth verified). Images default to NO flip when the flag is absent;
+  ## the user can flip from the tab if a dataset needs it.
   embedded_flip_y <- spatial_data$histology_image_flip_y
   if (is.null(embedded_flip_y)) {
-    embedded_flip_y <- TRUE
+    embedded_flip_y <- FALSE
   }
 
   ## Normalise the background choice against the CURRENT dataset. When the user
   ## switches from an image-bearing demo (where they picked "__embedded__") to
-  ## one without an embedded image (e.g. Xenium -> Slide-tags), the stale
+  ## one without an embedded image (e.g. Xenium -> Slide-seq), the stale
   ## "__embedded__" input value would otherwise leave `background_image` pointing
   ## at an image this dataset does not have, wedging the plot update. Fall back to
   ## no background whenever the embedded image is absent.

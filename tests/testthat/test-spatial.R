@@ -139,7 +139,7 @@ test_that("ImageFeaturePlot reaches getExpressionMatrix as a Cerebro method", {
 
 test_that("plot update guards against a colour variable absent from metadata", {
   # Switching the loaded .crb can leave the point-colour dropdown holding a
-  # column from the previous dataset (e.g. Xenium "cluster" vs Slide-tags
+  # column from the previous dataset (e.g. Xenium "cluster" vs MERFISH
   # "cell_type"). Colouring by a missing column makes the downstream
   # dplyr::group_by() error and freezes the plot on the old data. The render
   # function must fall back to a valid metadata column. Assert the guard survives
@@ -401,7 +401,7 @@ test_that("bundled real demos embed a genuine tissue image in the .crb", {
   # MERFISH and Xenium carry their REAL histology image (DAPI) inside the .crb
   # under `histology_image`, with coordinate-space bounds, so the Spatial tab
   # renders the true tissue background out of the box. (Visium uses an external
-  # image — tested above; Slide-seq/Slide-tags carry no image — tested below.)
+  # image — tested above; Slide-seq carries no image — tested below.)
   for (f in c(
     "demo_spatial_merfish",
     "demo_spatial_xenium"
@@ -434,7 +434,7 @@ test_that("bundled real demos embed a genuine tissue image in the .crb", {
 
 ##----------------------------------------------------------------------------##
 ## Real multi-platform demos: each shipped .crb (Visium / Slide-seq v2 / MERFISH
-## / Xenium / Slide-tags) must load with a usable spatial slot. These are built
+## / Xenium) must load with a usable spatial slot. These are built
 ## from genuine public data by data-raw/build_spatial_demos.R.
 ##----------------------------------------------------------------------------##
 
@@ -442,8 +442,7 @@ real_spatial_demos <- c(
   visium = "extdata/v1.4/demo_spatial_visium.crb",
   slideseq = "extdata/v1.4/demo_spatial_slideseq.crb",
   merfish = "extdata/v1.4/demo_spatial_merfish.crb",
-  xenium = "extdata/v1.4/demo_spatial_xenium.crb",
-  slidetags = "extdata/v1.4/demo_spatial_slidetags.crb"
+  xenium = "extdata/v1.4/demo_spatial_xenium.crb"
 )
 
 test_that("each real spatial demo exposes coordinates with x/y", {
@@ -490,13 +489,12 @@ test_that("real spatial demos are wired into the bundled dropdown", {
   expect_match(app_src, "Slide-seq")
   expect_match(app_src, "MERFISH")
   expect_match(app_src, "Xenium")
-  expect_match(app_src, "Slide-tags")
 })
 
-test_that("image-free demos (Slide-seq, Slide-tags) carry no histology image", {
-  # These two platforms record positions, not a tissue photo, so a genuine
+test_that("image-free demo (Slide-seq) carries no histology image", {
+  # This platform records positions, not a tissue photo, so a genuine
   # absence of `histology_image` is the CORRECT state, not a build regression.
-  for (f in c("demo_spatial_slideseq", "demo_spatial_slidetags")) {
+  for (f in c("demo_spatial_slideseq")) {
     path <- system.file(
       file.path("extdata/v1.4", paste0(f, ".crb")),
       package = "cerebroAppLite"
@@ -531,15 +529,15 @@ test_that("embedded image demos carry the ground-truth-verified render flip flag
   }
 })
 
-test_that("Visium external image flip is wired in app.R", {
-  # Visium's H&E is external, so its ground-truth-verified vertical flip (TRUE,
-  # matching Seurat's SpatialPlot) is carried by spatial_images_flip_y in app.R,
-  # not by a per-.crb flag.
+test_that("app.R ships images with no forced flip", {
+  # Images default to NO flip: app.R must not force spatial_images_flip_y for the
+  # bundled Visium H&E. Alignment (a vertical flip for this dataset) is left to
+  # the user via the Spatial tab's "Flip vertically" checkbox.
   app_src <- paste(
     readLines(system.file("app.R", package = "cerebroAppLite")),
     collapse = "\n"
   )
-  expect_match(app_src, "spatial_images_flip_y", fixed = TRUE)
+  expect_no_match(app_src, "\"spatial_images_flip_y\"", fixed = TRUE)
 })
 
 ##----------------------------------------------------------------------------##

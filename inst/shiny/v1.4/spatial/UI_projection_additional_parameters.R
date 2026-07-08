@@ -74,7 +74,9 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
       min = preferences[["gene_expression_plot_point_opacity"]][["min"]],
       max = preferences[["gene_expression_plot_point_opacity"]][["max"]],
       step = preferences[["gene_expression_plot_point_opacity"]][["step"]],
-      value = preferences[["gene_expression_plot_point_opacity"]][["default"]]
+      ## Spatial-specific default: fully opaque points (cells sit over a tissue
+      ## image, where translucent points read as washed out).
+      value = 1
     ),
     sliderInput(
       "spatial_projection_percentage_cells_to_show",
@@ -88,9 +90,9 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
       step = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
         "step"
       ]],
-      value = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
-        "default"
-      ]]
+      ## Spatial-specific default: show half the cells so the plot stays
+      ## responsive on large sections while still reading as full tissue.
+      value = 50
     ),
     ## Background-image adjustments. Shown only when an image is selected. Every
     ## control here is DECOUPLED from the scatter plot: it re-styles the image

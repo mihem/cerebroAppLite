@@ -1,7 +1,7 @@
 # Demo dataset registry
 
 Single source of truth for every demo `.crb` shipped in `inst/extdata/v1.4/`.
-Whatever the data type — immune repertoire, spatial, trajectory (planned) — each dataset is recorded here with the **same fields** so provenance is complete and reproducible.
+Whatever the data type — immune repertoire, spatial, trajectory — each dataset is recorded here with the **same fields** so provenance is complete and reproducible.
 
 `data-raw/` is excluded from the built package via `.Rbuildignore`; it stays in the repo for reproducibility only. The built `.crb` files are what ship.
 
@@ -148,32 +148,22 @@ Built by `data-raw/build_spatial_demos.R` (see [`spatial.md`](spatial.md) for de
 - **build**: `data-raw/build_spatial_demos.R` → `build_xenium()`
 - **output**: `inst/extdata/v1.4/demo_spatial_xenium.crb` (~3.4 MB)
 
-### demo_spatial_slidetags.crb
-- **type**: spatial
-- **technology**: Slide-tags (spatial-barcoded single-nucleus)
-- **dropdown label**: `Human cortex (Slide-tags)`
-- **organism / tissue**: human (hg) / prefrontal cortex
-- **source**: Russell et al. 2024 (Slide-tags, *Nature*) human prefrontal cortex, via the Open Problems processed mirror on Zenodo (AnnData `.h5ad`, cortex sample).
-- **acquire**: `build_slidetags()` performs this automatically on first run (skipped if already present); the manual equivalent is:
+### Spatial — evaluated, not yet shipped
+
+These platforms were evaluated for a demo but are not shipped this round; the acquire path is recorded so the demo can be added later without re-researching sources.
+
+**Slide-tags (spatial-barcoded single-nucleus).** Russell et al. 2024 (*Nature*) human prefrontal cortex, via the Open Problems Zenodo mirror as an AnnData `.h5ad`.
+Not shipped: it carries no tissue image (coordinates only), so it duplicates the Slide-seq demo's role (image-free bead/nucleus scatter) while costing an ~80 MB `.h5ad` download.
+- **acquire**:
   ```bash
   mkdir -p data-raw/slidetags
   curl -fL -o data-raw/slidetags/slidetags_cortex.h5ad \
     "https://openproblems-data.s3.amazonaws.com/resources/datasets/zenodo_spatial_slidetags/slidetags/human_cortex/dataset.h5ad"
   ```
-- **object type**: AnnData `.h5ad` (4,065 nuclei × 18,570 genes), parsed straight into a Seurat `FOV`+`Centroids` object with `hdf5r` (CSC `layers/counts` transposed to genes × cells, `obsm/spatial` coordinates, `obs/cell_type` categories) — no `anndata`/`zellkonverter` dependency.
-- **sampling**: `set.seed(42)`; all 4,065 nuclei kept; expression trimmed to 2,000 genes (variable + top-expressed) to keep the `.crb` small.
-- **cell-type field**: `cell_type` (7 cortical classes: Excitatory, Inhibitory, Astrocyte, Microglia, Endothelial, OPC, …)
-- **embedded image**: **none — and this is correct, not an omission.** Slide-tags barcodes single nuclei with spatial DNA tags, then runs standard droplet snRNA-seq; the spatial signal is a coordinate pair per nucleus (`obsm/spatial`), not a tissue photo. Like Slide-seq, the nucleus scatter *is* the complete spatial view.
-- **license**: Zenodo record under the Open Problems terms; original data from Russell et al. 2024 (public reference data).
-- **build**: `data-raw/build_spatial_demos.R` → `build_slidetags()`
-- **output**: `inst/extdata/v1.4/demo_spatial_slidetags.crb` (~6.7 MB)
-
-### Spatial — evaluated, not yet shipped
-
-These platforms were evaluated for a demo but are not shipped this round; the acquire path is recorded so the demo can be added later without re-researching sources.
+  The `.h5ad` parses straight into a Seurat `FOV`+`Centroids` object with `hdf5r` (CSC `layers/counts`, `obsm/spatial`, `obs/cell_type`) — no `anndata`/`zellkonverter` dependency.
 
 **Stereo-seq (BGI STOmics).** Chip-capture spatial transcriptomics at sub-micron resolution.
-The raw format is a `.gef`/`.gem` file that has no native R reader; the reference toolchain is the Python package `stereopy`, which reads the `.gef` and can export to AnnData (`.h5ad`) for the same `hdf5r` route Slide-tags uses.
+The raw format is a `.gef`/`.gem` file that has no native R reader; the reference toolchain is the Python package `stereopy`, which reads the `.gef` and can export to AnnData (`.h5ad`) for the same `hdf5r` route Slide-tags would use.
 Public data (mouse embryo / brain) lives at the STOmics MOSTA portal.
 - **acquire** (two-step: needs Python + `stereopy`):
   ```bash
@@ -184,19 +174,19 @@ Public data (mouse embryo / brain) lives at the STOmics MOSTA portal.
     data = st.io.read_gef('SECTION.cellbin.gef', bin_type='cell_bins'); \
     st.io.stereo_to_anndata(data, flavor='seurat', output='stereoseq.h5ad')"
   ```
-  Then a `build_stereoseq()` twin of `build_slidetags()` would parse `stereoseq.h5ad` with `hdf5r`. Not built here because `stereopy` is a Python-only dependency not present in the build environment; documented so it is a drop-in when that environment is available.
+  Then a `build_stereoseq()` would parse `stereoseq.h5ad` with `hdf5r`. Not built here because `stereopy` is a Python-only dependency not present in the build environment; documented so it is a drop-in when that environment is available.
 
 ---
 
 ## Immune repertoire
 
-Three distinct cell subsets of `example.crb`, each with lineage-constrained clonotypes.
+A cell subset of `example.crb` with lineage-constrained clonotypes.
 Built by `data-raw/build_ir_demos.R` (see [`immune_repertoire.md`](immune_repertoire.md)).
 
-### demo_full_tcr_bcr.crb / demo_healthy_t.crb / demo_bcell_rich.crb
+### demo_full_tcr_bcr.crb
 - **type**: immune_repertoire
 - **technology**: 10x Chromium 5' V(D)J (scRNA-seq + TCR/BCR)
-- **dropdown label**: `PBMC - Full (T+B)` / `PBMC - Healthy (T/NK)` / `PBMC - B-cell rich`
+- **dropdown label**: `PBMC - Full (T+B)`
 - **organism / tissue**: human (hg) / PBMC, healthy donor
 - **source**: 10x Genomics public dataset `vdj_v1_hs_pbmc3` (Human PBMC, Chromium 5' V(D)J, Cell Ranger 3.1.0).
 - **acquire**:
@@ -208,18 +198,38 @@ Built by `data-raw/build_ir_demos.R` (see [`immune_repertoire.md`](immune_repert
   curl -fL -o data-raw/vdj_10x/pbmc3_b_contig.csv \
     "$BASE/vdj_v1_hs_pbmc3_b_filtered_contig_annotations.csv"
   ```
-- **object type**: `Cerebro_v1.3` cell subsets of `example.crb`
-- **sampling**: `set.seed()`-pinned cell subsets (T+Mono, T+NK, B+few-T); TCR clonotypes assigned only to T cells, BCR only to B cells.
+- **object type**: `Cerebro_v1.3` cell subset of `example.crb` (T + B + Mono, 1,476 cells)
+- **sampling**: `set.seed()`-pinned cell subset; TCR clonotypes assigned only to T cells, BCR only to B cells.
 - **cell-type field**: existing `cell_type` from `example.crb`
 - **embedded image**: none (n/a for immune repertoire)
 - **license**: 10x Genomics public dataset terms
-- **build**: `data-raw/build_ir_demos.R`
-- **output**: three `.crb` in `inst/extdata/v1.4/` (~0.4–1.0 MB each)
+- **build**: `data-raw/build_ir_demos.R` (also carries the monocle2 trajectory — see the Trajectory section)
+- **output**: `inst/extdata/v1.4/demo_full_tcr_bcr.crb` (~1.0 MB)
+
+> `build_ir_demos.R` can also emit two narrower subsets — `demo_healthy_t.crb` (T + Mono, TCR only) and `demo_bcell_rich.crb` (B + few T, BCR only) — as a multi-sample switcher demo. They are **not shipped** by default; the Full set is their superset.
 
 ---
 
-## Trajectory (planned)
+## Trajectory
 
-_Not built yet._
-When trajectory demo data is prepared it will be recorded here using the same schema (one `### demo_trajectory_<name>.crb` block per dataset), built by a future `data-raw/build_trajectory_demos.R`, and stored via the `Cerebro_v1.3$addTrajectory(method, trajectory_name, trajectory)` method.
-Fill **source / acquire / object type / sampling / license / build / output** exactly as above so trajectory provenance is as complete as spatial's.
+The trajectory demo is not a separate `.crb`: the monocle2 pseudotime trajectory is
+carried **inside** the immune-repertoire demo `demo_full_tcr_bcr.crb`, computed on its
+B-cell subset, so one dataset demonstrates TCR + BCR + trajectory.
+Built by `data-raw/build_trajectory_demo.R` (see [`trajectory.md`](trajectory.md)).
+
+### demo_full_tcr_bcr.crb (trajectory slot)
+- **type**: trajectory
+- **technology**: monocle2 `DDRTree` pseudotime (`monocle2 / B_cell_maturation`)
+- **dropdown label**: same as the IR demo — `PBMC - Full (T+B)` (the Trajectory tab appears when trajectory data is present)
+- **organism / tissue**: human (hg) / PBMC B cells, healthy donor
+- **source**: derived entirely from `demo_full_tcr_bcr.crb` itself — no new download. The trajectory is computed on that demo's 915 B cells.
+- **acquire**: none (input is the already-built IR demo `.crb`)
+- **object type**: `monocle` `CellDataSet`, ordered by `DDRTree`; stored via `Cerebro_v1.3$addTrajectory("monocle2", "B_cell_maturation", trajectory)`.
+- **sampling**: `set.seed(42)`; all 915 B cells of the demo; ordering filter on high-variance genes. The stored `meta` has `DR_1`, `DR_2`, `pseudotime`, `state`.
+- **cell-type field**: `state` (monocle2 DDRTree state) / continuous `pseudotime`
+- **embedded image**: none (n/a for trajectory)
+- **license**: 10x Genomics public dataset terms (inherited from the IR demo)
+- **build**: `data-raw/build_trajectory_demo.R` (needs `monocle` from Bioconductor; build-time-only, not a runtime dependency)
+- **output**: no new file — overwrites the trajectory slot inside `inst/extdata/v1.4/demo_full_tcr_bcr.crb`
+
+**Honest scope**: these are peripheral-blood B cells, not a bone-marrow developmental lineage — the trajectory is **illustrative** of the pseudotime feature, not a biological claim about B-cell ontogeny.

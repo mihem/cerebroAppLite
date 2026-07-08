@@ -16,7 +16,6 @@
 ##   | demo_spatial_slideseq.crb  | Slide-seq v2 | SeuratData::ssHippo             | none
 ##   | demo_spatial_merfish.crb   | MERFISH      | MerfishData Petukhov 2021 ileum | DAPI
 ##   | demo_spatial_xenium.crb    | 10x Xenium   | 10x mouse brain CTX+HP (public) | DAPI
-##   | demo_spatial_slidetags.crb | Slide-tags   | Open Problems / Zenodo cortex   | none
 ##
 ## Visium, MERFISH and Xenium additionally embed their GENUINE histology image
 ## (low-res H&E raster / DAPI mosaic) in the .crb spatial slot under
@@ -28,8 +27,8 @@
 ## end-to-end proof that exportFromSeurat handles v4 spatial objects, not only
 ## Seurat v5 (Visium/MERFISH here are v5).
 ##
-## Two builds pull data directly over the network rather than from an R package.
-## They now AUTO-DOWNLOAD the raw data on first run (via ensure_download /
+## One build pulls data directly over the network rather than from an R package.
+## It now AUTO-DOWNLOADS the raw data on first run (via ensure_download /
 ## ensure_unzipped) so the whole link -> .crb pipeline runs from one command;
 ## the download is skipped if the file is already present, and the build no-ops
 ## with a message only if the download itself fails.
@@ -40,9 +39,6 @@
 ##                `RBioFormats` (a pure-R wrapper over the Java Bio-Formats
 ##                library). If `RBioFormats` is missing, the Xenium demo is built
 ##                WITHOUT the image (coordinates still ship).
-##   * Slide-tags -- fetches the Open Problems / Zenodo cortex `.h5ad` (~80 MB) to
-##                data-raw/slidetags/. Parsed with `hdf5r` directly (no anndata
-##                dependency).
 ##
 ## Run from the package root, with SeuratData + MerfishData installed:
 ##   Rscript data-raw/build_spatial_demos.R
@@ -73,7 +69,7 @@ MAX_CELLS <- 5000
 ##----------------------------------------------------------------------------##
 
 ## Download a file to `dest` if it is not already there, so the network-sourced
-## demos (Xenium, Slide-tags) build end-to-end from one `Rscript` call instead of
+## demo (Xenium) builds end-to-end from one `Rscript` call instead of
 ## needing a manual curl step first. Uses a resumable, retrying download and
 ## writes to a temp file first so an interrupted transfer never leaves a
 ## half-written file that later looks complete. Returns TRUE on success.
@@ -715,106 +711,11 @@ build_xenium <- function() {
 }
 
 ##----------------------------------------------------------------------------##
-## 5. Slide-tags  (Open Problems / Zenodo human cortex .h5ad)  -- coords only
-##
-## Slide-tags barcodes single nuclei with spatial DNA tags, then runs standard
-## droplet snRNA-seq; the "spatial" signal is a pair of coordinates per nucleus
-## (obsm/spatial), NOT a tissue photo. So, like Slide-seq, it ships no image --
-## the nucleus scatter is the complete spatial view. Parsed straight from the
-## AnnData .h5ad with hdf5r (CSC counts + obsm/spatial + obs/cell_type), no
-## anndata/zellkonverter dependency.
-##----------------------------------------------------------------------------##
-build_slidetags <- function() {
-  message(
-    "== Slide-tags (Open Problems human cortex) == [coords only, no image]"
-  )
-  h5ad <- "data-raw/slidetags/slidetags_cortex.h5ad"
-  ## Auto-fetch the Open Problems / Zenodo cortex .h5ad (~80 MB) if absent, so the
-  ## full link -> .crb pipeline runs from one command.
-  slidetags_url <- paste0(
-    "https://openproblems-data.s3.amazonaws.com/resources/datasets/",
-    "zenodo_spatial_slidetags/slidetags/human_cortex/dataset.h5ad"
-  )
-  ensure_download(slidetags_url, h5ad)
-  if (!file.exists(h5ad)) {
-    message("  SKIP: ", h5ad, " unavailable (download failed?)")
-    return(invisible(NULL))
-  }
-  suppressPackageStartupMessages(library(hdf5r))
-  assay <- "Spatial"
-
-  f <- H5File$new(h5ad, mode = "r")
-  on.exit(f$close_all(), add = TRUE)
-
-  ## counts live in layers/counts as a CSC matrix over obs x var; transpose to
-  ## the genes x cells orientation Seurat wants.
-  n_obs <- f[["obs/cell_type/codes"]]$dims
-  n_var <- length(f[["var/feature_name"]]$read())
-  dat <- f[["layers/counts/data"]]$read()
-  idx <- f[["layers/counts/indices"]]$read()
-  ptr <- f[["layers/counts/indptr"]]$read()
-  m_ov <- Matrix::sparseMatrix(
-    i = idx + 1L,
-    p = ptr,
-    x = dat,
-    dims = c(n_obs, n_var),
-    index1 = TRUE
-  )
-  mat <- Matrix::t(m_ov)
-
-  genes <- as.character(f[["var/feature_name"]]$read())
-  obs_names <- tryCatch(
-    f[["obs/_index"]]$read(),
-    error = function(e) sprintf("cell%05d", seq_len(n_obs))
-  )
-  if (length(obs_names) != n_obs) {
-    obs_names <- sprintf("cell%05d", seq_len(n_obs))
-  }
-  rownames(mat) <- make.unique(genes)
-  colnames(mat) <- as.character(obs_names)
-
-  sp <- f[["obsm/spatial"]]$read()
-  if (nrow(sp) == 2) {
-    sp <- t(sp)
-  }
-  cats <- f[["obs/cell_type/categories"]]$read()
-  codes <- f[["obs/cell_type/codes"]]$read()
-  cell_type <- factor(cats[codes + 1L], levels = cats)
-
-  obj <- CreateSeuratObject(counts = mat, assay = assay)
-  obj$nUMI <- obj[[paste0("nCount_", assay)]][, 1]
-  obj$nGene <- obj[[paste0("nFeature_", assay)]][, 1]
-  obj$cell_type <- cell_type
-  obj$x <- sp[, 1]
-  obj$y <- sp[, 2]
-
-  obj <- process_seurat(obj, assay)
-
-  xy <- data.frame(x = obj$x, y = obj$y, row.names = colnames(obj))
-  cents <- CreateCentroids(as.matrix(xy[colnames(obj), c("x", "y")]))
-  obj[["fov"]] <- CreateFOV(
-    list(centroids = cents),
-    type = "centroids",
-    assay = assay
-  )
-
-  export_and_verify(
-    obj,
-    assay,
-    groups = c("cell_type"),
-    file = file.path(out_dir, "demo_spatial_slidetags.crb"),
-    experiment_name = "Slide-tags human cortex",
-    organism = "hg"
-  )
-}
-
-##----------------------------------------------------------------------------##
 ## run all
 ##----------------------------------------------------------------------------##
 build_visium()
 build_slideseq()
 build_merfish()
 build_xenium()
-build_slidetags()
 
 message("\nAll spatial demo .crb files rebuilt in ", out_dir)

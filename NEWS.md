@@ -19,6 +19,12 @@
   the cortex out of the box. Both the coordinates and the image are synthetic —
   no patient data.
 - **Documentation**: added the `vignette("spatial_analysis")` guide.
+- **Bundled demo set**: the app now opens on `demo_full_tcr_bcr.crb` (PBMC,
+  TCR + BCR + trajectory) plus four real spatial sections (Visium, Slide-seq v2,
+  MERFISH, Xenium), so the dataset switcher spans immune-repertoire, trajectory,
+  and spatial content. The two narrower PBMC subsets (`demo_healthy_t.crb`,
+  `demo_bcell_rich.crb`) are no longer shipped — the Full set is their superset;
+  `data-raw/build_ir_demos.R` can still rebuild them for a multi-sample demo.
 
 # cerebroAppLite 1.7.8
 
