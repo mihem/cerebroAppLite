@@ -61,6 +61,37 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
     error = function(e) NULL
   )
 
+  ## Initial background offset (move) for the CURRENT dataset, if the app was
+  ## built with a `spatial_images_offset_x/y` preset. Resolved by dataset name
+  ## via `available_crb_files`, matching how flip/scale/rotation defaults are
+  ## looked up in obj_projection_parameters_plot.R. Lets an app ship a
+  ## pre-aligned overlay instead of forcing the user to nudge it every time.
+  offset_default <- function(option_name) {
+    if (
+      !exists("Cerebro.options") ||
+        is.null(Cerebro.options[[option_name]]) ||
+        !exists("available_crb_files") ||
+        is.null(available_crb_files$selected)
+    ) {
+      return(0)
+    }
+    idx <- which(available_crb_files$files == available_crb_files$selected)
+    if (length(idx) == 0) {
+      return(0)
+    }
+    current_name <- names(available_crb_files$files)[idx[1]]
+    if (
+      is.null(current_name) ||
+        !(current_name %in% names(Cerebro.options[[option_name]]))
+    ) {
+      return(0)
+    }
+    val <- Cerebro.options[[option_name]][[current_name]]
+    if (is.null(val) || !is.finite(val)) 0 else val
+  }
+  offset_x_default <- offset_default("spatial_images_offset_x")
+  offset_y_default <- offset_default("spatial_images_offset_y")
+
   tagList(
     sliderInput(
       "spatial_projection_point_size",
@@ -139,7 +170,7 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
             label = NULL,
             min = -offset_limit,
             max = offset_limit,
-            value = 0,
+            value = offset_x_default,
             step = offset_step
           )
         ),
@@ -148,7 +179,7 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
           numericInput(
             "spatial_projection_background_offset_x_num",
             label = NULL,
-            value = 0,
+            value = offset_x_default,
             step = offset_step
           )
         )
@@ -167,7 +198,7 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
             label = NULL,
             min = -offset_limit,
             max = offset_limit,
-            value = 0,
+            value = offset_y_default,
             step = offset_step
           )
         ),
@@ -176,7 +207,7 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
           numericInput(
             "spatial_projection_background_offset_y_num",
             label = NULL,
-            value = 0,
+            value = offset_y_default,
             step = offset_step
           )
         )

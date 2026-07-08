@@ -218,8 +218,9 @@ test_that("Spatial tab is wired into the app UI and server", {
 ##----------------------------------------------------------------------------##
 
 test_that("createShinyApp accepts the spatial_images parameters", {
-  # Guard the production API surface: all five spatial_images* args must be
-  # part of the formals so downstream users can pass histology backgrounds.
+  # Guard the production API surface: every spatial_images* arg must be part of
+  # the formals so downstream users can pass histology backgrounds and their
+  # per-dataset alignment defaults (flip / scale / move / rotate).
   args <- names(formals(createShinyApp))
   for (a in c(
     "spatial_images",
@@ -227,6 +228,8 @@ test_that("createShinyApp accepts the spatial_images parameters", {
     "spatial_images_flip_y",
     "spatial_images_scale_x",
     "spatial_images_scale_y",
+    "spatial_images_offset_x",
+    "spatial_images_offset_y",
     "spatial_plot_rotation"
   )) {
     expect_true(a %in% args, info = a)

@@ -260,15 +260,42 @@ observe({
 ## Reset the background-image adjustments back to identity.
 ##----------------------------------------------------------------------------##
 observeEvent(input[["spatial_projection_background_reset"]], {
+  ## Reset returns to the app-configured default for the current dataset (the
+  ## `spatial_images_offset_x/y` preset), not a hard 0 — otherwise resetting a
+  ## pre-aligned overlay would knock it out of alignment. Falls back to 0 when
+  ## no preset is set. Same per-dataset name lookup as flip/scale above.
+  reset_offset_default <- function(option_name) {
+    if (
+      !exists("Cerebro.options") ||
+        is.null(Cerebro.options[[option_name]]) ||
+        !exists("available_crb_files") ||
+        is.null(available_crb_files$selected)
+    ) {
+      return(0)
+    }
+    idx <- which(available_crb_files$files == available_crb_files$selected)
+    if (length(idx) == 0) {
+      return(0)
+    }
+    current_name <- names(available_crb_files$files)[idx[1]]
+    if (
+      is.null(current_name) ||
+        !(current_name %in% names(Cerebro.options[[option_name]]))
+    ) {
+      return(0)
+    }
+    val <- Cerebro.options[[option_name]][[current_name]]
+    if (is.null(val) || !is.finite(val)) 0 else val
+  }
   updateSliderInput(
     session,
     "spatial_projection_background_offset_x",
-    value = 0
+    value = reset_offset_default("spatial_images_offset_x")
   )
   updateSliderInput(
     session,
     "spatial_projection_background_offset_y",
-    value = 0
+    value = reset_offset_default("spatial_images_offset_y")
   )
   updateSliderInput(session, "spatial_projection_background_scale", value = 1)
   updateSliderInput(session, "spatial_projection_background_rotate", value = 0)

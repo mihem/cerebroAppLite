@@ -27,6 +27,8 @@ createShinyApp(
   spatial_images_flip_y = NULL,
   spatial_images_scale_x = NULL,
   spatial_images_scale_y = NULL,
+  spatial_images_offset_x = NULL,
+  spatial_images_offset_y = NULL,
   spatial_plot_rotation = NULL,
   ...
 )
@@ -84,6 +86,14 @@ axis of the spatial background image. Names must match \code{cerebro_data}.}
 
 \item{spatial_images_scale_y}{Named list/vector; scaling factor for the Y
 axis of the spatial background image. Names must match \code{cerebro_data}.}
+
+\item{spatial_images_offset_x}{Named list/vector; horizontal offset (in data
+units) applied to move the spatial background image. Names must match
+\code{cerebro_data}.}
+
+\item{spatial_images_offset_y}{Named list/vector; vertical offset (in data
+units) applied to move the spatial background image. Names must match
+\code{cerebro_data}.}
 
 \item{spatial_plot_rotation}{Named list/vector; initial rotation (degrees)
 applied to spatial cell coordinates. Names must match \code{cerebro_data}.}

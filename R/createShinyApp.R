@@ -92,6 +92,12 @@ dedent <- function(string) {
 #'   axis of the spatial background image. Names must match \code{cerebro_data}.
 #' @param spatial_images_scale_y Named list/vector; scaling factor for the Y
 #'   axis of the spatial background image. Names must match \code{cerebro_data}.
+#' @param spatial_images_offset_x Named list/vector; horizontal offset (in data
+#'   units) applied to move the spatial background image. Names must match
+#'   \code{cerebro_data}.
+#' @param spatial_images_offset_y Named list/vector; vertical offset (in data
+#'   units) applied to move the spatial background image. Names must match
+#'   \code{cerebro_data}.
 #' @param spatial_plot_rotation Named list/vector; initial rotation (degrees)
 #'   applied to spatial cell coordinates. Names must match \code{cerebro_data}.
 #' @param ... Currently unused; reserved for future arguments.
@@ -124,6 +130,8 @@ createShinyApp <- function(
   spatial_images_flip_y = NULL,
   spatial_images_scale_x = NULL,
   spatial_images_scale_y = NULL,
+  spatial_images_offset_x = NULL,
+  spatial_images_offset_y = NULL,
   spatial_plot_rotation = NULL,
   ...
 ) {
@@ -231,6 +239,14 @@ createShinyApp <- function(
   spatial_images_scale_y <- validate_named_against_data(
     spatial_images_scale_y,
     "spatial_images_scale_y"
+  )
+  spatial_images_offset_x <- validate_named_against_data(
+    spatial_images_offset_x,
+    "spatial_images_offset_x"
+  )
+  spatial_images_offset_y <- validate_named_against_data(
+    spatial_images_offset_y,
+    "spatial_images_offset_y"
   )
   spatial_plot_rotation <- validate_named_against_data(
     spatial_plot_rotation,
@@ -415,6 +431,12 @@ createShinyApp <- function(
   }
   if (!is.null(spatial_images_scale_y)) {
     cerebro_options[["spatial_images_scale_y"]] <- spatial_images_scale_y
+  }
+  if (!is.null(spatial_images_offset_x)) {
+    cerebro_options[["spatial_images_offset_x"]] <- spatial_images_offset_x
+  }
+  if (!is.null(spatial_images_offset_y)) {
+    cerebro_options[["spatial_images_offset_y"]] <- spatial_images_offset_y
   }
   if (!is.null(spatial_plot_rotation)) {
     cerebro_options[["spatial_plot_rotation"]] <- spatial_plot_rotation

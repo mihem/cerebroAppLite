@@ -1284,7 +1284,12 @@ Add spatial data.
 \describe{
 \item{\code{name}}{Name of the spatial data entry (e.g. image name).}
 
-\item{\code{data}}{\code{list} containing 'coordinates' (data.frame) and 'expression' (sparse matrix).}
+\item{\code{data}}{\code{list} containing 'coordinates' (data.frame) and
+'expression' (sparse matrix). It may optionally carry an embedded
+histology image as 'image' (a base64 \code{data:} URI string) plus
+'image_bounds' (named list xmin/xmax/ymin/ymax in coordinate space)
+so the Spatial tab can render the real tissue background without an
+external file.}
 }
 \if{html}{\out{</div>}}
 }
