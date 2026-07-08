@@ -526,15 +526,18 @@ test_that("embedded image demos store the image natively with no flip flag", {
   }
 })
 
-test_that("app.R ships images with no forced flip", {
-  # Images default to NO flip: app.R must not force spatial_images_flip_y for the
-  # bundled Visium H&E. Alignment (a vertical flip for this dataset) is left to
-  # the user via the Spatial tab's "Flip vertically" checkbox.
+test_that("app.R ships the Visium H&E overlay pre-aligned", {
+  # The bundled Visium demo opens with its H&E overlay already aligned to the
+  # points, so users see a correct overlay without nudging it. app.R therefore
+  # sets the per-dataset alignment presets (move + scale + a vertical flip that
+  # this dataset needs); the Spatial tab still lets users adjust or Reset.
   app_src <- paste(
     readLines(system.file("app.R", package = "cerebroAppLite")),
     collapse = "\n"
   )
-  expect_no_match(app_src, "\"spatial_images_flip_y\"", fixed = TRUE)
+  expect_match(app_src, "\"spatial_images_flip_y\"", fixed = TRUE)
+  expect_match(app_src, "\"spatial_images_offset_x\"", fixed = TRUE)
+  expect_match(app_src, "\"spatial_images_scale_x\"", fixed = TRUE)
 })
 
 ##----------------------------------------------------------------------------##

@@ -53,6 +53,21 @@ Cerebro.options <<- list(
   "spatial_images" = c(
     "Mouse brain (Visium)" = "extdata/v1.4/demo_spatial_visium_he.png"
   ),
+  ## Default alignment of the Visium H&E overlay, found by eye in the Spatial
+  ## tab and captured here so the demo opens pre-aligned. The user can still
+  ## adjust or Reset (which returns to these values, not to identity).
+  "spatial_images_offset_x" = c("Mouse brain (Visium)" = 450),
+  "spatial_images_offset_y" = c(
+    "Mouse brain (Visium)" = -900,
+    "Mouse ileum (MERFISH)" = -350,
+    "Mouse brain (Xenium)" = -110
+  ),
+  "spatial_images_scale_x" = c("Mouse brain (Visium)" = 1.55),
+  "spatial_images_scale_y" = c("Mouse brain (Visium)" = 1.55),
+  "spatial_images_flip_y" = c(
+    "Mouse brain (Visium)" = TRUE,
+    "Mouse brain (Xenium)" = TRUE
+  ),
   "cerebro_root" = ".",
   "welcome_message" = custom_welcome_message,
   "overview_default_point_size" = 1,

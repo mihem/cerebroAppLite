@@ -156,13 +156,15 @@ shinyjs.applySpatialBackground = function () {
 
     const flipX = bg.dataset.flipX === 'true';
     const flipY = bg.dataset.flipY === 'true';
-    // Static per-dataset alignment scale from the build config (external images).
-    const scaleX = parseFloat(bg.dataset.scaleX) || 1;
-    const scaleY = parseFloat(bg.dataset.scaleY) || 1;
-    // Interactive appearance nudges from the Additional-parameters controls.
-    // These are applied ON TOP of the mapped placement and NEVER touch the
-    // scatter plot — they only re-style this background <div>.
-    const userScale = parseFloat(bg.dataset.userScale) || 1;
+    // Scale is a SINGLE source of truth: the Scale slider(s), which the UI seeds
+    // from the build-config `spatial_images_scale_x/y` preset. There is no longer
+    // a separate dataset.scaleX factor multiplied on top (that produced a squared
+    // scale, e.g. 1.55 × 1.55). scaleX/scaleY are independent when the user
+    // unlocks the aspect ratio; locked, the X slider drives both.
+    const scaleX = parseFloat(bg.dataset.scaleX);
+    const scaleY = parseFloat(bg.dataset.scaleY);
+    const userScaleX = Number.isFinite(scaleX) ? scaleX : 1;
+    const userScaleY = Number.isFinite(scaleY) ? scaleY : 1;
     const rotate = parseFloat(bg.dataset.rotate) || 0;
     const offsetX = parseFloat(bg.dataset.offsetX) || 0; // in data (x) units
     const offsetY = parseFloat(bg.dataset.offsetY) || 0; // in data (y) units
@@ -170,10 +172,9 @@ shinyjs.applySpatialBackground = function () {
     const imgW = parseInt(bg.dataset.imgWidth) || 0;
     const imgH = parseInt(bg.dataset.imgHeight) || 0;
 
-    // flip is a mirror on top of the placement; scale multiplies (build-config
-    // alignment scale × interactive user scale).
-    const finalScaleX = (flipX ? -1 : 1) * scaleX * userScale;
-    const finalScaleY = (flipY ? -1 : 1) * scaleY * userScale;
+    // flip is a mirror on top of the placement; scale is applied as-is.
+    const finalScaleX = (flipX ? -1 : 1) * userScaleX;
+    const finalScaleY = (flipY ? -1 : 1) * userScaleY;
 
     const size =
       plotContainer._fullLayout && plotContainer._fullLayout._size
@@ -195,8 +196,10 @@ shinyjs.applySpatialBackground = function () {
       // Move is specified in DATA units so it stays locked to the cells across
       // zoom/resize: convert Δdata → Δpixel through the same axis mapping.
       const fl = plotContainer._fullLayout;
-      const dxPix = fl.xaxis.l2p(offsetX) - fl.xaxis.l2p(0);
-      const dyPix = fl.yaxis.l2p(offsetY) - fl.yaxis.l2p(0);
+      // Round to whole pixels so sub-pixel l2p jitter between renders does not
+      // count as a change below.
+      const dxPix = Math.round(fl.xaxis.l2p(offsetX) - fl.xaxis.l2p(0));
+      const dyPix = Math.round(fl.yaxis.l2p(offsetY) - fl.yaxis.l2p(0));
       // Order (applied right→left): flip+scale, then rotate, then translate.
       const parts = [];
       if (dxPix !== 0 || dyPix !== 0) {
@@ -206,7 +209,32 @@ shinyjs.applySpatialBackground = function () {
       if (finalScaleX !== 1 || finalScaleY !== 1) {
         parts.push(`scale(${finalScaleX}, ${finalScaleY})`);
       }
-      bg.style.transform = parts.join(' ');
+      const nextTransform = parts.join(' ');
+      // The 0.5s CSS transition on `transform` is meant to smooth a genuine user
+      // adjustment. But applySpatialBackground also runs on every plotly
+      // afterplot and on unrelated appearance changes, each time re-assigning the
+      // SAME transform — which replays the transition and makes the (possibly
+      // large, preset-offset) image visibly slide. Only write when the value
+      // actually changes so the animation fires on real edits alone.
+      if (bg.dataset.lastTransform !== nextTransform) {
+        // First placement of this image (no prior transform): apply it WITHOUT
+        // the transition so the preset offset/scale lands instantly instead of
+        // animating in from the origin. Subsequent user edits keep the smooth
+        // 0.5s transition.
+        const firstPlacement = bg.dataset.lastTransform === undefined;
+        if (firstPlacement) {
+          const savedTransition = bg.style.transition;
+          bg.style.transition = 'none';
+          bg.style.transform = nextTransform;
+          // Force a reflow so the no-transition assignment is committed before
+          // the transition is restored, otherwise the browser may still tween.
+          void bg.offsetWidth;
+          bg.style.transition = savedTransition;
+        } else {
+          bg.style.transform = nextTransform;
+        }
+        bg.dataset.lastTransform = nextTransform;
+      }
       if (imgW > 0 && imgH > 0) {
         // native-resolution <img>, stretched to the mapped rect
         if (!bg._imgEl) {
@@ -256,7 +284,11 @@ shinyjs.applySpatialBackground = function () {
       bg.style.width = parentW + 'px';
       bg.style.height = parentH + 'px';
       bg.style.transformOrigin = '50% 50%';
-      bg.style.transform = `scale(${finalScaleX}, ${finalScaleY})`;
+      const fallbackTransform = `scale(${finalScaleX}, ${finalScaleY})`;
+      if (bg.dataset.lastTransform !== fallbackTransform) {
+        bg.style.transform = fallbackTransform;
+        bg.dataset.lastTransform = fallbackTransform;
+      }
       bg.style.opacity = isNaN(opacity) ? 1 : opacity;
 
       if (!label) {
@@ -284,7 +316,7 @@ shinyjs.applySpatialBackground = function () {
   }
 };
 
-shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX, scaleY, opacity, imageBounds) {
+shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX, scaleY, opacity, imageBounds, offsetX, offsetY) {
   const plotContainer = document.getElementById('spatial_projection');
   if (!plotContainer) return;
   let parent = plotContainer.parentElement;
@@ -317,20 +349,39 @@ shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX,
     // image. Same image (a plain scatter re-render) → leave everything intact.
     const imageChanged = bg.dataset.backgroundImage !== (backgroundImage || '');
     if (imageChanged) {
+      delete bg.dataset.lastTransform;
       delete bg.dataset.flipX;
       delete bg.dataset.flipY;
       delete bg.dataset.opacity;
-      delete bg.dataset.userScale;
+      delete bg.dataset.scaleX;
+      delete bg.dataset.scaleY;
       delete bg.dataset.rotate;
       delete bg.dataset.offsetX;
       delete bg.dataset.offsetY;
     }
     bg.dataset.backgroundImage = backgroundImage || '';
   }
-  // scaleX/scaleY are the build-config alignment scale — an IMAGE property that
-  // must follow the dataset, so they are refreshed on every render.
-  if (scaleX !== undefined) bg.dataset.scaleX = String(scaleX || 1);
-  if (scaleY !== undefined) bg.dataset.scaleY = String(scaleY || 1);
+  // scaleX/scaleY seed the Scale slider(s) from the build-config preset, the
+  // same SEED-ONLY way as flip/opacity below: set once when the image first
+  // appears, then owned by the user (the appearance channel writes them). A
+  // plain scatter re-render must not clobber a scale the user has adjusted.
+  if (scaleX !== undefined && bg.dataset.scaleX === undefined) {
+    bg.dataset.scaleX = String(scaleX || 1);
+  }
+  if (scaleY !== undefined && bg.dataset.scaleY === undefined) {
+    bg.dataset.scaleY = String(scaleY || 1);
+  }
+  // offsetX/offsetY (the move preset) are seeded the SAME SEED-ONLY way. This is
+  // what fixes the first-show jump: previously the offset reached the div only
+  // via the async appearance channel, which could fire before this div existed
+  // and get dropped, so the image opened un-shifted until the user nudged it.
+  // Seeding here means the preset offset is present on the very first paint.
+  if (offsetX !== undefined && bg.dataset.offsetX === undefined) {
+    bg.dataset.offsetX = String(offsetX || 0);
+  }
+  if (offsetY !== undefined && bg.dataset.offsetY === undefined) {
+    bg.dataset.offsetY = String(offsetY || 0);
+  }
   // flipX/flipY/opacity are USER-interaction state, owned by the independent
   // appearance channel (updateSpatialBackgroundAppearance). The render pass must
   // NOT clobber them, or a scatter-plot re-render (colour/point-size/% change)
@@ -371,6 +422,17 @@ shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX,
   }
 
   shinyjs.applySpatialBackground();
+  // Picking/seeding a background only re-styles the div; it does NOT trigger a
+  // Plotly redraw, so plotly_afterplot won't fire and the axis mapping (l2p) may
+  // not be settled yet on this first pass — the move offset would resolve to 0
+  // and the image would sit un-shifted until the next user action nudged it into
+  // place (a visible jump). Re-apply on the next animation frame, by when the
+  // geometry is ready, so the offset lands correctly on first show.
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(function () {
+      shinyjs.applySpatialBackground();
+    });
+  }
 
   plotContainer.style.position = 'relative';
   plotContainer.style.zIndex = '1';
@@ -399,7 +461,8 @@ shinyjs.updateSpatialBackgroundAppearance = function (params) {
     offsetY: null,
     flipX: undefined,
     flipY: undefined,
-    scale: null,
+    scaleX: null,
+    scaleY: null,
     rotate: null,
   });
   const bg = document.getElementById('spatial_projection_background');
@@ -417,8 +480,11 @@ shinyjs.updateSpatialBackgroundAppearance = function (params) {
   }
   if (params.flipX !== undefined) bg.dataset.flipX = String(params.flipX);
   if (params.flipY !== undefined) bg.dataset.flipY = String(params.flipY);
-  if (params.scale !== undefined && params.scale !== null) {
-    bg.dataset.userScale = String(params.scale || 1);
+  if (params.scaleX !== undefined && params.scaleX !== null) {
+    bg.dataset.scaleX = String(params.scaleX || 1);
+  }
+  if (params.scaleY !== undefined && params.scaleY !== null) {
+    bg.dataset.scaleY = String(params.scaleY || 1);
   }
   if (params.rotate !== undefined && params.rotate !== null) {
     bg.dataset.rotate = String(params.rotate);
@@ -875,7 +941,9 @@ shinyjs.updatePlot2DContinuousSpatial = function (params) {
       params.meta.background_scale_x,
       params.meta.background_scale_y,
       params.meta.background_opacity,
-      params.meta.image_bounds
+      params.meta.image_bounds,
+      params.meta.background_offset_x,
+      params.meta.background_offset_y
     );
     shinyjs.detachModebar();
   });
@@ -939,7 +1007,7 @@ shinyjs.updatePlot3DContinuousSpatial = function (params) {
     displayModeBar: false,
     displaylogo: false
   }).then(() => {
-    shinyjs.syncSpatialBackground(null, false, false, 1, 1, 1, null);
+    shinyjs.syncSpatialBackground(null, false, false, 1, 1, 1, null, 0, 0);
     shinyjs.detachModebar();
   });
 };
@@ -1144,7 +1212,9 @@ shinyjs.updatePlot2DCategoricalSpatial = function (params) {
       params.meta.background_scale_x,
       params.meta.background_scale_y,
       params.meta.background_opacity,
-      params.meta.image_bounds
+      params.meta.image_bounds,
+      params.meta.background_offset_x,
+      params.meta.background_offset_y
     );
     shinyjs.detachModebar();
   });
@@ -1225,7 +1295,7 @@ shinyjs.updatePlot3DCategoricalSpatial = function (params) {
     displayModeBar: false,
     displaylogo: false
   }).then(() => {
-    shinyjs.syncSpatialBackground(null, false, false, 1, 1, 1, null);
+    shinyjs.syncSpatialBackground(null, false, false, 1, 1, 1, null, 0, 0);
     shinyjs.detachModebar();
   });
 };

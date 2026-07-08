@@ -68,6 +68,40 @@ spatial_projection_parameters_plot_raw <- reactive({
   background_flip_y <- FALSE
   background_scale_x <- 1
   background_scale_y <- 1
+  background_offset_x <- 0
+  background_offset_y <- 0
+
+  ## Resolve a per-dataset `spatial_images_*` preset by the current dataset name.
+  ## Returns `fallback` when unset. Used to seed the background transform so the
+  ## overlay opens pre-aligned (see the flip/scale blocks below and the offset
+  ## block that follows).
+  resolve_bg_preset <- function(option_name, fallback) {
+    if (
+      !exists("Cerebro.options") ||
+        is.null(Cerebro.options[[option_name]]) ||
+        !exists("available_crb_files") ||
+        is.null(available_crb_files$selected)
+    ) {
+      return(fallback)
+    }
+    match_idx <- which(
+      available_crb_files$files == available_crb_files$selected
+    )
+    if (length(match_idx) == 0) {
+      return(fallback)
+    }
+    current_name <- names(available_crb_files$files)[match_idx[1]]
+    if (
+      is.null(current_name) ||
+        !(current_name %in% names(Cerebro.options[[option_name]]))
+    ) {
+      return(fallback)
+    }
+    val <- Cerebro.options[[option_name]][[current_name]]
+    if (is.null(val) || length(val) != 1 || is.na(val)) fallback else val
+  }
+  background_offset_x <- resolve_bg_preset("spatial_images_offset_x", 0)
+  background_offset_y <- resolve_bg_preset("spatial_images_offset_y", 0)
 
   if (
     exists("Cerebro.options") &&
@@ -197,6 +231,8 @@ spatial_projection_parameters_plot_raw <- reactive({
     background_flip_y = background_flip_y,
     background_scale_x = background_scale_x,
     background_scale_y = background_scale_y,
+    background_offset_x = background_offset_x,
+    background_offset_y = background_offset_y,
     background_opacity = background_opacity,
     webgl = preferences[["use_webgl"]],
     hover_info = preferences[["show_hover_info_in_projections"]]
@@ -238,8 +274,19 @@ observe({
   offset_y <- input[["spatial_projection_background_offset_y"]]
   flip_x <- input[["spatial_projection_background_flip_x"]]
   flip_y <- input[["spatial_projection_background_flip_y"]]
-  scale <- input[["spatial_projection_background_scale"]]
   rotate <- input[["spatial_projection_background_rotate"]]
+
+  ## Resolve X/Y scale from the lock state: locked -> the single slider drives
+  ## both axes; unlocked -> the independent X/Y sliders. Whichever sliders are
+  ## hidden may report NULL, so fall back to the visible source.
+  locked <- isTRUE(input[["spatial_projection_background_scale_lock"]])
+  if (locked) {
+    scale_x <- input[["spatial_projection_background_scale"]]
+    scale_y <- scale_x
+  } else {
+    scale_x <- input[["spatial_projection_background_scale_x"]]
+    scale_y <- input[["spatial_projection_background_scale_y"]]
+  }
 
   ## Pass NULL for any control that has not been created yet (e.g. before an
   ## image is chosen); the JS side leaves the corresponding style unchanged.
@@ -251,9 +298,72 @@ observe({
     offsetY = if (is.null(offset_y)) NULL else offset_y,
     flipX = if (is.null(flip_x)) NULL else isTRUE(flip_x),
     flipY = if (is.null(flip_y)) NULL else isTRUE(flip_y),
-    scale = if (is.null(scale)) NULL else scale,
+    scaleX = if (is.null(scale_x)) NULL else scale_x,
+    scaleY = if (is.null(scale_y)) NULL else scale_y,
     rotate = if (is.null(rotate)) NULL else rotate
   )
+})
+
+##----------------------------------------------------------------------------##
+## While locked, the single Scale slider drives both axes. Mirror its value into
+## the hidden X/Y sliders so that unlocking later starts from the same scale
+## instead of jumping back to whatever the X/Y sliders last held.
+##----------------------------------------------------------------------------##
+observeEvent(input[["spatial_projection_background_scale"]], {
+  if (!isTRUE(input[["spatial_projection_background_scale_lock"]])) {
+    return()
+  }
+  v <- input[["spatial_projection_background_scale"]]
+  if (is.null(v) || !is.finite(v)) {
+    return()
+  }
+  if (!isTRUE(isolate(input[["spatial_projection_background_scale_x"]]) == v)) {
+    updateSliderInput(
+      session,
+      "spatial_projection_background_scale_x",
+      value = v
+    )
+  }
+  if (!isTRUE(isolate(input[["spatial_projection_background_scale_y"]]) == v)) {
+    updateSliderInput(
+      session,
+      "spatial_projection_background_scale_y",
+      value = v
+    )
+  }
+})
+
+##----------------------------------------------------------------------------##
+## Locking the aspect ratio while X and Y scales differ has no single sensible
+## value to collapse to, so it resets scale to 1 (both the locked slider and the
+## X/Y sliders). When X and Y already match, locking keeps that shared value.
+##----------------------------------------------------------------------------##
+observeEvent(input[["spatial_projection_background_scale_lock"]], {
+  if (!isTRUE(input[["spatial_projection_background_scale_lock"]])) {
+    return()
+  }
+  sx <- input[["spatial_projection_background_scale_x"]]
+  sy <- input[["spatial_projection_background_scale_y"]]
+  if (
+    is.null(sx) ||
+      is.null(sy) ||
+      !is.finite(sx) ||
+      !is.finite(sy) ||
+      isTRUE(all.equal(sx, sy) == TRUE)
+  ) {
+    ## already equal (or not yet initialised) — keep the shared value
+    if (!is.null(sx) && is.finite(sx)) {
+      updateSliderInput(
+        session,
+        "spatial_projection_background_scale",
+        value = sx
+      )
+    }
+    return()
+  }
+  updateSliderInput(session, "spatial_projection_background_scale", value = 1)
+  updateSliderInput(session, "spatial_projection_background_scale_x", value = 1)
+  updateSliderInput(session, "spatial_projection_background_scale_y", value = 1)
 })
 
 ##----------------------------------------------------------------------------##
@@ -261,53 +371,78 @@ observe({
 ##----------------------------------------------------------------------------##
 observeEvent(input[["spatial_projection_background_reset"]], {
   ## Reset returns to the app-configured default for the current dataset (the
-  ## `spatial_images_offset_x/y` preset), not a hard 0 — otherwise resetting a
-  ## pre-aligned overlay would knock it out of alignment. Falls back to 0 when
-  ## no preset is set. Same per-dataset name lookup as flip/scale above.
-  reset_offset_default <- function(option_name) {
+  ## `spatial_images_*` presets), not a hard identity value — otherwise resetting
+  ## a pre-aligned overlay would knock it out of alignment. Falls back to the
+  ## identity (0 move, 1 scale, FALSE flip) when no preset is set. Same
+  ## per-dataset name lookup as the UI seeds it with.
+  reset_preset_default <- function(option_name, fallback) {
     if (
       !exists("Cerebro.options") ||
         is.null(Cerebro.options[[option_name]]) ||
         !exists("available_crb_files") ||
         is.null(available_crb_files$selected)
     ) {
-      return(0)
+      return(fallback)
     }
     idx <- which(available_crb_files$files == available_crb_files$selected)
     if (length(idx) == 0) {
-      return(0)
+      return(fallback)
     }
     current_name <- names(available_crb_files$files)[idx[1]]
     if (
       is.null(current_name) ||
         !(current_name %in% names(Cerebro.options[[option_name]]))
     ) {
-      return(0)
+      return(fallback)
     }
     val <- Cerebro.options[[option_name]][[current_name]]
-    if (is.null(val) || !is.finite(val)) 0 else val
+    if (is.null(val) || length(val) != 1 || is.na(val)) fallback else val
   }
   updateSliderInput(
     session,
     "spatial_projection_background_offset_x",
-    value = reset_offset_default("spatial_images_offset_x")
+    value = reset_preset_default("spatial_images_offset_x", 0)
   )
   updateSliderInput(
     session,
     "spatial_projection_background_offset_y",
-    value = reset_offset_default("spatial_images_offset_y")
+    value = reset_preset_default("spatial_images_offset_y", 0)
   )
-  updateSliderInput(session, "spatial_projection_background_scale", value = 1)
+  ## Move, flip and scale all reset to their preset (the shipped alignment),
+  ## matching how the UI seeds them, so Reset restores the aligned overlay rather
+  ## than a bare image. Scale is single-source now, so it too returns to preset.
+  scale_x_reset <- reset_preset_default("spatial_images_scale_x", 1)
+  scale_y_reset <- reset_preset_default("spatial_images_scale_y", 1)
+  updateCheckboxInput(
+    session,
+    "spatial_projection_background_scale_lock",
+    value = isTRUE(all.equal(scale_x_reset, scale_y_reset) == TRUE)
+  )
+  updateSliderInput(
+    session,
+    "spatial_projection_background_scale",
+    value = scale_x_reset
+  )
+  updateSliderInput(
+    session,
+    "spatial_projection_background_scale_x",
+    value = scale_x_reset
+  )
+  updateSliderInput(
+    session,
+    "spatial_projection_background_scale_y",
+    value = scale_y_reset
+  )
   updateSliderInput(session, "spatial_projection_background_rotate", value = 0)
   updateCheckboxInput(
     session,
     "spatial_projection_background_flip_x",
-    value = FALSE
+    value = isTRUE(reset_preset_default("spatial_images_flip_x", FALSE))
   )
   updateCheckboxInput(
     session,
     "spatial_projection_background_flip_y",
-    value = FALSE
+    value = isTRUE(reset_preset_default("spatial_images_flip_y", FALSE))
   )
 })
 

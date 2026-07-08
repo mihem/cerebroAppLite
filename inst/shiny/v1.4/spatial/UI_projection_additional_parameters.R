@@ -61,36 +61,59 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
     error = function(e) NULL
   )
 
-  ## Initial background offset (move) for the CURRENT dataset, if the app was
-  ## built with a `spatial_images_offset_x/y` preset. Resolved by dataset name
-  ## via `available_crb_files`, matching how flip/scale/rotation defaults are
-  ## looked up in obj_projection_parameters_plot.R. Lets an app ship a
-  ## pre-aligned overlay instead of forcing the user to nudge it every time.
-  offset_default <- function(option_name) {
+  ## Initial background-image adjustments for the CURRENT dataset, if the app was
+  ## built with the matching `spatial_images_*` preset. Resolved by dataset name
+  ## via `available_crb_files`. These control INITIAL VALUES so that an app can
+  ## ship a pre-aligned overlay (move + flip + scale) as the default, instead of
+  ## forcing the user to nudge it into place every session. The `fallback` is the
+  ## identity value used when no preset applies (0 for move, 1 for scale, FALSE
+  ## for flip). NOTE: the JS appearance channel that actually transforms the
+  ## background reads these UI inputs, so seeding the inputs here is what makes a
+  ## preset take effect — reading the option anywhere else has no visible result.
+  preset_default <- function(option_name, fallback) {
     if (
       !exists("Cerebro.options") ||
         is.null(Cerebro.options[[option_name]]) ||
         !exists("available_crb_files") ||
         is.null(available_crb_files$selected)
     ) {
-      return(0)
+      return(fallback)
     }
     idx <- which(available_crb_files$files == available_crb_files$selected)
     if (length(idx) == 0) {
-      return(0)
+      return(fallback)
     }
     current_name <- names(available_crb_files$files)[idx[1]]
     if (
       is.null(current_name) ||
         !(current_name %in% names(Cerebro.options[[option_name]]))
     ) {
-      return(0)
+      return(fallback)
     }
     val <- Cerebro.options[[option_name]][[current_name]]
-    if (is.null(val) || !is.finite(val)) 0 else val
+    if (is.null(val) || length(val) != 1 || is.na(val)) fallback else val
   }
-  offset_x_default <- offset_default("spatial_images_offset_x")
-  offset_y_default <- offset_default("spatial_images_offset_y")
+  ## Seed MOVE and FLIP from the preset so the controls honestly reflect the
+  ## shipped alignment (checkbox ticked, sliders positioned). Both are read by
+  ## the JS as single-source interaction state (dataset.offsetX / dataset.flipY),
+  ## so seeding the input is exactly where the preset takes effect — one factor,
+  ## no double-application.
+  ##
+  ## SCALE is now single-source too: the slider(s) are seeded from the preset and
+  ## are the only scale the JS applies (no separate dataset factor). The X and Y
+  ## scale can differ; a "Lock aspect ratio" checkbox decides whether the user
+  ## sees one slider (locked, X drives both) or two (unlocked). Initial lock state
+  ## follows the preset: equal x/y -> locked single slider; unequal -> unlocked
+  ## with both shown.
+  offset_x_default <- preset_default("spatial_images_offset_x", 0)
+  offset_y_default <- preset_default("spatial_images_offset_y", 0)
+  flip_x_default <- isTRUE(preset_default("spatial_images_flip_x", FALSE))
+  flip_y_default <- isTRUE(preset_default("spatial_images_flip_y", FALSE))
+  scale_x_default <- preset_default("spatial_images_scale_x", 1)
+  scale_y_default <- preset_default("spatial_images_scale_y", 1)
+  aspect_locked_default <- isTRUE(
+    all.equal(scale_x_default, scale_y_default) == TRUE
+  )
 
   tagList(
     sliderInput(
@@ -212,13 +235,42 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
           )
         )
       ),
-      sliderInput(
-        "spatial_projection_background_scale",
-        label = "Scale (about centre)",
-        min = 0.2,
-        max = 3,
-        value = 1,
-        step = 0.05
+      checkboxInput(
+        "spatial_projection_background_scale_lock",
+        label = "Lock aspect ratio",
+        value = aspect_locked_default
+      ),
+      ## Locked: one slider drives both axes (X mirrors to Y in the observer).
+      conditionalPanel(
+        condition = "input.spatial_projection_background_scale_lock",
+        sliderInput(
+          "spatial_projection_background_scale",
+          label = "Scale (about centre)",
+          min = 0.2,
+          max = 3,
+          value = scale_x_default,
+          step = 0.05
+        )
+      ),
+      ## Unlocked: independent X / Y scale.
+      conditionalPanel(
+        condition = "!input.spatial_projection_background_scale_lock",
+        sliderInput(
+          "spatial_projection_background_scale_x",
+          label = "Scale X (about centre)",
+          min = 0.2,
+          max = 3,
+          value = scale_x_default,
+          step = 0.05
+        ),
+        sliderInput(
+          "spatial_projection_background_scale_y",
+          label = "Scale Y (about centre)",
+          min = 0.2,
+          max = 3,
+          value = scale_y_default,
+          step = 0.05
+        )
       ),
       sliderInput(
         "spatial_projection_background_rotate",
@@ -231,12 +283,12 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
       checkboxInput(
         "spatial_projection_background_flip_x",
         label = "Flip horizontally",
-        value = FALSE
+        value = flip_x_default
       ),
       checkboxInput(
         "spatial_projection_background_flip_y",
         label = "Flip vertically",
-        value = FALSE
+        value = flip_y_default
       ),
       actionButton(
         "spatial_projection_background_reset",

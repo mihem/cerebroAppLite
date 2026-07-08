@@ -242,6 +242,8 @@ spatial_projection_update_plot <- function(input) {
       background_flip_y = background_flip_y,
       background_scale_x = plot_parameters[['background_scale_x']],
       background_scale_y = plot_parameters[['background_scale_y']],
+      background_offset_x = plot_parameters[['background_offset_x']],
+      background_offset_y = plot_parameters[['background_offset_y']],
       background_opacity = plot_parameters[['background_opacity']]
     )
     ## put together data
@@ -304,6 +306,8 @@ spatial_projection_update_plot <- function(input) {
       background_flip_y = background_flip_y,
       background_scale_x = plot_parameters[['background_scale_x']],
       background_scale_y = plot_parameters[['background_scale_y']],
+      background_offset_x = plot_parameters[['background_offset_x']],
+      background_offset_y = plot_parameters[['background_offset_y']],
       background_opacity = plot_parameters[['background_opacity']]
     )
     ## put together data
