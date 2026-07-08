@@ -71,27 +71,13 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
   ## background reads these UI inputs, so seeding the inputs here is what makes a
   ## preset take effect — reading the option anywhere else has no visible result.
   preset_default <- function(option_name, fallback) {
-    if (
-      !exists("Cerebro.options") ||
-        is.null(Cerebro.options[[option_name]]) ||
-        !exists("available_crb_files") ||
-        is.null(available_crb_files$selected)
-    ) {
-      return(fallback)
-    }
-    idx <- which(available_crb_files$files == available_crb_files$selected)
-    if (length(idx) == 0) {
-      return(fallback)
-    }
-    current_name <- names(available_crb_files$files)[idx[1]]
-    if (
-      is.null(current_name) ||
-        !(current_name %in% names(Cerebro.options[[option_name]]))
-    ) {
-      return(fallback)
-    }
-    val <- Cerebro.options[[option_name]][[current_name]]
-    if (is.null(val) || length(val) != 1 || is.na(val)) fallback else val
+    cerebroAppLite:::resolve_spatial_image_preset(
+      option_name,
+      fallback,
+      if (exists("Cerebro.options")) Cerebro.options else NULL,
+      if (exists("available_crb_files")) available_crb_files$files else NULL,
+      if (exists("available_crb_files")) available_crb_files$selected else NULL
+    )
   }
   ## Seed MOVE and FLIP from the preset so the controls honestly reflect the
   ## shipped alignment (checkbox ticked, sliders positioned). Both are read by

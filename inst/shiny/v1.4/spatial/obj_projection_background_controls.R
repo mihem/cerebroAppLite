@@ -134,27 +134,13 @@ observeEvent(input[["spatial_projection_background_reset"]], {
   ## identity (0 move, 1 scale, FALSE flip) when no preset is set. Same
   ## per-dataset name lookup as the UI seeds it with.
   reset_preset_default <- function(option_name, fallback) {
-    if (
-      !exists("Cerebro.options") ||
-        is.null(Cerebro.options[[option_name]]) ||
-        !exists("available_crb_files") ||
-        is.null(available_crb_files$selected)
-    ) {
-      return(fallback)
-    }
-    idx <- which(available_crb_files$files == available_crb_files$selected)
-    if (length(idx) == 0) {
-      return(fallback)
-    }
-    current_name <- names(available_crb_files$files)[idx[1]]
-    if (
-      is.null(current_name) ||
-        !(current_name %in% names(Cerebro.options[[option_name]]))
-    ) {
-      return(fallback)
-    }
-    val <- Cerebro.options[[option_name]][[current_name]]
-    if (is.null(val) || length(val) != 1 || is.na(val)) fallback else val
+    cerebroAppLite:::resolve_spatial_image_preset(
+      option_name,
+      fallback,
+      if (exists("Cerebro.options")) Cerebro.options else NULL,
+      if (exists("available_crb_files")) available_crb_files$files else NULL,
+      if (exists("available_crb_files")) available_crb_files$selected else NULL
+    )
   }
   updateSliderInput(
     session,

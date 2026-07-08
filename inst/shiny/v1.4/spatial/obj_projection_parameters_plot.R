@@ -76,29 +76,13 @@ spatial_projection_parameters_plot_raw <- reactive({
   ## overlay opens pre-aligned (see the flip/scale blocks below and the offset
   ## block that follows).
   resolve_bg_preset <- function(option_name, fallback) {
-    if (
-      !exists("Cerebro.options") ||
-        is.null(Cerebro.options[[option_name]]) ||
-        !exists("available_crb_files") ||
-        is.null(available_crb_files$selected)
-    ) {
-      return(fallback)
-    }
-    match_idx <- which(
-      available_crb_files$files == available_crb_files$selected
+    cerebroAppLite:::resolve_spatial_image_preset(
+      option_name,
+      fallback,
+      if (exists("Cerebro.options")) Cerebro.options else NULL,
+      if (exists("available_crb_files")) available_crb_files$files else NULL,
+      if (exists("available_crb_files")) available_crb_files$selected else NULL
     )
-    if (length(match_idx) == 0) {
-      return(fallback)
-    }
-    current_name <- names(available_crb_files$files)[match_idx[1]]
-    if (
-      is.null(current_name) ||
-        !(current_name %in% names(Cerebro.options[[option_name]]))
-    ) {
-      return(fallback)
-    }
-    val <- Cerebro.options[[option_name]][[current_name]]
-    if (is.null(val) || length(val) != 1 || is.na(val)) fallback else val
   }
   background_offset_x <- resolve_bg_preset("spatial_images_offset_x", 0)
   background_offset_y <- resolve_bg_preset("spatial_images_offset_y", 0)
