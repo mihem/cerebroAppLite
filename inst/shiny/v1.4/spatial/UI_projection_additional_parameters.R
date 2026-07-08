@@ -92,9 +92,10 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
       step = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
         "step"
       ]],
-      ## Spatial-specific default: show half the cells so the plot stays
-      ## responsive on large sections while still reading as full tissue.
-      value = 50
+      ## Spatial-specific default: show all cells. Unlike a scRNA-seq UMAP,
+      ## where down-sampling barely changes the picture, spatial resolution is
+      ## the whole point here — dropping cells visibly degrades the tissue map.
+      value = 100
     ),
     ## Background-image adjustments. Shown only when an image is selected. Every
     ## control here is DECOUPLED from the scatter plot: it re-styles the image

@@ -11,8 +11,8 @@ Genuinely-measured, public spatial-transcriptomics `.crb` demos shipped in `inst
 | `demo_spatial_merfish.crb` | Mouse ileum (MERFISH) | `MerfishData::MouseIleumPetukhov2021` | 5,000 | ✅ DAPI mosaic |
 | `demo_spatial_xenium.crb` | Mouse brain (Xenium) | 10x `Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP` (public) | 5,000 | ✅ DAPI morphology |
 
-The four files above are **real measured data** and no longer ship a synthetic background. They deliberately demonstrate **both** background-image paths the app supports:
-- **MERFISH** and **Xenium** *embed* their genuine histology image (DAPI mosaic / DAPI morphology) inside the `.crb` under `histology_image`, with the image extent in coordinate space (`histology_image_bounds`). The Spatial tab offers this as the "Tissue image (real)" background.
+The four files above are **real measured data**. They deliberately demonstrate **both** background-image paths the app supports:
+- **MERFISH** and **Xenium** *embed* their genuine histology image (DAPI mosaic / DAPI morphology) inside the `.crb` under `histology_image`, with the image extent in coordinate space (`histology_image_bounds`). The Spatial tab offers this as the "Tissue background (H&E / DAPI)" background.
 - **Visium** loads its genuine H&E from an *external* PNG (`demo_spatial_visium_he.png`) via the `spatial_images` option in `inst/app.R` — a live example of the external-image path, which also keeps the Visium `.crb` smaller. The tab offers it by filename.
 
 Images render in their native orientation; if a dataset needs a flip to align with the points, the user sets it from the Spatial tab's "Flip vertically/horizontally" checkboxes (external images can also be pre-flipped via `spatial_images_flip_y` in `inst/app.R`).
@@ -32,7 +32,7 @@ Getting the real image to line up with the points needs two things, because the 
    The lesson: do **not** apply one blanket flip rule, and do **not** trust the brightness score. When adding a new image demo, build a native-frame centroid overlay, pick a landmark, and flip in the app until it matches.
 2. **Aspect lock at render time.** The stretch-to-fill would squash a non-square image (the MERFISH DAPI mosaic is ~0.6:1, tall). When an embedded image is active the renderer sets `yaxis.scaleanchor = 'x'` (`func_projection_update_plot.R` flags `is_embedded`; `js_projection_update_plot.js` applies the lock), so the drawing area keeps the image's width:height and the stretch stays proportional. Non-embedded projections (UMAP etc.) are untouched.
 
-The old synthetic `demo_spatial.crb` + `demo_spatial_histology.svg` still exist on disk as test fixtures for the external-`spatial_images` overlay path, but are no longer wired into the bundled app dropdown.
+`demo_spatial.crb` + `demo_spatial_histology.svg` are lightweight fixtures used only by the unit tests (`test-spatial.R`) to exercise the class methods and the external-`spatial_images` overlay path. They are intentionally not part of the bundled app's dataset dropdown.
 
 ## Why Slide-seq has no background image
 

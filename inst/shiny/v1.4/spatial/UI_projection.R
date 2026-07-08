@@ -101,8 +101,11 @@ output[["spatial_projection_UI"]] <- renderUI({
               ## so the plot overflowed onto the button on shorter screens.
               height = "calc(100vh - 300px)"
             ),
-            type = 8,
-            hide.ui = FALSE
+            ## Match the Main/Gene-expression tabs: default hide.ui = TRUE. The
+            ## projection renders an empty plotly shell that is then filled by a
+            ## plotlyProxy; with hide.ui = FALSE the spinner stayed visible on
+            ## top of the already-drawn plot and never cleared.
+            type = 8
           ),
           tags$br(),
           fluidRow(

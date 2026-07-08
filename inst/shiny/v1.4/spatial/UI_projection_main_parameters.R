@@ -47,7 +47,7 @@ output[["spatial_projection_main_parameters_UI"]] <- renderUI({
   if (has_embedded) {
     background_choices <- c(
       background_choices,
-      "Tissue image (real)" = "__embedded__"
+      "Tissue background (H&E / DAPI)" = "__embedded__"
     )
   }
 
