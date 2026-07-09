@@ -243,6 +243,15 @@ morans_i <- function(x, y, values, k = 6) {
     nn <- order(di)[seq_len(k)]
     weight[i, nn] <- 1
   }
+  ## kNN adjacency is directional (i may be j's neighbour without the reverse),
+  ## which yields an asymmetric, un-normalised weight matrix and pushes
+  ## ape::Moran.I's statistic outside the documented [-1, 1] range. Symmetrise
+  ## (undirected edge if either cell lists the other) then row-normalise so the
+  ## weights sum to 1 per cell, giving a well-scaled statistic.
+  weight <- pmax(weight, t(weight))
+  row_sums <- rowSums(weight)
+  row_sums[row_sums == 0] <- 1 # avoid 0/0 for isolated cells
+  weight <- weight / row_sums
   res <- ape::Moran.I(values, weight)
   res$observed
 }

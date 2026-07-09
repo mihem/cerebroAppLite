@@ -36,7 +36,10 @@ output[["spatial_details_selected_cells_table"]] <- DT::renderDataTable({
         identifier %in% spatial_projection_selected_cells()$identifier
       ) %>%
       dplyr::select(-c(X1, X2, identifier)) %>%
-      dplyr::select(cell_barcode, everything())
+      ## Put cell_barcode first WHEN present; the rest of the spatial module
+      ## treats it as optional (falls back to rownames), so any_of() keeps this
+      ## table consistent instead of erroring on metadata without that column.
+      dplyr::select(dplyr::any_of("cell_barcode"), dplyr::everything())
     ## check how many cells are left after filtering
     ## ... no cells are left
     if (nrow(cells_df) == 0) {

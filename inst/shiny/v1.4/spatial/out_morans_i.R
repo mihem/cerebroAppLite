@@ -18,19 +18,29 @@ output[["spatial_projection_morans_i"]] <- renderText({
   coords <- spatial_data$coordinates
   req(nrow(coords) >= 2)
 
-  ## Pull the gene's expression aligned to the coordinate cells.
+  ## Align expression to coordinates BY BARCODE, not by position: the coordinate
+  ## table is stored in .getSpatialData()'s own cell order (a possibly reordered
+  ## subset), so a positional pairing would match each cell's expression to a
+  ## different cell's (x, y). Restrict to the barcodes present in both tables.
   if ("cell_barcode" %in% colnames(metadata)) {
-    cells <- metadata$cell_barcode
+    cells <- as.character(metadata$cell_barcode)
   } else {
     cells <- rownames(metadata)
   }
-  expression_data <- data_set()$getExpressionMatrix(cells = cells, genes = gene)
+  common <- intersect(cells, rownames(coords))
+  req(length(common) >= 2)
+
+  expression_data <- data_set()$getExpressionMatrix(
+    cells = common,
+    genes = gene
+  )
   req(!is.null(expression_data), gene %in% rownames(expression_data))
-  expr <- as.vector(expression_data[gene, cells])
+  expr <- as.vector(expression_data[gene, common])
+  coords <- coords[common, , drop = FALSE]
 
   ## Down-sample for the O(n^2) neighbour search so large slides stay responsive.
   max_cells <- 2000
-  n <- min(length(expr), nrow(coords))
+  n <- length(common)
   idx <- seq_len(n)
   if (n > max_cells) {
     set.seed(42) # stable score across re-renders

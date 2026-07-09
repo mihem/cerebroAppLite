@@ -4,6 +4,25 @@ const spatial_projection_layout_2D = window.cerebroProjectionLayout.make2D({
   uirevision: 'true',
 });
 
+// Min/max over an array WITHOUT the spread operator. `Math.min(...arr)` passes
+// one argument per element and overflows V8's argument/stack limit (~1e5) on
+// full Xenium/MERFISH slides, throwing "Maximum call stack size exceeded".
+// A single loop scales to any size and skips non-finite values so a stray
+// NA/Inf can't collapse the colour range.
+function finiteExtent(arr) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+  }
+  if (min === Infinity) return { min: 0, max: 0 };
+  return { min, max };
+}
+
 // Inject CSS for spatial projection
 // CSS for plot widgets (legends, modebar, drag tip, scroll-down,
 // spatial bg) is now in inst/shiny/www/custom.css. The runtime <style>
@@ -508,8 +527,7 @@ shinyjs.updatePlot2DContinuousSpatial = function (params) {
     shinyjs.createCustomLegend([params.meta.color_variable], ['#888888']);
   } else {
     const colorArray = params.data.color;
-    const colorMin = Math.min(...colorArray);
-    const colorMax = Math.max(...colorArray);
+    const { min: colorMin, max: colorMax } = finiteExtent(colorArray);
     // Fluent blue ramp (matches CSS --theme-primary #0f6cbd family)
     const colorscale = [
       [0,   '#f7fbff'],
@@ -599,8 +617,7 @@ shinyjs.updatePlot3DContinuousSpatial = function (params) {
   shinyjs.removeContinuousLegend();
   const data = [];
   const colorArray = params.data.color;
-  const colorMin = Math.min(...colorArray);
-  const colorMax = Math.max(...colorArray);
+  const { min: colorMin, max: colorMax } = finiteExtent(colorArray);
   // Fluent blue ramp (matches CSS --theme-primary #0f6cbd family)
   const colorscale = [
     [0,   '#f7fbff'],

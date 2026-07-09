@@ -1121,7 +1121,7 @@ exportFromSeurat <- function(
           spatial_data <- .getSpatialData(
             object,
             image = image_name,
-            layer = "data",
+            layer = slot,
             assay = assay
           )
 
@@ -1175,19 +1175,19 @@ exportFromSeurat <- function(
           }
         },
         error = function(e) {
-          if (verbose) {
-            message(
-              paste0(
-                '[',
-                format(Sys.time(), '%H:%M:%S'),
-                '] ',
-                'Could not extract spatial data for image `',
-                image_name,
-                '`: ',
-                e$message
-              )
-            )
-          }
+          ## Never drop a spatial image silently: an object that clearly has
+          ## `@images` but whose extraction fails (e.g. requested layer=slot is
+          ## absent) would otherwise export "successfully" with no Spatial tab
+          ## and no clue why. Always warn, regardless of `verbose`.
+          warning(
+            'Could not extract spatial data for image `',
+            image_name,
+            '` (layer = "',
+            slot,
+            '"): ',
+            conditionMessage(e),
+            call. = FALSE
+          )
         }
       )
     }
