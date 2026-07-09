@@ -281,6 +281,29 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
         label = "Reset image",
         icon = icon("undo"),
         width = "100%"
+      ),
+      ## Turn the current hand-tuned alignment into pasteable Cerebro.options
+      ## preset code, so an app can ship this dataset pre-aligned instead of the
+      ## user re-nudging it every session. Output appears in the box below.
+      actionButton(
+        "spatial_projection_background_copy_preset",
+        label = "Copy alignment as preset",
+        icon = icon("clipboard"),
+        width = "100%"
+      ),
+      conditionalPanel(
+        condition = "output.spatial_projection_background_preset_code_present",
+        tags$pre(
+          style = paste(
+            "margin-top: 8px; padding: 8px; font-size: 11px;",
+            "white-space: pre-wrap; word-break: break-word;",
+            "background: #f6f8fa; border: 1px solid #d9d9d9;",
+            "border-radius: 4px;"
+          ),
+          verbatimTextOutput(
+            "spatial_projection_background_preset_code"
+          )
+        )
       )
     )
   )

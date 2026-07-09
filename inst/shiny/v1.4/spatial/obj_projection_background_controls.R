@@ -233,3 +233,80 @@ local({
     "spatial_projection_background_offset_y_num"
   )
 })
+
+##----------------------------------------------------------------------------##
+## Copy alignment as preset.
+##
+## Reads the current control values for the current dataset and renders the
+## matching `spatial_images_*` Cerebro.options code, so a hand-tuned alignment
+## can be shipped as the app default instead of re-nudged every session. Scale
+## honours the lock state (single slider drives both axes when locked). Rotation
+## has no preset option and is not emitted.
+##----------------------------------------------------------------------------##
+spatial_preset_code <- reactiveVal(NULL)
+
+observeEvent(input[["spatial_projection_background_copy_preset"]], {
+  ## Current dataset label (the key the preset is written under). Fall back to a
+  ## placeholder so the snippet is still copyable if the name can't be resolved.
+  dataset_label <- "Dataset name"
+  if (
+    exists("available_crb_files") &&
+      !is.null(available_crb_files$selected) &&
+      !is.null(available_crb_files$files)
+  ) {
+    idx <- which(available_crb_files$files == available_crb_files$selected)
+    if (length(idx) > 0) {
+      nm <- names(available_crb_files$files)[idx[1]]
+      if (!is.null(nm) && nzchar(nm)) {
+        dataset_label <- nm
+      }
+    }
+  }
+
+  locked <- isTRUE(input[["spatial_projection_background_scale_lock"]])
+  if (locked) {
+    scale_x <- input[["spatial_projection_background_scale"]]
+    scale_y <- scale_x
+  } else {
+    scale_x <- input[["spatial_projection_background_scale_x"]]
+    scale_y <- input[["spatial_projection_background_scale_y"]]
+  }
+
+  null_to <- function(value, default) {
+    if (is.null(value) || !is.finite(value)) default else value
+  }
+
+  code <- cerebroAppLite:::format_spatial_preset_code(
+    label = dataset_label,
+    offset_x = null_to(input[["spatial_projection_background_offset_x"]], 0),
+    offset_y = null_to(input[["spatial_projection_background_offset_y"]], 0),
+    scale_x = null_to(scale_x, 1),
+    scale_y = null_to(scale_y, 1),
+    flip_x = isTRUE(input[["spatial_projection_background_flip_x"]]),
+    flip_y = isTRUE(input[["spatial_projection_background_flip_y"]])
+  )
+  spatial_preset_code(code)
+})
+
+output[["spatial_projection_background_preset_code"]] <- renderText({
+  req(spatial_preset_code())
+  spatial_preset_code()
+})
+## The code box lives inside a collapsible box + conditionalPanel; without this
+## it stays suspended (blank) until the box happens to be open on first render.
+outputOptions(
+  output,
+  "spatial_projection_background_preset_code",
+  suspendWhenHidden = FALSE
+)
+
+## Drives the conditionalPanel that reveals the code box only after the button
+## has produced a snippet.
+output[["spatial_projection_background_preset_code_present"]] <- reactive({
+  !is.null(spatial_preset_code())
+})
+outputOptions(
+  output,
+  "spatial_projection_background_preset_code_present",
+  suspendWhenHidden = FALSE
+)
