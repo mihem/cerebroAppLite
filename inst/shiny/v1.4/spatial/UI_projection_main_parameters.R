@@ -34,16 +34,22 @@ output[["spatial_projection_main_parameters_UI"]] <- renderUI({
   background_choices <- c("No Background")
 
   ## Real .crb data may carry a genuine histology image embedded in the spatial
-  ## slot. If any available spatial entry has one, offer it first — this is the
-  ## true tissue image, aligned automatically, not an externally-configured one.
-  has_embedded <- any(vapply(
-    availableSpatial(),
-    function(nm) {
-      sd <- tryCatch(getSpatialData(nm), error = function(e) NULL)
-      !is.null(sd) && !is.null(sd$histology_image)
-    },
-    logical(1)
-  ))
+  ## slot. Offer it ONLY when the CURRENTLY DISPLAYED spatial entry has one — not
+  ## when any dataset does. Otherwise a bead-only platform (Slide-seq, no image
+  ## by design) would list "__embedded__" and show a neighbouring dataset's
+  ## tissue image behind its cells.
+  current_spatial <- input[["spatial_projection_to_display"]]
+  if (
+    is.null(current_spatial) ||
+      !(current_spatial %in% availableSpatial())
+  ) {
+    current_spatial <- availableSpatial()[1]
+  }
+  current_sd <- tryCatch(
+    getSpatialData(current_spatial),
+    error = function(e) NULL
+  )
+  has_embedded <- !is.null(current_sd) && !is.null(current_sd$histology_image)
   if (has_embedded) {
     background_choices <- c(
       background_choices,

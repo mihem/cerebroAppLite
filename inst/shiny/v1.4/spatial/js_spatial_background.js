@@ -278,14 +278,21 @@ shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX,
     parent.insertBefore(bg, plotContainer);
   }
 
-  if (backgroundImage !== undefined) {
-    // When the image itself CHANGES (dataset switch, or picking a different
-    // background), the user-interaction state belongs to the OLD image and must
-    // not carry over. Clear the interaction-owned fields so the block below
-    // re-seeds flip/opacity from the NEW image's dataset defaults, and reset the
-    // interactive nudges (offset/scale/rotate) that were relative to the old
-    // image. Same image (a plain scatter re-render) → leave everything intact.
-    const imageChanged = bg.dataset.backgroundImage !== (backgroundImage || '');
+  // Every syncSpatialBackground call is one full render pass, so the image
+  // argument is authoritative: a real data: URI sets the background, while
+  // undefined / null / '' all mean "no background for this dataset" and MUST
+  // clear it. (R's NULL arrives here as undefined; treating undefined as "leave
+  // it alone" left a previous dataset's tissue image showing behind a bead-only
+  // platform like Slide-seq.) Normalise all of them to '' before comparing.
+  {
+    const normalizedImage = backgroundImage || '';
+    // When the image itself CHANGES (dataset switch, picking a different
+    // background, or clearing it), the user-interaction state belongs to the OLD
+    // image and must not carry over. Clear the interaction-owned fields so the
+    // block below re-seeds flip/opacity from the NEW image's dataset defaults,
+    // and reset the interactive nudges (offset/scale/rotate) that were relative
+    // to the old image. Same image (a plain scatter re-render) → leave intact.
+    const imageChanged = bg.dataset.backgroundImage !== normalizedImage;
     if (imageChanged) {
       delete bg.dataset.lastTransform;
       delete bg.dataset.flipX;
@@ -297,7 +304,7 @@ shinyjs.syncSpatialBackground = function (backgroundImage, flipX, flipY, scaleX,
       delete bg.dataset.offsetX;
       delete bg.dataset.offsetY;
     }
-    bg.dataset.backgroundImage = backgroundImage || '';
+    bg.dataset.backgroundImage = normalizedImage;
   }
   // scaleX/scaleY seed the Scale slider(s) from the build-config preset, the
   // same SEED-ONLY way as flip/opacity below: set once when the image first
