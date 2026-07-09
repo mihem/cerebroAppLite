@@ -4,10 +4,20 @@
 output[["spatial_projection_show_group_label_UI"]] <- renderUI({
   req(input[["spatial_projection_point_color"]])
   if (input[["spatial_projection_point_color"]] %in% getGroups()) {
-    shinyWidgets::awesomeCheckbox(
-      inputId = "spatial_projection_show_group_label",
-      label = "Plot group labels in exported PDF",
-      value = TRUE
+    tagList(
+      shinyWidgets::awesomeCheckbox(
+        inputId = "spatial_projection_show_group_label",
+        label = "Plot group labels in exported PDF",
+        value = TRUE
+      ),
+      ## Outline each group's spatial region with its convex hull, so the tissue
+      ## regions read at a glance. Off by default — hulls overlap heavily when
+      ## groups are spatially intermixed, so it's opt-in.
+      shinyWidgets::awesomeCheckbox(
+        inputId = "spatial_projection_show_region_outlines",
+        label = "Outline group regions (convex hull)",
+        value = FALSE
+      )
     )
   }
 })

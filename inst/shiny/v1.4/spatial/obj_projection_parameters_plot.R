@@ -206,6 +206,9 @@ spatial_projection_parameters_plot_raw <- reactive({
     point_opacity = input[["spatial_projection_point_opacity"]],
     draw_border = input[["spatial_projection_point_border"]],
     group_labels = input[["spatial_projection_show_group_label"]],
+    show_region_outlines = isTRUE(
+      input[["spatial_projection_show_region_outlines"]]
+    ),
     x_range = input[["spatial_projection_scale_x_manual_range"]],
     y_range = input[["spatial_projection_scale_y_manual_range"]],
     background_image = background_image,

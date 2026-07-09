@@ -118,3 +118,49 @@ format_spatial_preset_code <- function(
   }
   paste(lines, collapse = ",\n")
 }
+
+#' Convex hull of each spatial group, for region outlines
+#'
+#' Given per-point coordinates and a group label per point, compute the convex
+#' hull of each group as a closed polygon (the first vertex repeated at the end),
+#' so the categorical spatial plot can outline each colour group's tissue region.
+#' Points with an NA x or y are ignored. A group is dropped when it has fewer
+#' than three distinct, non-collinear points, i.e. when it encloses no area and
+#' so has no meaningful outline.
+#'
+#' @param x,y Numeric coordinate vectors (same length).
+#' @param group Group label per point (same length as `x`/`y`).
+#'
+#' @return A named list keyed by group; each element is a list with numeric `x`
+#'   and `y` vertex vectors describing the closed hull. Groups without a usable
+#'   hull are omitted; an all-empty input yields an empty list.
+#' @keywords internal
+#' @noRd
+compute_group_hulls <- function(x, y, group) {
+  result <- list()
+  if (length(x) == 0) {
+    return(result)
+  }
+  ok <- !is.na(x) & !is.na(y)
+  x <- x[ok]
+  y <- y[ok]
+  group <- group[ok]
+  for (g in unique(group)) {
+    in_g <- group == g
+    gx <- x[in_g]
+    gy <- y[in_g]
+    if (length(gx) < 3) {
+      next
+    }
+    ## chull needs at least 3 non-collinear points; collinear input returns a
+    ## degenerate hull (< 3 vertices) that encloses no area — skip it.
+    idx <- grDevices::chull(gx, gy)
+    if (length(idx) < 3) {
+      next
+    }
+    ## close the ring by repeating the first vertex
+    idx <- c(idx, idx[1])
+    result[[g]] <- list(x = gx[idx], y = gy[idx])
+  }
+  result
+}

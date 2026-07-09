@@ -462,6 +462,14 @@ const spatial_projection_default_params = {
     width: null,
     height: null,
   },
+  // Optional per-group convex-hull region outlines (categorical 2D only). Empty
+  // for every other plot type; those R calls simply omit this positional arg.
+  group_hulls: {
+    group: [],
+    x: [],
+    y: [],
+    color: [],
+  },
 };
 
 // update 2D projection with continuous coloring
@@ -754,6 +762,29 @@ shinyjs.updatePlot2DCategoricalSpatial = function (params) {
     },
     showlegend: false,
   }));
+
+  // Region outlines: one closed convex-hull polygon per group, stroked in the
+  // group's colour with a faint matching fill. Drawn UNDER the labels (pushed
+  // first) so the text stays legible.
+  if (params.group_hulls && params.group_hulls.group.length >= 1) {
+    params.group_hulls.group.forEach((g, i) => {
+      const color = params.group_hulls.color[i];
+      data.push({
+        x: params.group_hulls.x[i],
+        y: params.group_hulls.y[i],
+        type: 'scatter',
+        mode: 'lines',
+        name: g + ' region',
+        line: { color: color, width: 2 },
+        fill: 'toself',
+        fillcolor: 'rgba(0,0,0,0)',
+        opacity: 0.7,
+        hoverinfo: 'skip',
+        inherit: false,
+        showlegend: false,
+      });
+    });
+  }
 
   if (params.group_centers.group.length >= 1) {
     data.push({

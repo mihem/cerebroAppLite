@@ -371,12 +371,41 @@ spatial_projection_update_plot <- function(input) {
         x = group_centers_df[['x_median']],
         y = group_centers_df[['y_median']]
       )
+      ## Optional per-group region outline (convex hull), matched to each group's
+      ## colour. Computed only when the user turns it on, since hulls overlap
+      ## heavily for spatially intermixed groups.
+      output_hulls <- list(
+        group = list(),
+        x = list(),
+        y = list(),
+        color = list()
+      )
+      if (isTRUE(plot_parameters[['show_region_outlines']])) {
+        hulls <- cerebroAppLite:::compute_group_hulls(
+          coordinates[[1]],
+          coordinates[[2]],
+          as.character(color_input)
+        )
+        h <- 1
+        for (g in names(hulls)) {
+          col_idx <- which(names(color_assignments) == g)
+          if (length(col_idx) == 0) {
+            next
+          }
+          output_hulls[['group']][[h]] <- g
+          output_hulls[['x']][[h]] <- hulls[[g]][['x']]
+          output_hulls[['y']][[h]] <- hulls[[g]][['y']]
+          output_hulls[['color']][[h]] <- unname(color_assignments[col_idx])
+          h <- h + 1
+        }
+      }
       shinyjs::js$updatePlot2DCategoricalSpatial(
         output_meta,
         output_data,
         output_hover,
         output_group_centers,
-        container_info
+        container_info,
+        output_hulls
       )
     } else if (plot_parameters[['n_dimensions']] == 3) {
       # Optimization: Group cells by color category
