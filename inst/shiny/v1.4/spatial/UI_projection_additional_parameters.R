@@ -137,6 +137,19 @@ output[["spatial_projection_additional_parameters_UI"]] <- renderUI({
       ## the whole point here — dropping cells visibly degrades the tissue map.
       value = 100
     ),
+    ## Spatial autocorrelation (Moran's I) of the displayed gene — how spatially
+    ## clustered its expression is. Only meaningful for a single continuous
+    ## feature, so shown only in ImageFeaturePlot mode.
+    conditionalPanel(
+      condition = "input.spatial_projection_plot_type == 'ImageFeaturePlot'",
+      tags$hr(style = "margin: 14px 0 8px; border-top: 1px solid #e0e0e0;"),
+      tags$div(
+        style = "font-size: 12px; color: #555;",
+        tags$strong("Spatial autocorrelation "),
+        "(Moran's I): ",
+        textOutput("spatial_projection_morans_i", inline = TRUE)
+      )
+    ),
     ## Background-image adjustments. Shown only when an image is selected. Every
     ## control here is DECOUPLED from the scatter plot: it re-styles the image
     ## <div> via the independent JS channel and never re-renders the points.

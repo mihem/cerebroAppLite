@@ -200,3 +200,49 @@ blend_genes_to_rgb <- function(r = NULL, g = NULL, b = NULL) {
   bc <- channel(b)
   paste0("rgb(", rc, ",", gc, ",", bc, ")")
 }
+
+#' Moran's I spatial autocorrelation for a gene
+#'
+#' Scores whether a gene's expression is spatially clustered: values near +1 mean
+#' high and low cells segregate into spatial patches, near 0 means a random
+#' spatial pattern, and negative means neighbouring cells tend to be dissimilar.
+#' Spatial weights are binary k-nearest-neighbour: each cell's `k` closest
+#' neighbours (Euclidean distance) count 1, all others 0. Computed via
+#' \code{ape::Moran.I} on that weight matrix.
+#'
+#' Cells with NA expression are dropped first. Zero-variance input returns 0 (no
+#' signal, rather than NaN). Fewer than `k + 1` cells returns NA (can't form the
+#' neighbourhood).
+#'
+#' @param x,y Coordinate vectors (same length).
+#' @param values Per-cell expression (same length as `x`/`y`).
+#' @param k Number of nearest neighbours for the weight matrix.
+#'
+#' @return The Moran's I statistic (scalar in [-1, 1]), or NA when undefined.
+#' @keywords internal
+#' @noRd
+morans_i <- function(x, y, values, k = 6) {
+  ok <- !is.na(x) & !is.na(y) & !is.na(values)
+  x <- x[ok]
+  y <- y[ok]
+  values <- values[ok]
+  n <- length(values)
+  if (n < k + 1) {
+    return(NA_real_)
+  }
+  if (stats::sd(values) == 0) {
+    return(0)
+  }
+  ## Euclidean distance matrix, then a binary weight for each cell's k nearest
+  ## neighbours (excluding itself). O(n^2); callers down-sample large inputs.
+  dmat <- as.matrix(stats::dist(cbind(x, y)))
+  weight <- matrix(0, n, n)
+  for (i in seq_len(n)) {
+    di <- dmat[i, ]
+    di[i] <- Inf # never neighbour itself
+    nn <- order(di)[seq_len(k)]
+    weight[i, nn] <- 1
+  }
+  res <- ape::Moran.I(values, weight)
+  res$observed
+}
