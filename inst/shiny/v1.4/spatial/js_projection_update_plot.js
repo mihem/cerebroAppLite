@@ -260,38 +260,51 @@ shinyjs.makeDraggable = function (el) {
   }
 };
 
-shinyjs.createCustomLegend = function (traces, colors) {
+// Resolve where the legend bar should live and (re)insert it there. The plotly
+// html-widget wraps #spatial_projection in a div that is locked to the plot's
+// own height AND has overflow:hidden. If the legend goes inside that wrapper it
+// competes with the plot for that fixed height, so a wrapped (multi-row) legend
+// gets its overflow clipped and the plot looks squashed. Instead we insert the
+// legend as a SIBLING of the wrapper (one level up, in the spinner/box-body
+// container, which is auto-height + overflow:visible). The legend and the plot
+// then stack naturally: a taller legend grows the container, never the plot.
+function ensureSpatialLegendContainer() {
   const plotContainer = document.getElementById('spatial_projection');
-  if (!plotContainer) return;
+  if (!plotContainer) return null;
 
-  // Ensure parent has relative positioning
-  const parent = plotContainer.parentElement;
-  if (getComputedStyle(parent).position === 'static') {
-    parent.style.position = 'relative';
-  }
+  // The plotly widget wrapper (fixed height, overflow:hidden). Fall back to the
+  // plot itself if the DOM shape ever changes.
+  const widgetWrapper = plotContainer.parentElement || plotContainer;
+  // The auto-height container we want the legend to live in, as a sibling of
+  // the wrapper.
+  const host = widgetWrapper.parentElement || widgetWrapper;
 
-  // Find or create legend container
   let legendContainer = document.getElementById('spatial_projection_legend');
   if (!legendContainer) {
     legendContainer = document.createElement('div');
     legendContainer.id = 'spatial_projection_legend';
-    parent.appendChild(legendContainer);
   }
+  // Always (re)place it just before the widget wrapper inside the auto-height
+  // host, so it sits in the band above the plot and never inside the clipped
+  // wrapper — even if a prior version inserted it elsewhere.
+  if (legendContainer.parentElement !== host || legendContainer.nextElementSibling !== widgetWrapper) {
+    host.insertBefore(legendContainer, widgetWrapper);
+  }
+  return legendContainer;
+}
 
-  // Enable dragging
-  shinyjs.makeDraggable(legendContainer);
+shinyjs.createCustomLegend = function (traces, colors) {
+  const legendContainer = ensureSpatialLegendContainer();
+  if (!legendContainer) return;
 
-  // Reset content
+  // The categorical legend is a fixed horizontal bar above the plot (see CSS),
+  // so it is NOT draggable — no drag handle, no drag tip, and no "Legend"
+  // title label; the swatch + text items speak for themselves.
   legendContainer.innerHTML = '';
-  legendContainer.style.display = 'block';
-  legendContainer.style.cursor = 'grab';
-
-  // Add header with drag handle
-  const header = createLegendHeader('Legend');
-  legendContainer.appendChild(header);
-
-  // Show first-time tip
-  showLegendDragTip(legendContainer);
+  legendContainer.style.display = 'flex';
+  // Drop the continuous marker in case we're switching back from a continuous
+  // colouring — the shared container must render as a categorical legend now.
+  legendContainer.classList.remove('is-continuous');
 
   // Calculate scaling based on number of traces
   const count = traces.length;
@@ -380,33 +393,27 @@ shinyjs.removeCustomLegend = function () {
 };
 
 shinyjs.createContinuousLegend = function (title, colorMin, colorMax, colorscale) {
-  const plotContainer = document.getElementById('spatial_projection');
-  if (!plotContainer) return;
+  // Reuse the SAME container as the categorical legend so both legend types
+  // occupy the identical flex bar above the plot. This guarantees they push
+  // the plot down by the exact same amount — switching between categorical and
+  // continuous never shifts the scatter/background alignment.
+  const legendContainer = ensureSpatialLegendContainer();
+  if (!legendContainer) return;
 
-  const parent = plotContainer.parentElement;
-  if (getComputedStyle(parent).position === 'static') {
-    parent.style.position = 'relative';
-  }
-
-  let legendContainer = document.getElementById('spatial_projection_continuous_legend');
-  if (!legendContainer) {
-    legendContainer = document.createElement('div');
-    legendContainer.id = 'spatial_projection_continuous_legend';
-    parent.appendChild(legendContainer);
-  }
-
-  shinyjs.makeDraggable(legendContainer);
   legendContainer.innerHTML = '';
-  legendContainer.style.display = 'block';
-  legendContainer.className = 'continuous-legend';
-  legendContainer.style.cursor = 'grab';
+  legendContainer.style.display = 'flex';
+  // Mark the continuous variant so its child elements pick up the gradient
+  // styling without changing the container's own box behaviour.
+  legendContainer.classList.add('is-continuous');
 
-  // Add header with drag handle and title
-  const header = createLegendHeader(title);
+  // Plain title (no drag handle, no drag tip) — the variable name is meaningful.
+  const header = document.createElement('div');
+  header.className = 'legend-header';
+  const titleEl = document.createElement('span');
+  titleEl.className = 'legend-title-text';
+  titleEl.innerText = title;
+  header.appendChild(titleEl);
   legendContainer.appendChild(header);
-
-  // Show first-time tip
-  showLegendDragTip(legendContainer);
 
   const contentEl = document.createElement('div');
   contentEl.className = 'continuous-legend-content';
@@ -414,31 +421,31 @@ shinyjs.createContinuousLegend = function (title, colorMin, colorMax, colorscale
   const gradientEl = document.createElement('div');
   gradientEl.className = 'continuous-legend-gradient';
 
+  // Horizontal gradient (low -> high, left -> right).
   const gradientColors = colorscale.map((item) => item[1]).join(', ');
-  gradientEl.style.background = `linear-gradient(to top, ${gradientColors})`;
+  gradientEl.style.background = `linear-gradient(to right, ${gradientColors})`;
 
-  const labelsEl = document.createElement('div');
-  labelsEl.className = 'continuous-legend-labels';
-
-  const minLabel = document.createElement('div');
+  const minLabel = document.createElement('span');
   minLabel.className = 'continuous-legend-label';
   minLabel.innerText = colorMin.toFixed(2);
 
-  const maxLabel = document.createElement('div');
+  const maxLabel = document.createElement('span');
   maxLabel.className = 'continuous-legend-label';
   maxLabel.innerText = colorMax.toFixed(2);
 
-  labelsEl.appendChild(maxLabel);
-  labelsEl.appendChild(minLabel);
-
+  // Lay out on one line: min | gradient | max.
+  contentEl.appendChild(minLabel);
   contentEl.appendChild(gradientEl);
-  contentEl.appendChild(labelsEl);
+  contentEl.appendChild(maxLabel);
   legendContainer.appendChild(contentEl);
 };
 
 shinyjs.removeContinuousLegend = function () {
-  const legendContainer = document.getElementById('spatial_projection_continuous_legend');
+  // The continuous legend now lives in the shared categorical container, so
+  // hiding it means hiding that container and dropping the continuous marker.
+  const legendContainer = document.getElementById('spatial_projection_legend');
   if (legendContainer) {
+    legendContainer.classList.remove('is-continuous');
     legendContainer.style.display = 'none';
   }
 };
@@ -523,8 +530,9 @@ shinyjs.updatePlot2DContinuousSpatial = function (params) {
       hoverinfo: params.hover.hoverinfo,
     });
     applySpatialSelection(data, selectedKeys);
-    // Reuse the categorical legend as a plain label showing the R/G/B genes.
-    shinyjs.createCustomLegend([params.meta.color_variable], ['#888888']);
+    // One coloured swatch per channel (R red, G green, B blue), so the legend
+    // shows which gene drives which colour instead of a single grey blob.
+    shinyjs.createCustomLegend(params.meta.traces, params.meta.coexpr_colors);
   } else {
     const colorArray = params.data.color;
     const { min: colorMin, max: colorMax } = finiteExtent(colorArray);

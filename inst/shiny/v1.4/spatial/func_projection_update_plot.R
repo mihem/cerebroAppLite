@@ -251,24 +251,30 @@ spatial_projection_update_plot <- function(input) {
         NULL
       }
     )
-    coexpr_labels <- paste(
-      c(
-        if (nzchar(plot_parameters[["coexpr_r"]] %||% "")) {
-          paste0("R: ", plot_parameters[["coexpr_r"]])
-        },
-        if (nzchar(plot_parameters[["coexpr_g"]] %||% "")) {
-          paste0("G: ", plot_parameters[["coexpr_g"]])
-        },
-        if (nzchar(plot_parameters[["coexpr_b"]] %||% "")) {
-          paste0("B: ", plot_parameters[["coexpr_b"]])
-        }
-      ),
-      collapse = "  "
+    ## One legend entry per populated channel, kept as parallel label/colour
+    ## vectors so the JS renders a coloured swatch per channel (red/green/blue)
+    ## instead of a single grey blob. An unused channel is dropped from both.
+    coexpr_labels <- c(
+      if (nzchar(plot_parameters[["coexpr_r"]] %||% "")) {
+        paste0("R: ", plot_parameters[["coexpr_r"]])
+      },
+      if (nzchar(plot_parameters[["coexpr_g"]] %||% "")) {
+        paste0("G: ", plot_parameters[["coexpr_g"]])
+      },
+      if (nzchar(plot_parameters[["coexpr_b"]] %||% "")) {
+        paste0("B: ", plot_parameters[["coexpr_b"]])
+      }
+    )
+    coexpr_colors <- c(
+      if (nzchar(plot_parameters[["coexpr_r"]] %||% "")) "rgb(255,0,0)",
+      if (nzchar(plot_parameters[["coexpr_g"]] %||% "")) "rgb(0,255,0)",
+      if (nzchar(plot_parameters[["coexpr_b"]] %||% "")) "rgb(0,0,255)"
     )
     output_meta <- list(
       color_type = "coexpression",
-      traces = coexpr_labels,
-      color_variable = coexpr_labels,
+      traces = as.list(coexpr_labels),
+      coexpr_colors = as.list(coexpr_colors),
+      color_variable = paste(coexpr_labels, collapse = "  "),
       background_image = background_image_data,
       is_embedded = using_embedded,
       image_bounds = image_bounds,
