@@ -88,6 +88,22 @@ prettifyTable <- function(
   page_length_default = 15,
   page_length_menu = c(15, 30, 50, 100, 1000)
 ) {
+  ## Coerce toggle-like args to a clean scalar logical. Shiny materialSwitch
+  ## can transiently pass NULL / NA through input[[...]] while the UI is being
+  ## re-rendered, and downstream `if (flag == TRUE)` chokes with "missing value
+  ## where TRUE/FALSE needed".
+  as_toggle <- function(x, default) {
+    if (is.null(x) || length(x) != 1 || is.na(x)) {
+      default
+    } else {
+      isTRUE(as.logical(x))
+    }
+  }
+  number_formatting <- as_toggle(number_formatting, FALSE)
+  color_highlighting <- as_toggle(color_highlighting, FALSE)
+  show_buttons <- as_toggle(show_buttons, FALSE)
+  hide_long_columns <- as_toggle(hide_long_columns, FALSE)
+
   ## replace Inf and -Inf values in numeric columns with 999 or -999,
   ## respectively, because other the columns will be converted to characters
   ## which messes up sorting of values in that column
@@ -136,11 +152,14 @@ prettifyTable <- function(
   }
 
   ## check whether percentage values were given on a 0-100 scale and convert
-  ## them to 0-1 if so
+  ## them to 0-1 if so. Selected-cells slices often carry NA in percent_mt /
+  ## percent_ribo columns; without na.rm, `max(x > 1)` returns NA and the
+  ## enclosing `if (NA)` throws "missing value where TRUE/FALSE needed".
   if (number_formatting == TRUE && length(columns_percent) > 0) {
     for (col in columns_percent) {
       col_name <- colnames(table)[col]
-      if (max(table[, col_name] > 1)) {
+      col_values <- table[[col_name]]
+      if (is.numeric(col_values) && any(col_values > 1, na.rm = TRUE)) {
         table[, col] <- table[, col] / 100
       }
     }
