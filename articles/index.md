@@ -45,3 +45,5 @@
   cerebroAppLite](https://mihem.github.io/cerebroAppLite/articles/immune_repertoire_analysis.md):
 - [Trajectory
   Analysis](https://mihem.github.io/cerebroAppLite/articles/trajectory_analysis.md):
+- [Spatial Transcriptomics
+  Analysis](https://mihem.github.io/cerebroAppLite/articles/spatial_analysis.md):

@@ -27,6 +27,14 @@ createShinyApp(
   welcome_message = "Welcome to Cerebro App!",
   point_size = list(overview_projection_point_size = NULL),
   variable_to_compare = NULL,
+  spatial_images = NULL,
+  spatial_images_flip_x = NULL,
+  spatial_images_flip_y = NULL,
+  spatial_images_scale_x = NULL,
+  spatial_images_scale_y = NULL,
+  spatial_images_offset_x = NULL,
+  spatial_images_offset_y = NULL,
+  spatial_plot_rotation = NULL,
   ...
 )
 ```
@@ -105,6 +113,47 @@ createShinyApp(
 - variable_to_compare:
 
   Forwarded to `Cerebro.options`.
+
+- spatial_images:
+
+  Named list/vector of paths to spatial background images (e.g. tissue
+  histology) shown behind the Spatial tab projection. Names must match
+  `cerebro_data`. Images are copied into the app bundle.
+
+- spatial_images_flip_x:
+
+  Named list/vector; whether to flip the spatial background image
+  horizontally. Names must match `cerebro_data`.
+
+- spatial_images_flip_y:
+
+  Named list/vector; whether to flip the spatial background image
+  vertically. Names must match `cerebro_data`.
+
+- spatial_images_scale_x:
+
+  Named list/vector; scaling factor for the X axis of the spatial
+  background image. Names must match `cerebro_data`.
+
+- spatial_images_scale_y:
+
+  Named list/vector; scaling factor for the Y axis of the spatial
+  background image. Names must match `cerebro_data`.
+
+- spatial_images_offset_x:
+
+  Named list/vector; horizontal offset (in data units) applied to move
+  the spatial background image. Names must match `cerebro_data`.
+
+- spatial_images_offset_y:
+
+  Named list/vector; vertical offset (in data units) applied to move the
+  spatial background image. Names must match `cerebro_data`.
+
+- spatial_plot_rotation:
+
+  Named list/vector; initial rotation (degrees) applied to spatial cell
+  coordinates. Names must match `cerebro_data`.
 
 - ...:
 

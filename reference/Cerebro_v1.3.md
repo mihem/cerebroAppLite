@@ -127,6 +127,10 @@ A new `Cerebro_v1.3` object.
   `list` that contains TCR data (kept for backward compatibility with
   older .crb files).
 
+- `spatial`:
+
+  `list` that contains spatial data (coordinates and expression).
+
 ## Methods
 
 ### Public methods
@@ -250,6 +254,12 @@ A new `Cerebro_v1.3` object.
 - [`Cerebro_v1.3$getImmuneRepertoire()`](#method-Cerebro_v1.3-getImmuneRepertoire)
 
 - [`Cerebro_v1.3$addImmuneRepertoire()`](#method-Cerebro_v1.3-addImmuneRepertoire)
+
+- [`Cerebro_v1.3$addSpatialData()`](#method-Cerebro_v1.3-addSpatialData)
+
+- [`Cerebro_v1.3$getSpatialData()`](#method-Cerebro_v1.3-getSpatialData)
+
+- [`Cerebro_v1.3$availableSpatial()`](#method-Cerebro_v1.3-availableSpatial)
 
 - [`Cerebro_v1.3$addExtraMaterial()`](#method-Cerebro_v1.3-addExtraMaterial)
 
@@ -1408,6 +1418,64 @@ Set immune repertoire data.
 
   Named list of data.frames (one per sample) containing scRepertoire
   columns.
+
+------------------------------------------------------------------------
+
+### Method `addSpatialData()`
+
+Add spatial data.
+
+#### Usage
+
+    Cerebro_v1.3$addSpatialData(name, data)
+
+#### Arguments
+
+- `name`:
+
+  Name of the spatial data entry (e.g. image name).
+
+- `data`:
+
+  `list` containing 'coordinates' (data.frame) and 'expression' (sparse
+  matrix). It may optionally carry an embedded histology image as
+  'image' (a base64 `data:` URI string) plus 'image_bounds' (named list
+  xmin/xmax/ymin/ymax in coordinate space) so the Spatial tab can render
+  the real tissue background without an external file.
+
+------------------------------------------------------------------------
+
+### Method `getSpatialData()`
+
+Retrieve spatial data.
+
+#### Usage
+
+    Cerebro_v1.3$getSpatialData(name)
+
+#### Arguments
+
+- `name`:
+
+  Name of the spatial data entry.
+
+#### Returns
+
+`list` containing 'coordinates' and 'expression'.
+
+------------------------------------------------------------------------
+
+### Method `availableSpatial()`
+
+Get list of available spatial data entries.
+
+#### Usage
+
+    Cerebro_v1.3$availableSpatial()
+
+#### Returns
+
+`vector` of spatial data entries that are available.
 
 ------------------------------------------------------------------------
 

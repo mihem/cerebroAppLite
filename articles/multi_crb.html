@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,7 @@
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
     <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
     <li><a class="dropdown-item" href="../articles/trajectory_analysis.html">Trajectory Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial_analysis.html">Spatial Transcriptomics Analysis</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -92,9 +93,9 @@
                         <h4 data-toc-skip class="author">Xuesong
 Wang</h4>
             
-            <h4 data-toc-skip class="date">07 July, 2026</h4>
+            <h4 data-toc-skip class="date">10 July, 2026</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/mihem/cerebroAppLite/blob/v1.7.8/vignettes/multi_crb.Rmd" class="external-link"><code>vignettes/multi_crb.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/vignettes/multi_crb.Rmd" class="external-link"><code>vignettes/multi_crb.Rmd</code></a></small>
       <div class="d-none name"><code>multi_crb.Rmd</code></div>
     </div>
 
@@ -133,51 +134,70 @@ shown:</p>
 <h3 id="multiple-files">Multiple files<a class="anchor" aria-label="anchor" href="#multiple-files"></a>
 </h3>
 <p>Pass a <strong>named vector</strong> of <code>.crb</code> paths. The
-three demo data sets shipped with the package are genuinely different
-samples — they differ in cell composition, so the UMAP and cell-type mix
-change as you switch — and each carries a biologically plausible immune
-repertoire (TCR on T cells, BCR on B cells):</p>
+demo data sets shipped with the package are genuinely different samples
+— a PBMC set (TCR + BCR + a monocle2 trajectory) and four real
+spatial-transcriptomics sections spanning distinct platforms — so the
+UMAP, the cell-type mix, and the conditional tabs all change as you
+switch:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/createShinyApp.html">createShinyApp</a></span><span class="op">(</span></span>
 <span>  result_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"cerebro_app_multi"</span><span class="op">)</span>,</span>
 <span>  cerebro_data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>    <span class="st">"PBMC - Full (T+B)"</span>     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_full_tcr_bcr.crb"</span>, package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span>,</span>
-<span>    <span class="st">"PBMC - Healthy (T/NK)"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_healthy_t.crb"</span>,    package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span>,</span>
-<span>    <span class="st">"PBMC - B-cell rich"</span>    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_bcell_rich.crb"</span>,   package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span></span>
+<span>    <span class="st">"PBMC - Full (T+B)"</span>                <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_full_tcr_bcr.crb"</span>,   package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span>,</span>
+<span>    <span class="st">"Mouse brain (Visium)"</span>             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_spatial_visium.crb"</span>,  package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span>,</span>
+<span>    <span class="st">"Mouse hippocampus (Slide-seq v2)"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_spatial_slideseq.crb"</span>, package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span>,</span>
+<span>    <span class="st">"Mouse ileum (MERFISH)"</span>            <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_spatial_merfish.crb"</span>, package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span>,</span>
+<span>    <span class="st">"Mouse brain (Xenium)"</span>             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/demo_spatial_xenium.crb"</span>,  package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <table class="table">
+<colgroup>
+<col width="30%">
+<col width="18%">
+<col width="51%">
+</colgroup>
 <thead><tr class="header">
 <th>Data set</th>
-<th>Cells</th>
-<th>Immune repertoire</th>
+<th>Type</th>
+<th>Conditional tab</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td>PBMC - Full (T+B)</td>
-<td>all cells (T + B + Mono)</td>
-<td>TCR <strong>and</strong> BCR</td>
+<td>scRNA-seq + TCR/BCR + trajectory</td>
+<td>Immune Repertoire, Trajectory</td>
 </tr>
 <tr class="even">
-<td>PBMC - Healthy (T/NK)</td>
-<td>T + Monocytes</td>
-<td>TCR only</td>
+<td>Mouse brain (Visium)</td>
+<td>spatial (spots, external H&amp;E)</td>
+<td>Spatial</td>
 </tr>
 <tr class="odd">
-<td>PBMC - B-cell rich</td>
-<td>B + a few T cells</td>
-<td>BCR only</td>
+<td>Mouse hippocampus (Slide-seq v2)</td>
+<td>spatial (beads, no image)</td>
+<td>Spatial</td>
+</tr>
+<tr class="even">
+<td>Mouse ileum (MERFISH)</td>
+<td>spatial (imaging, embedded DAPI)</td>
+<td>Spatial</td>
+</tr>
+<tr class="odd">
+<td>Mouse brain (Xenium)</td>
+<td>spatial (imaging, embedded DAPI)</td>
+<td>Spatial</td>
 </tr>
 </tbody>
 </table>
-<p>When the app starts, the sidebar shows a dropdown with these three
-samples. Switching changes the whole data set — the UMAP, the cell-type
-composition, and the <em>Immune Repertoire</em> tab (present whenever
-the sample carries clonotypes).</p>
-<p>The three demo data sets are derived from the public 10x Genomics
-<code>vdj_v1_hs_pbmc3</code> dataset (see
-<code>data-raw/README.md</code> in the package source for the full,
-reproducible build).</p>
+<p>When the app starts, the sidebar shows a dropdown with these samples.
+Switching changes the whole data set — the UMAP, the cell-type
+composition, and the conditional tabs (<em>Immune Repertoire</em> /
+<em>Trajectory</em> / <em>Spatial</em>), which appear only for the data
+sets that carry that content.</p>
+<p>The PBMC demo is derived from the public 10x Genomics
+<code>vdj_v1_hs_pbmc3</code> dataset and the spatial demos from public
+reference sections; see <code>data-raw/README.md</code> in the package
+source for the full, reproducible builds.</p>
 </div>
 </div>
 <div class="section level2">

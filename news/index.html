@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,7 @@
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
     <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
     <li><a class="dropdown-item" href="../articles/trajectory_analysis.html">Trajectory Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial_analysis.html">Spatial Transcriptomics Analysis</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -64,9 +65,53 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/v1.7.8/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.0.0" id="cerebroapplite-200">cerebroAppLite 2.0.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-200"></a></h2>
+<div class="section level3">
+<h3 id="spatial-analysis-and-overlay-improvements-2-0-0">Spatial analysis and overlay improvements<a class="anchor" aria-label="anchor" href="#spatial-analysis-and-overlay-improvements-2-0-0"></a></h3>
+<ul><li>
+<strong>Multi-gene co-expression</strong>: a new “Co-expression (RGB)” plot type maps up to three genes onto the red / green / blue channels, so each cell’s colour blends the genes it expresses and spatial co-localisation reads as a mixed hue.</li>
+<li>
+<strong>Spatial autocorrelation</strong>: ImageFeaturePlot now reports the displayed gene’s Moran’s I — how spatially clustered its expression is (large slides are down-sampled for a responsive, stable score).</li>
+<li>
+<strong>Region outlines</strong>: an opt-in toggle outlines each colour group’s spatial region with its convex hull.</li>
+<li>
+<strong>Copy alignment as preset</strong>: after hand-aligning a histology overlay, a button emits the matching <code>spatial_images_*</code> <code>Cerebro.options</code> lines to paste into an app so the dataset ships pre-aligned.</li>
+<li>
+<strong>Honest single-source overlay scale</strong>: the background scale is now applied once (a squared-scale bug is fixed), the image is clipped to the plot area so it no longer covers the axes, and the default view is evenly framed.</li>
+<li>
+<strong>Overlay controls UX</strong>: interacting with any Additional-parameters control collapses the Main-parameters box, and the Additional panel scrolls internally (hidden scrollbar with soft top/bottom fades), so the plot stays visible while adjusting Move/Rotate.</li>
+<li>
+<strong>Fixes</strong>: switching from an image-bearing platform to a bead-only one (Slide-seq) no longer leaves a stale tissue image behind, and the embedded-image option is offered only for datasets that actually carry one.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="spatial-transcriptomics-interactive-tab--histology-overlay-2-0-0">Spatial transcriptomics (interactive tab + histology overlay)<a class="anchor" aria-label="anchor" href="#spatial-transcriptomics-interactive-tab--histology-overlay-2-0-0"></a></h3>
+<ul><li>
+<strong>Spatial tab</strong>: the interactive Spatial projection is now wired into the app. It mounts conditionally (via <code>insertConditionalTab()</code>) whenever the loaded dataset carries spatial data, with plotly-based coloring, group filters, and box/lasso cell selection.</li>
+<li>
+<strong>Histology background overlay</strong>: <code><a href="../reference/createShinyApp.html">createShinyApp()</a></code> gains <code>spatial_images</code> plus per-dataset <code>spatial_images_flip_x</code>, <code>spatial_images_flip_y</code>, <code>spatial_images_scale_x</code>, <code>spatial_images_scale_y</code>, and <code>spatial_plot_rotation</code> parameters. Matched images are copied into the app bundle and shown behind the cells, controlled by a <strong>Background image</strong> dropdown and an <strong>Image opacity</strong> slider. Unmatched entries are ignored with a warning rather than an error.</li>
+<li>
+<strong>Bundled demo</strong>: the “Cortex - Spatial (synthetic)” demo pairs fully synthetic cortical-depth cell coordinates (illustrative cell-type labels such as Excitatory L2/3 … Oligodendrocyte) with a synthetic H&amp;E cortex-section SVG whose layer bands align with the cells, so cell types visibly stratify across the cortex out of the box. Both the coordinates and the image are synthetic — no patient data.</li>
+<li>
+<strong>Documentation</strong>: added the <code><a href="../articles/spatial_analysis.html">vignette("spatial_analysis")</a></code> guide.</li>
+<li>
+<strong>Bundled demo set</strong>: the app now opens on <code>demo_full_tcr_bcr.crb</code> (PBMC, TCR + BCR + trajectory) plus four real spatial sections (Visium, Slide-seq v2, MERFISH, Xenium), so the dataset switcher spans immune-repertoire, trajectory, and spatial content. The two narrower PBMC subsets (<code>demo_healthy_t.crb</code>, <code>demo_bcell_rich.crb</code>) are no longer shipped — the Full set is their superset; <code>data-raw/build_ir_demos.R</code> can still rebuild them for a multi-sample demo.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="spatial-transcriptomics-backend-2-0-0">Spatial transcriptomics (backend)<a class="anchor" aria-label="anchor" href="#spatial-transcriptomics-backend-2-0-0"></a></h3>
+<ul><li>
+<strong>Spatial data layer</strong>: the <code>Cerebro_v1.3</code> class gains a <code>spatial</code> field with <code>addSpatialData()</code>, <code>getSpatialData()</code>, and <code>availableSpatial()</code> accessors.</li>
+<li>
+<strong>Export support</strong>: <code><a href="../reference/exportFromSeurat.html">exportFromSeurat()</a></code> now extracts spatial coordinates and expression from Seurat v5 image slots (Visium / Xenium / FOV) via the internal <code>.getSpatialData()</code> helper, storing them per image in the exported <code>.crb</code>.</li>
+<li>
+<strong>Utility wrappers</strong>: added <code>availableSpatial()</code>, <code>getSpatialData()</code>, and <code>serverSideGeneSelector()</code> in the Shiny utility layer.</li>
+<li>
+<strong>Demo dataset</strong>: bundled a synthetic Xenium spatial demo (<code>demo_spatial.crb</code>, 1,000 cells) as a fifth demo dataset.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.7.8" id="cerebroapplite-178">cerebroAppLite 1.7.8<a class="anchor" aria-label="anchor" href="#cerebroapplite-178"></a></h2>
 <div class="section level3">

@@ -15,7 +15,7 @@ run with shiny::runApp(result_dir)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.7.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,6 +51,7 @@ run with shiny::runApp(result_dir)."></head><body>
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
     <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
     <li><a class="dropdown-item" href="../articles/trajectory_analysis.html">Trajectory Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/spatial_analysis.html">Spatial Transcriptomics Analysis</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -72,7 +73,7 @@ run with shiny::runApp(result_dir)."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Create a self-contained Shiny app folder for Cerebro v1.4</h1>
-      <small class="dont-index">Source: <a href="https://github.com/mihem/cerebroAppLite/blob/v1.7.8/R/createShinyApp.R" class="external-link"><code>R/createShinyApp.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/R/createShinyApp.R" class="external-link"><code>R/createShinyApp.R</code></a></small>
       <div class="d-none name"><code>createShinyApp.Rd</code></div>
     </div>
 
@@ -104,6 +105,14 @@ run with <code>shiny::runApp(result_dir)</code>.</p>
 <span>  welcome_message <span class="op">=</span> <span class="st">"Welcome to Cerebro App!"</span>,</span>
 <span>  point_size <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>overview_projection_point_size <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>  variable_to_compare <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_images <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_images_flip_x <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_images_flip_y <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_images_scale_x <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_images_scale_y <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_images_offset_x <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_images_offset_y <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  spatial_plot_rotation <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -181,6 +190,49 @@ the generated app.</p></dd>
 
 <dt id="arg-variable-to-compare">variable_to_compare<a class="anchor" aria-label="anchor" href="#arg-variable-to-compare"></a></dt>
 <dd><p>Forwarded to <code>Cerebro.options</code>.</p></dd>
+
+
+<dt id="arg-spatial-images">spatial_images<a class="anchor" aria-label="anchor" href="#arg-spatial-images"></a></dt>
+<dd><p>Named list/vector of paths to spatial background images
+(e.g. tissue histology) shown behind the Spatial tab projection. Names must
+match <code>cerebro_data</code>. Images are copied into the app bundle.</p></dd>
+
+
+<dt id="arg-spatial-images-flip-x">spatial_images_flip_x<a class="anchor" aria-label="anchor" href="#arg-spatial-images-flip-x"></a></dt>
+<dd><p>Named list/vector; whether to flip the spatial
+background image horizontally. Names must match <code>cerebro_data</code>.</p></dd>
+
+
+<dt id="arg-spatial-images-flip-y">spatial_images_flip_y<a class="anchor" aria-label="anchor" href="#arg-spatial-images-flip-y"></a></dt>
+<dd><p>Named list/vector; whether to flip the spatial
+background image vertically. Names must match <code>cerebro_data</code>.</p></dd>
+
+
+<dt id="arg-spatial-images-scale-x">spatial_images_scale_x<a class="anchor" aria-label="anchor" href="#arg-spatial-images-scale-x"></a></dt>
+<dd><p>Named list/vector; scaling factor for the X
+axis of the spatial background image. Names must match <code>cerebro_data</code>.</p></dd>
+
+
+<dt id="arg-spatial-images-scale-y">spatial_images_scale_y<a class="anchor" aria-label="anchor" href="#arg-spatial-images-scale-y"></a></dt>
+<dd><p>Named list/vector; scaling factor for the Y
+axis of the spatial background image. Names must match <code>cerebro_data</code>.</p></dd>
+
+
+<dt id="arg-spatial-images-offset-x">spatial_images_offset_x<a class="anchor" aria-label="anchor" href="#arg-spatial-images-offset-x"></a></dt>
+<dd><p>Named list/vector; horizontal offset (in data
+units) applied to move the spatial background image. Names must match
+<code>cerebro_data</code>.</p></dd>
+
+
+<dt id="arg-spatial-images-offset-y">spatial_images_offset_y<a class="anchor" aria-label="anchor" href="#arg-spatial-images-offset-y"></a></dt>
+<dd><p>Named list/vector; vertical offset (in data
+units) applied to move the spatial background image. Names must match
+<code>cerebro_data</code>.</p></dd>
+
+
+<dt id="arg-spatial-plot-rotation">spatial_plot_rotation<a class="anchor" aria-label="anchor" href="#arg-spatial-plot-rotation"></a></dt>
+<dd><p>Named list/vector; initial rotation (degrees)
+applied to spatial cell coordinates. Names must match <code>cerebro_data</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
