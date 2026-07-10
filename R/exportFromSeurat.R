@@ -312,12 +312,19 @@ exportFromSeurat <- function(
   ## add transcript counts
   ##--------------------------------------------------------------------------##
 
-  ## get expression data using shared utility function
+  ## get expression data using shared utility function. This is a top-level,
+  ## user-facing export entry point whose job is to get the object out to a
+  ## .crb, so it opts into legacy cross-semantic layer fallback (e.g. a
+  ## Seurat v5 RNA assay with only a `counts` layer, requested at the default
+  ## slot = "data"). Without this the export would hard-stop here — before even
+  ## reaching the spatial block — on objects that exported fine on master. The
+  ## fallback itself warns, so the substitution is never silent.
   expression_data <- .getExpressionMatrix(
     seurat = object,
     assay = assay,
     slot = slot,
     join_samples = FALSE,
+    allow_cross_semantic_fallback = TRUE,
     verbose = verbose
   )
 
@@ -1077,6 +1084,119 @@ exportFromSeurat <- function(
           )
         }
       }
+    }
+  }
+
+  ##--------------------------------------------------------------------------##
+  ## spatial data
+  ##--------------------------------------------------------------------------##
+  if (verbose) {
+    message(
+      paste0(
+        '[',
+        format(Sys.time(), '%H:%M:%S'),
+        '] Checking for spatial data...'
+      )
+    )
+  }
+
+  ## Spatial images live in the `@images` slot on Seurat v3+ objects, so this
+  ## path handles both Seurat v4 (VisiumV1, SlideSeq) and v5 (VisiumV2, FOV)
+  ## objects. `.getSpatialData()` resolves coordinates version-agnostically via
+  ## GetTissueCoordinates + S4 slot access, so no version branch is needed here.
+  has_images <- .spx_has_slot(object, "images") &&
+    !is.null(object@images) &&
+    length(object@images) > 0
+
+  if (has_images) {
+    if (verbose) {
+      message(
+        paste0(
+          '[',
+          format(Sys.time(), '%H:%M:%S'),
+          '] ',
+          'Spatial data found. Extracting spatial coordinates...'
+        )
+      )
+    }
+
+    for (image_name in names(object@images)) {
+      tryCatch(
+        {
+          # Extract spatial data (coordinates + expression)
+          # Using .getSpatialData helper which handles Visium, FOV/Xenium, etc.
+          spatial_data <- .getSpatialData(
+            object,
+            image = image_name,
+            layer = slot,
+            assay = assay
+          )
+
+          # Also add coordinates as a projection for compatibility with existing visualization functions
+          coords_df <- spatial_data$coordinates
+
+          # Identify coordinate columns to use for projection (2D)
+          proj_cols <- character(0)
+
+          # Standard Visium
+          if (all(c("imagerow", "imagecol") %in% colnames(coords_df))) {
+            proj_cols <- c("imagerow", "imagecol")
+          } else if (all(c("x", "y") %in% colnames(coords_df))) {
+            # Standard FOV/Xenium/Other
+            proj_cols <- c("x", "y")
+          } else if (ncol(coords_df) >= 2) {
+            # Fallback: use first two columns
+            proj_cols <- colnames(coords_df)[1:2]
+          }
+
+          if (length(proj_cols) == 2) {
+            coords_df <- coords_df[, proj_cols, drop = FALSE]
+            if (verbose) {
+              message(paste0(
+                '[',
+                format(Sys.time(), '%H:%M:%S'),
+                '] ',
+                'Added spatial projection: ',
+                image_name
+              ))
+            }
+          }
+          spatial_data$coordinates <- coords_df
+
+          # Add to Cerebro object
+          export$addSpatialData(image_name, spatial_data)
+
+          if (verbose) {
+            message(
+              paste0(
+                '[',
+                format(Sys.time(), '%H:%M:%S'),
+                '] ',
+                'Added spatial data: ',
+                image_name,
+                ' (',
+                nrow(spatial_data$coordinates),
+                ' cells)'
+              )
+            )
+          }
+        },
+        error = function(e) {
+          ## Never drop a spatial image silently: an object that clearly has
+          ## `@images` but whose extraction fails (e.g. requested layer=slot is
+          ## absent) would otherwise export "successfully" with no Spatial tab
+          ## and no clue why. Always warn, regardless of `verbose`.
+          warning(
+            'Could not extract spatial data for image `',
+            image_name,
+            '` (layer = "',
+            slot,
+            '"): ',
+            conditionMessage(e),
+            call. = FALSE
+          )
+        }
+      )
     }
   }
 

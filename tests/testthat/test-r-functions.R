@@ -311,3 +311,116 @@ test_that("launchCerebroV1.4 rejects non-logical projections_show_hover_info", {
     regexp = "projections_show_hover_info"
   )
 })
+
+## ---------------------------------------------------------------------------
+## .getExpressionMatrix same-semantic fallback guard
+##
+## When a requested layer (e.g. "data") is missing, we must NOT silently fall
+## back to a layer with different semantics (e.g. "counts" or "scale.data"),
+## because the caller would then treat normalised/scaled values as raw counts
+## and vice versa. Fallback is only allowed within the same semantic class,
+## including Seurat v5 split-layer variants like "data.1", "data.2".
+## ---------------------------------------------------------------------------
+
+test_that(".filter_same_semantic_layers keeps only same-root layers", {
+  available <- c("counts", "counts.1", "data", "data.1", "scale.data")
+
+  # requesting "data" → only data / data.* are acceptable fallbacks
+  expect_equal(
+    .filter_same_semantic_layers("data", available),
+    c("data", "data.1")
+  )
+
+  # requesting "counts" → only counts / counts.* (v5 split layers)
+  expect_equal(
+    .filter_same_semantic_layers("counts", available),
+    c("counts", "counts.1")
+  )
+
+  # requesting "scale.data" → the dot in the root must not split it wrongly
+  expect_equal(
+    .filter_same_semantic_layers("scale.data", available),
+    "scale.data"
+  )
+})
+
+test_that(".filter_same_semantic_layers returns empty when no same-root layer", {
+  # requesting "data" but only counts present → no safe fallback
+  expect_length(
+    .filter_same_semantic_layers("data", c("counts", "counts.1")),
+    0L
+  )
+})
+
+test_that(".filter_same_semantic_layers allows cross-semantic when opted in", {
+  available <- c("counts", "data", "scale.data")
+  # legacy behaviour: everything is a candidate, requested layer first
+  expect_equal(
+    .filter_same_semantic_layers(
+      "data",
+      available,
+      allow_cross_semantic = TRUE
+    ),
+    c("data", "counts", "scale.data")
+  )
+})
+
+## ---------------------------------------------------------------------------
+## .getExpressionMatrix on a counts-only Seurat v5 object
+##
+## A common real object — v5 RNA assay with only a `counts` layer (NormalizeData
+## not run) — requested at the default slot = "data" must still export via the
+## top-level callers, which opt into cross-semantic fallback. In v5 a missing
+## layer is not an error but an EMPTY matrix, so the fallback must trigger on
+## that too, warn (never a silent normalised-vs-raw swap), and return counts.
+## Without allow_cross_semantic_fallback = TRUE it must hard-stop.
+## ---------------------------------------------------------------------------
+
+test_that(".getExpressionMatrix falls back counts-only v5 with a warning", {
+  skip_if_not_installed("Seurat")
+  skip_if_not(
+    utils::compareVersion(
+      as.character(utils::packageVersion("Seurat")),
+      "5.0.0"
+    ) >=
+      0,
+    "requires Seurat v5"
+  )
+
+  set.seed(1)
+  counts <- matrix(
+    rpois(20 * 8, 3),
+    nrow = 20,
+    dimnames = list(paste0("Gene", seq_len(20)), paste0("Cell", seq_len(8)))
+  )
+  so <- suppressWarnings(Seurat::CreateSeuratObject(counts = counts))
+  expect_setequal(SeuratObject::Layers(so[["RNA"]]), "counts")
+
+  # default slot = "data", opted in: falls back to counts and WARNS
+  expect_warning(
+    mat <- .getExpressionMatrix(
+      so,
+      assay = "RNA",
+      slot = "data",
+      join_samples = FALSE,
+      allow_cross_semantic_fallback = TRUE
+    ),
+    "falling back to `counts`"
+  )
+  expect_equal(dim(mat), c(20, 8))
+  expect_equal(
+    as.matrix(mat),
+    as.matrix(Seurat::GetAssayData(so, assay = "RNA", layer = "counts"))
+  )
+
+  # without opting in, the same request must hard-stop rather than guess
+  expect_error(
+    .getExpressionMatrix(
+      so,
+      assay = "RNA",
+      slot = "data",
+      join_samples = FALSE
+    ),
+    "no same-semantic fallback"
+  )
+})

@@ -1,6 +1,6 @@
 Package: cerebroAppLite
 Title: Interactive visualization of single cell transcriptomics
-Version: 1.7.8
+Version: 2.0.0
 Authors@R: c(
   person("Michael", "Heming", email = "mihem@mailbox.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9568-2790")),
   person("Roman", "Hillje", email = "roman.hillje@googlemail.com", role = c("aut")),
@@ -38,6 +38,7 @@ Imports:
   GSVA (>= 1.30.0),
   httr (>= 1.4.0),
   igraph,
+  later,
   Matrix (>= 1.2),
   methods,
   msigdbr (>= 6.2.1),

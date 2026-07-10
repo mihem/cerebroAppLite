@@ -1,3 +1,67 @@
+# cerebroAppLite 2.0.0
+
+## Spatial analysis and overlay improvements
+
+- **Multi-gene co-expression**: a new "Co-expression (RGB)" plot type maps up to
+  three genes onto the red / green / blue channels, so each cell's colour blends
+  the genes it expresses and spatial co-localisation reads as a mixed hue.
+- **Spatial autocorrelation**: ImageFeaturePlot now reports the displayed gene's
+  Moran's I — how spatially clustered its expression is (large slides are
+  down-sampled for a responsive, stable score).
+- **Region outlines**: an opt-in toggle outlines each colour group's spatial
+  region with its convex hull.
+- **Copy alignment as preset**: after hand-aligning a histology overlay, a button
+  emits the matching `spatial_images_*` `Cerebro.options` lines to paste into an
+  app so the dataset ships pre-aligned.
+- **Honest single-source overlay scale**: the background scale is now applied
+  once (a squared-scale bug is fixed), the image is clipped to the plot area so
+  it no longer covers the axes, and the default view is evenly framed.
+- **Overlay controls UX**: interacting with any Additional-parameters control
+  collapses the Main-parameters box, and the Additional panel scrolls internally
+  (hidden scrollbar with soft top/bottom fades), so the plot stays visible while
+  adjusting Move/Rotate.
+- **Fixes**: switching from an image-bearing platform to a bead-only one
+  (Slide-seq) no longer leaves a stale tissue image behind, and the embedded-image
+  option is offered only for datasets that actually carry one.
+
+## Spatial transcriptomics (interactive tab + histology overlay)
+
+- **Spatial tab**: the interactive Spatial projection is now wired into the app.
+  It mounts conditionally (via `insertConditionalTab()`) whenever the loaded
+  dataset carries spatial data, with plotly-based coloring, group filters, and
+  box/lasso cell selection.
+- **Histology background overlay**: `createShinyApp()` gains `spatial_images`
+  plus per-dataset `spatial_images_flip_x`, `spatial_images_flip_y`,
+  `spatial_images_scale_x`, `spatial_images_scale_y`, and `spatial_plot_rotation`
+  parameters. Matched images are copied into the app bundle and shown behind the
+  cells, controlled by a **Background image** dropdown and an **Image opacity**
+  slider. Unmatched entries are ignored with a warning rather than an error.
+- **Bundled demo**: the "Cortex - Spatial (synthetic)" demo pairs fully
+  synthetic cortical-depth cell coordinates (illustrative cell-type labels such
+  as Excitatory L2/3 … Oligodendrocyte) with a synthetic H&E cortex-section SVG
+  whose layer bands align with the cells, so cell types visibly stratify across
+  the cortex out of the box. Both the coordinates and the image are synthetic —
+  no patient data.
+- **Documentation**: added the `vignette("spatial_analysis")` guide.
+- **Bundled demo set**: the app now opens on `demo_full_tcr_bcr.crb` (PBMC,
+  TCR + BCR + trajectory) plus four real spatial sections (Visium, Slide-seq v2,
+  MERFISH, Xenium), so the dataset switcher spans immune-repertoire, trajectory,
+  and spatial content. The two narrower PBMC subsets (`demo_healthy_t.crb`,
+  `demo_bcell_rich.crb`) are no longer shipped — the Full set is their superset;
+  `data-raw/build_ir_demos.R` can still rebuild them for a multi-sample demo.
+
+## Spatial transcriptomics (backend)
+
+- **Spatial data layer**: the `Cerebro_v1.3` class gains a `spatial` field with
+  `addSpatialData()`, `getSpatialData()`, and `availableSpatial()` accessors.
+- **Export support**: `exportFromSeurat()` now extracts spatial coordinates and
+  expression from Seurat v5 image slots (Visium / Xenium / FOV) via the internal
+  `.getSpatialData()` helper, storing them per image in the exported `.crb`.
+- **Utility wrappers**: added `availableSpatial()`, `getSpatialData()`, and
+  `serverSideGeneSelector()` in the Shiny utility layer.
+- **Demo dataset**: bundled a synthetic Xenium spatial demo
+  (`demo_spatial.crb`, 1,000 cells) as a fifth demo dataset.
+
 # cerebroAppLite 1.7.8
 
 ## Trajectory tab

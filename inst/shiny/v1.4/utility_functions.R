@@ -1390,3 +1390,60 @@ getImmuneRepertoire <- function() {
   }
   tryCatch(ds$getImmuneRepertoire(), error = function(e) list())
 }
+
+## Wrappers for spatial module.
+availableSpatial <- function() {
+  ds <- data_set()
+  if (!any(grepl("Cerebro", class(ds)))) {
+    return(character(0))
+  }
+  tryCatch(ds$availableSpatial(), error = function(e) character(0))
+}
+getSpatialData <- function(name) {
+  ds <- data_set()
+  if (!any(grepl("Cerebro", class(ds)))) {
+    return(NULL)
+  }
+  tryCatch(ds$getSpatialData(name), error = function(e) NULL)
+}
+serverSideGeneSelector <- function(
+  session,
+  input_id,
+  extra_triggers = function() NULL,
+  active = function() TRUE
+) {
+  observe({
+    extra_triggers()
+    ## The caller can gate this observer so it does nothing until its own tab is
+    ## relevant. The spatial module registers this at module-source time, which
+    ## also runs for datasets that carry no spatial data (e.g. the PBMC set); an
+    ## ungated observer would then schedule later::later() callbacks that keep
+    ## the app from ever reaching idle and break unrelated tabs' tests.
+    req(isTRUE(active()))
+    req(data_set())
+    genes <- sort(getGeneNames())
+    req(!is.null(genes), length(genes) > 0)
+
+    send_update <- function() {
+      updateSelectizeInput(
+        session,
+        input_id,
+        choices = genes,
+        selected = character(0),
+        server = TRUE
+      )
+    }
+
+    ## Dynamic renderUI() + updateSelectizeInput(server=TRUE) race on the
+    ## client: the selectize binding initialises asynchronously, so an update
+    ## message can arrive while the binding doesn't yet exist and gets silently
+    ## dropped. onFlushed fires right after R's flush but before the browser
+    ## has processed the DOM update, so it's necessary but not sufficient.
+    ## Sending the same update again after small timed delays ensures at least
+    ## one lands after the binding exists. The message is idempotent (same
+    ## choices, no selection), so duplicate sends are harmless.
+    session$onFlushed(send_update, once = TRUE)
+    later::later(send_update, delay = 0.3)
+    later::later(send_update, delay = 1.0)
+  })
+}
