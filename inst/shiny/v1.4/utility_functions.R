@@ -1,4 +1,28 @@
 ##----------------------------------------------------------------------------##
+## Guarded bindCache wrapper for plot/reactive outputs.
+##
+## Mirrors the immune_repertoire module's ir_bindCache():
+##   - no-op on shiny < 1.6.0, where renderPlotly() %>% bindCache() is not
+##     supported (DESCRIPTION only requires shiny >= 1.3.2);
+##   - cache = "session" so caches are never shared across users/sessions;
+##   - available_crb_files$selected is appended to every key, so switching
+##     datasets invalidates the cache and never serves a stale plot.
+## Pass the plot-specific cache keys (selected group, metric, ...) via `...`.
+##----------------------------------------------------------------------------##
+cachePlot <- function(x, ...) {
+  if (utils::packageVersion("shiny") >= "1.6.0") {
+    shiny::bindCache(
+      x,
+      ...,
+      available_crb_files$selected,
+      cache = "session"
+    )
+  } else {
+    x
+  }
+}
+
+##----------------------------------------------------------------------------##
 ## Functions to find columns of specific type (for automatic formatting).
 ##----------------------------------------------------------------------------##
 findColumnsInteger <- function(df, columns_to_test) {

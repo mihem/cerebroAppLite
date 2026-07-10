@@ -66,7 +66,8 @@ output[["groups_nUMI_plot"]] <- plotly::renderPlotly({
     y_title = "Number of transcripts",
     mode = "integer"
   )
-})
+}) %>%
+  cachePlot(input[["groups_selected_group"]], "nUMI")
 
 ##----------------------------------------------------------------------------##
 ## Number of expressed genes.
@@ -93,7 +94,8 @@ output[["groups_nGene_plot"]] <- plotly::renderPlotly({
     y_title = "Number of expressed genes",
     mode = "integer"
   )
-})
+}) %>%
+  cachePlot(input[["groups_selected_group"]], "nGene")
 
 ##----------------------------------------------------------------------------##
 ## Expression from mitochondrial genes.
@@ -120,7 +122,8 @@ output[["groups_percent_mt_plot"]] <- plotly::renderPlotly({
     y_title = "Percentage of transcripts",
     mode = "percent"
   )
-})
+}) %>%
+  cachePlot(input[["groups_selected_group"]], "percent_mt")
 
 ##----------------------------------------------------------------------------##
 ## Expression from ribosomal genes.
@@ -147,7 +150,8 @@ output[["groups_percent_ribo_plot"]] <- plotly::renderPlotly({
     y_title = "Percentage of transcripts",
     mode = "percent"
   )
-})
+}) %>%
+  cachePlot(input[["groups_selected_group"]], "percent_ribo")
 
 ##----------------------------------------------------------------------------##
 ## Info box that gets shown when pressing the "info" button.
