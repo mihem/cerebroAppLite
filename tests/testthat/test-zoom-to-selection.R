@@ -4,6 +4,23 @@
 ## computeEqualAspectRange(); exercise it under node here.
 
 repo_file <- function(...) {
+  parts <- c(...)
+  stripped <- if (length(parts) && identical(parts[[1L]], "inst")) {
+    parts[-1L]
+  } else {
+    parts
+  }
+  # 1) installed package (R CMD check) or load_all-shimmed source location
+  if (length(stripped)) {
+    p <- system.file(
+      do.call(file.path, as.list(stripped)),
+      package = "cerebroAppLite"
+    )
+    if (nzchar(p)) {
+      return(p)
+    }
+  }
+  # 2) fall back to the source tree (devtools::test_dir run from the repo)
   testthat::test_path("..", "..", ...)
 }
 

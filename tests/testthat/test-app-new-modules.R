@@ -17,7 +17,16 @@ test_that("most_expressed_genes tab navigates and renders table", {
   )
   app$wait_for_idle(timeout = 20000)
 
-  app$set_inputs(sidebar = "mostExpressedGenes")
+  # Most expressed genes is now a conditionally + asynchronously inserted sidebar
+  # item (insertConditionalTab). Wait for its menu link to appear, then click it,
+  # so the tab activates on a slow CI runner instead of navigating too early.
+  app$wait_for_js(
+    "document.querySelector('a[href=\"#shiny-tab-mostExpressedGenes\"]') !== null",
+    timeout = 20000
+  )
+  app$run_js(
+    'document.querySelector(\'a[href="#shiny-tab-mostExpressedGenes"]\').click();'
+  )
   app$wait_for_idle(timeout = 10000)
 
   # Group selector renders with expected options

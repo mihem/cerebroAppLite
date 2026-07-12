@@ -113,6 +113,10 @@ test_that("Group by is visible on plots whose grouping it drives", {
     ),
     ""
   )
+  app$wait_for_js(
+    "(function(){var x=document.querySelector('#ir_pair_x_group'),y=document.querySelector('#ir_pair_y_group');return !!x && !!y && x.querySelectorAll('option').length>=2 && y.querySelectorAll('option').length>=2;})()",
+    timeout = 15000
+  )
   expect_true(isTRUE(app$get_js(
     "(function(){return document.querySelector('#ir_pair_x_group') !== null && document.querySelector('#ir_pair_y_group') !== null;})();"
   )))
@@ -128,6 +132,10 @@ test_that("Group by is visible on plots whose grouping it drives", {
       "(function(){var e=document.querySelector('#ir_groupBy');return e?e.value:null;})();"
     ),
     "cell_type"
+  )
+  app$wait_for_js(
+    "(function(){var x=document.querySelector('#ir_pair_x_group'),y=document.querySelector('#ir_pair_y_group');return !!x && !!y && x.querySelectorAll('option').length>=2 && y.querySelectorAll('option').length>=2;})()",
+    timeout = 15000
   )
   expect_gte(as.numeric(n_options("ir_pair_x_group")), 2)
   expect_gte(as.numeric(n_options("ir_pair_y_group")), 2)
@@ -374,6 +382,10 @@ test_that("Display options panel exposes scatter params on scatter-type tabs", {
   # Clonal UMAP (scatter-type): point size + opacity also present.
   app$set_inputs(ir_tabs = "Clonal UMAP", wait_ = FALSE)
   app$wait_for_idle(timeout = 15000)
+  app$wait_for_js(
+    "document.querySelector('#ir_d_point_size') !== null && document.querySelector('#ir_d_alpha') !== null",
+    timeout = 15000
+  )
   expect_true(isTRUE(control_exists("ir_d_point_size")))
   expect_true(isTRUE(control_exists("ir_d_alpha")))
 
@@ -552,6 +564,10 @@ test_that("Main parameters info button opens a help dialog", {
   app$wait_for_idle(timeout = 15000)
   app$run_js("document.querySelector('#ir_main_parameters_info').click();")
   app$wait_for_idle(timeout = 10000)
+  app$wait_for_js(
+    "(function(){var m=document.querySelector('.modal-body');return !!m && /ir-help-card/.test(m.innerHTML);})()",
+    timeout = 15000
+  )
 
   # A modal with help cards should appear, containing the param help text.
   modal_html <- app$get_js(

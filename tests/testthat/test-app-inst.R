@@ -112,7 +112,16 @@ test_that("{shinytest2} recording: marker_genes", {
   )
   app$wait_for_idle(timeout = 20000)
 
-  app$set_inputs(sidebar = "markerGenes")
+  # Marker genes is now a conditionally + asynchronously inserted sidebar item
+  # (insertConditionalTab). Wait for its menu link to appear, then click it, so
+  # the tab activates on a slow CI runner instead of navigating before it exists.
+  app$wait_for_js(
+    "document.querySelector('a[href=\"#shiny-tab-markerGenes\"]') !== null",
+    timeout = 20000
+  )
+  app$run_js(
+    'document.querySelector(\'a[href="#shiny-tab-markerGenes"]\').click();'
+  )
   app$wait_for_idle(timeout = 10000)
 
   ## select seurat_clusters (only group with actual marker genes)
