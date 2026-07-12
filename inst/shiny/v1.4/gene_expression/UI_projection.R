@@ -90,61 +90,66 @@ output[["expression_projection_UI"]] <- renderUI({
       offset = 0,
       class = "cerebro-viz-col",
       style = "padding: 0px;",
-      cerebroBox(
-        title = tagList(
-          boxTitle("Dimensional reduction"),
-          tagList(
-            actionButton(
-              inputId = "expression_projection_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-right: 3px"
-            ),
-            ## shinyFiles::shinySaveButton(
-            ##   "expression_projection_export",
-            ##   label = "export to PDF",
-            ##   title = "Export dimensional reduction to PDF file.",
-            ##   filetype = "pdf",
-            ##   viewtype = "icon",
-            ##   class = "btn-xs",
-            ##   style = "margin-right: 3px"
-            ## ),
-            shinyWidgets::dropdownButton(
-              tags$div(
-                tags$style(
-                  HTML("div.awesome-checkbox {margin-top: 10px;}")
-                ),
-                style = "color: black !important;",
-                tagList(
-                  uiOutput("expression_projection_point_border_UI"),
-                  uiOutput("expression_projection_genes_in_separate_panels_UI"),
-                  uiOutput("expression_projection_scales_UI")
-                )
+      shiny::tagAppendAttributes(
+        cerebroBox(
+          title = tagList(
+            boxTitle("Dimensional reduction"),
+            tagList(
+              actionButton(
+                inputId = "expression_projection_info",
+                label = "info",
+                icon = NULL,
+                class = "btn-xs",
+                title = "Show additional information for this panel.",
+                style = "margin-right: 3px"
               ),
-              circle = FALSE,
-              icon = icon("cog"),
-              inline = TRUE,
-              size = "xs"
+              ## shinyFiles::shinySaveButton(
+              ##   "expression_projection_export",
+              ##   label = "export to PDF",
+              ##   title = "Export dimensional reduction to PDF file.",
+              ##   filetype = "pdf",
+              ##   viewtype = "icon",
+              ##   class = "btn-xs",
+              ##   style = "margin-right: 3px"
+              ## ),
+              shinyWidgets::dropdownButton(
+                tags$div(
+                  tags$style(
+                    HTML("div.awesome-checkbox {margin-top: 10px;}")
+                  ),
+                  style = "color: black !important;",
+                  tagList(
+                    uiOutput("expression_projection_point_border_UI"),
+                    uiOutput(
+                      "expression_projection_genes_in_separate_panels_UI"
+                    ),
+                    uiOutput("expression_projection_scales_UI")
+                  )
+                ),
+                circle = FALSE,
+                icon = icon("cog"),
+                inline = TRUE,
+                size = "xs"
+              )
             )
+          ),
+          tagList(
+            shinycssloaders::withSpinner(
+              plotly::plotlyOutput(
+                "expression_projection",
+                width = "auto",
+                height = "60vh"
+              ),
+              type = 8,
+              hide.ui = FALSE
+            ),
+            tags$br(),
+            htmlOutput("expression_number_of_selected_cells"),
+            tags$br(),
+            htmlOutput("expression_genes_displayed")
           )
         ),
-        tagList(
-          shinycssloaders::withSpinner(
-            plotly::plotlyOutput(
-              "expression_projection",
-              width = "auto",
-              height = "85vh"
-            ),
-            type = 8,
-            hide.ui = FALSE
-          ),
-          tags$br(),
-          htmlOutput("expression_number_of_selected_cells"),
-          tags$br(),
-          htmlOutput("expression_genes_displayed")
-        )
+        class = "cerebro-projection-gate"
       )
     )
   )

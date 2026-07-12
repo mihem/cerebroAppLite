@@ -64,7 +64,16 @@
     const layout = {
       hovermode: 'closest',
       dragmode: 'select',
-      margin: { l: 50, r: 50, b: 50, t: 50, pad: 4 },
+      // Margins tuned to the actual label extents (measured in-browser), so the
+      // plotting area reaches close to the box edges instead of floating in the
+      // middle:
+      //   l:30 — y-tick labels ("-10".."10") only need ~28px, tight to the edge.
+      //   b:22 — x-tick labels sit just under the axis; no dead space above the
+      //          "selected cells" footer.
+      //   r:12 — no right-hand axis, so keep it minimal.
+      //   t:8  — the custom HTML legend already occupies the band above the plot
+      //          (Plotly's default t:50 is for a title we never draw).
+      margin: { l: 30, r: 12, b: 22, t: 8, pad: 4 },
       xaxis: makeAxis(),
       yaxis: makeAxis(),
       hoverlabel: makeHoverLabel(),

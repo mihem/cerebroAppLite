@@ -53,3 +53,68 @@ test_that("trajectory module loads without breaking the main app", {
   cells_box <- app$get_value(output = "load_data_number_of_cells")
   expect_true(grepl("1,476", cells_box$html))
 })
+
+test_that("trajectory projection fits the viewport with selectors in parameters", {
+  local_app_support(inst_dir)
+  app <- AppDriver$new(
+    inst_dir,
+    name = "trajectory_viewport",
+    height = 950,
+    width = 1619,
+    load_timeout = 60000
+  )
+  on.exit(app$stop(), add = TRUE)
+  app$wait_for_idle(timeout = 20000)
+
+  app$click(selector = 'a[href="#shiny-tab-trajectory"]')
+  app$wait_for_idle(timeout = 20000)
+
+  expect_false(app$get_js(
+    "document.body.innerText.includes('cerebro-projection-plot')"
+  ))
+  expect_true(app$get_js(
+    paste0(
+      "document.getElementById('trajectory_selected_method')",
+      ".closest('.box').querySelector('.box-title')",
+      ".innerText.includes('Main parameters')"
+    )
+  ))
+  expect_true(app$get_js(
+    paste0(
+      "document.getElementById('trajectory_selected_name')",
+      ".closest('.box').querySelector('.box-title')",
+      ".innerText.includes('Main parameters')"
+    )
+  ))
+
+  geometry <- app$get_js(paste0(
+    "(() => {",
+    "const plot = document.getElementById('trajectory_projection');",
+    "const box = plot.closest('.box');",
+    "const footer = document.getElementById(",
+    "'trajectory_number_of_selected_cells');",
+    "const svg = plot.querySelector('.main-svg');",
+    "const ticks = Array.from(plot.querySelectorAll(",
+    "'.xaxislayer-above .xtick text, .yaxislayer-above .ytick text'));",
+    "const tickBottom = Math.max(...ticks.map(",
+    "tick => tick.getBoundingClientRect().bottom));",
+    "return {",
+    "viewport: window.innerHeight,",
+    "plotHeight: plot.getBoundingClientRect().height,",
+    "plotBottom: plot.getBoundingClientRect().bottom,",
+    "svgBottom: svg.getBoundingClientRect().bottom,",
+    "tickBottom: tickBottom,",
+    "footerTop: footer.getBoundingClientRect().top,",
+    "boxBottom: box.getBoundingClientRect().bottom,",
+    "footerBottom: footer.getBoundingClientRect().bottom",
+    "};",
+    "})()"
+  ))
+
+  expect_gte(geometry$plotHeight, 240)
+  expect_lte(geometry$svgBottom, geometry$plotBottom + 1)
+  expect_lte(geometry$tickBottom, geometry$plotBottom + 1)
+  expect_lt(geometry$tickBottom, geometry$footerTop)
+  expect_lte(geometry$footerBottom, geometry$viewport)
+  expect_lte(geometry$boxBottom, geometry$viewport)
+})

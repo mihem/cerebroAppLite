@@ -37,6 +37,234 @@
   // each projection plot has its own independent selection.
   const selectionByPlot = new Map(); // plotId -> Set<"x|y"> (or absent)
 
+  // --- viewport sizing -------------------------------------------------------
+  // Projection legends and footers are ordinary HTML outside Plotly's fixed-
+  // height widget. Their height is only known after layout (and categorical
+  // legends may wrap), so fixed `100vh - Npx` formulas cannot fit both sparse
+  // and dense legends. Measure the real chrome and give Plotly exactly what is
+  // left in the viewport instead.
+  const projectionResizeState = new Map(); // plotId -> controller state
+  const PROJECTION_MIN_HEIGHT = 240;
+  const PROJECTION_BOTTOM_GAP = 18;
+  let projectionWindowResizeBound = false;
+
+  function projectionTargetHeight(
+    viewportHeight,
+    wrapperTop,
+    contentBelow,
+    bottomGap,
+    minimumHeight
+  ) {
+    const available = Math.floor(
+      viewportHeight - wrapperTop - contentBelow - bottomGap
+    );
+    return Math.max(minimumHeight, available);
+  }
+
+  // withSpinner() adds one wrapper whose bounds are exactly the output bounds.
+  // Without a spinner, Plotly itself is the sizing element; its parent is the
+  // whole box body and may also contain legends, footers and other controls.
+  // Treating that parent as the plot double-counts its children and makes the
+  // box taller than the viewport (Trajectory is intentionally spinner-free).
+  function projectionSizingElement(plot) {
+    const parent = plot && plot.parentElement;
+    if (
+      parent &&
+      parent.classList &&
+      parent.classList.contains('shiny-spinner-output-container')
+    ) {
+      return parent;
+    }
+    return plot;
+  }
+
+  function projectionElements(plotId) {
+    const plot = document.getElementById(plotId);
+    if (!plot) return null;
+    const wrapper = projectionSizingElement(plot);
+    const box = typeof plot.closest === 'function' ? plot.closest('.box') : null;
+    if (!box || !wrapper.getBoundingClientRect || !box.getBoundingClientRect) {
+      return null;
+    }
+    return {
+      plot: plot,
+      wrapper: wrapper,
+      box: box,
+      host: wrapper.parentElement || wrapper,
+      legend: document.getElementById(plotId + '_legend'),
+    };
+  }
+
+  // First-paint flash suppression. The output ships at a fixed 60vh placeholder
+  // height, then the data arrives from the server and the measured viewport
+  // height replaces it a frame later — so on first open the empty placeholder
+  // paints and the user sees the plot jump from one size to the settled size.
+  //
+  // The hide must beat the very first paint, which happens the instant Shiny
+  // inserts the output — before registerPlot has a plot to touch and long before
+  // any render() runs (render waits on the server round trip). Only CSS in the
+  // initial stylesheet is early enough. A class cannot ride on the plotly output
+  // itself: the htmlwidget rewrites className on its own .js-plotly-plot div and
+  // drops it. So each output is wrapped in a plain <div class="cerebro-
+  // projection-gate"> (Shiny renders it, plotly never reconstructs it) and
+  // custom.css hides `.cerebro-projection-gate .js-plotly-plot` from first paint.
+  // This JS only REVEALS: add `is-sized` to the gate once the measured height
+  // has STABILISED on a plot that already holds data, so the settled size is the
+  // first thing the user sees. Keyed per plot id so a re-render never re-hides.
+  //
+  // "Stabilised" matters: the first measurement after data lands is not final.
+  // The custom HTML legend lays out a frame later and its height feeds back into
+  // the measurement (via the legend ResizeObserver), so the height steps once
+  // more (e.g. 775 -> 754). Revealing on the first measurement would show 775
+  // and then visibly shrink 21px. Reveal only when a measurement equals the
+  // previous one (two equal frames = the legend has settled), so the user's
+  // first visible frame is already the final height with zero jump.
+  const PROJECTION_GATE_CLASS = 'cerebro-projection-gate';
+  const PROJECTION_SIZED_CLASS = 'is-sized';
+  const projectionRevealed = new Set(); // plotIds revealed at least once
+  function shouldRevealProjection(fullLayoutPresent, height, settledHeight) {
+    return Boolean(fullLayoutPresent) && height === settledHeight;
+  }
+  function revealProjectionHost(plot) {
+    const gate =
+      plot && typeof plot.closest === 'function'
+        ? plot.closest('.' + PROJECTION_GATE_CLASS)
+        : null;
+    if (gate && gate.classList) gate.classList.add(PROJECTION_SIZED_CLASS);
+  }
+
+  function resizeProjectionToViewport(plotId) {
+    const elements = projectionElements(plotId);
+    if (!elements || typeof window.innerHeight !== 'number') return;
+
+    const wrapperRect = elements.wrapper.getBoundingClientRect();
+    const boxRect = elements.box.getBoundingClientRect();
+    // Everything below Plotly (selected-cell footer, buttons, box padding) is
+    // measured from the live DOM. Legend height is already represented by the
+    // wrapper's top coordinate because the legend is its preceding sibling.
+    const contentBelow = Math.max(0, boxRect.bottom - wrapperRect.bottom);
+    const height = projectionTargetHeight(
+      window.innerHeight,
+      wrapperRect.top,
+      contentBelow,
+      PROJECTION_BOTTOM_GAP,
+      PROJECTION_MIN_HEIGHT
+    );
+    const width = Math.floor(wrapperRect.width);
+    const fullLayout = elements.plot._fullLayout;
+    const plotlySizeMatches =
+      fullLayout &&
+      Math.abs(fullLayout.height - height) <= 1 &&
+      Math.abs(fullLayout.width - width) <= 1;
+
+    const state = projectionResizeState.get(plotId);
+
+    // Reveal gate — evaluated BEFORE the size-matches short-circuit below, so a
+    // plot that is stable-but-still-hidden (its size already matches, so the
+    // short-circuit would return early) still gets revealed on this frame.
+    //
+    // Reveal only once the measured height has stabilised on a plot that holds
+    // data (see shouldRevealProjection): the first post-data measurement is not
+    // final because the legend lays out a frame later and nudges the height, so
+    // revealing then would show one size and visibly shrink to the next. When
+    // this measurement is not yet stable, record it and force one more resize so
+    // a confirming frame is guaranteed even without any external trigger.
+    if (state && fullLayout && !projectionRevealed.has(plotId)) {
+      if (shouldRevealProjection(fullLayout, height, state.settledHeight)) {
+        revealProjectionHost(elements.plot);
+        projectionRevealed.add(plotId);
+      } else {
+        state.settledHeight = height;
+        scheduleProjectionResize(plotId);
+      }
+    }
+
+    if (
+      state &&
+      state.height === height &&
+      state.width === width &&
+      plotlySizeMatches
+    ) {
+      return;
+    }
+    if (state) {
+      state.height = height;
+      state.width = width;
+    }
+
+    elements.wrapper.style.height = height + 'px';
+    elements.plot.style.height = height + 'px';
+    // Plotly.react receives an explicit width/height from the Shiny round trip.
+    // Merely changing CSS and calling Plots.resize does not replace those layout
+    // values, leaving the internal SVG at its old size and letting axis labels
+    // overflow into the footer. Synchronise Plotly's layout itself whenever it
+    // disagrees with the measured DOM target; keep resize as the pre-init/fallback
+    // path for outputs that do not have a full layout yet.
+    if (
+      typeof Plotly !== 'undefined' &&
+      fullLayout &&
+      typeof Plotly.relayout === 'function' &&
+      !plotlySizeMatches
+    ) {
+      Plotly.relayout(elements.plot, { width: width, height: height });
+    } else if (
+      typeof Plotly !== 'undefined' &&
+      Plotly.Plots &&
+      Plotly.Plots.resize
+    ) {
+      Plotly.Plots.resize(elements.plot);
+    }
+  }
+
+  function observeProjectionElements(plotId) {
+    const state = projectionResizeState.get(plotId);
+    const elements = projectionElements(plotId);
+    if (!state || !elements || typeof ResizeObserver === 'undefined') return;
+
+    if (!state.observer) {
+      state.observer = new ResizeObserver(function () {
+        scheduleProjectionResize(plotId);
+      });
+      state.observer.observe(elements.box);
+    }
+    if (elements.legend && state.legend !== elements.legend) {
+      if (state.legend) state.observer.unobserve(state.legend);
+      state.legend = elements.legend;
+      state.observer.observe(elements.legend);
+    }
+  }
+
+  function scheduleProjectionResize(plotId) {
+    let state = projectionResizeState.get(plotId);
+    if (!state) {
+      state = {
+        frame: null,
+        height: null,
+        width: null,
+        settledHeight: null,
+        observer: null,
+        legend: null,
+      };
+      projectionResizeState.set(plotId, state);
+    }
+    if (state.frame !== null) return;
+    state.frame = window.requestAnimationFrame(function () {
+      state.frame = null;
+      observeProjectionElements(plotId);
+      resizeProjectionToViewport(plotId);
+    });
+  }
+
+  function bindProjectionWindowResize() {
+    if (projectionWindowResizeBound) return;
+    projectionWindowResizeBound = true;
+    window.addEventListener('resize', function () {
+      projectionResizeState.forEach(function (_state, plotId) {
+        scheduleProjectionResize(plotId);
+      });
+    });
+  }
+
   function getSelection(plotId) {
     const s = selectionByPlot.get(plotId);
     return s && s.size ? s : null;
@@ -218,11 +446,13 @@
 
       legendContainer.appendChild(item);
     });
+    scheduleProjectionResize(plotId);
   }
 
   function removeCustomLegend(plotId) {
     const legendContainer = document.getElementById(plotId + '_legend');
     if (legendContainer) legendContainer.style.display = 'none';
+    scheduleProjectionResize(plotId);
   }
 
   function createContinuousLegend(plotId, title, colorMin, colorMax, colorscale) {
@@ -261,6 +491,7 @@
     contentEl.appendChild(gradientEl);
     contentEl.appendChild(maxLabel);
     legendContainer.appendChild(contentEl);
+    scheduleProjectionResize(plotId);
   }
 
   function removeContinuousLegend(plotId) {
@@ -269,6 +500,7 @@
       legendContainer.classList.remove('is-continuous');
       legendContainer.style.display = 'none';
     }
+    scheduleProjectionResize(plotId);
   }
 
   // Fluent blue ramp for continuous colouring (matches --theme-primary family).
@@ -509,6 +741,7 @@
       setupSelection(plotId);
       syncBackground(plotId, meta);
       detachModebar(plotId);
+      scheduleProjectionResize(plotId);
     });
   }
 
@@ -561,6 +794,7 @@
       setupSelection(plotId);
       syncBackground(plotId, meta);
       detachModebar(plotId);
+      scheduleProjectionResize(plotId);
     });
   }
 
@@ -639,6 +873,7 @@
       setupSelection(plotId);
       syncBackground(plotId, meta);
       detachModebar(plotId);
+      scheduleProjectionResize(plotId);
     });
   }
 
@@ -693,6 +928,7 @@
       setupSelection(plotId);
       syncBackground(plotId, meta);
       detachModebar(plotId);
+      scheduleProjectionResize(plotId);
     });
   }
 
@@ -769,8 +1005,16 @@
     registerPlot: function (plotId) {
       registeredPlots.add(plotId);
       bindKeyHandler();
+      bindProjectionWindowResize();
+      scheduleProjectionResize(plotId);
     },
     _finiteExtent: finiteExtent,
+    _projectionTargetHeight: projectionTargetHeight,
+    _projectionSizingElement: projectionSizingElement,
+    _revealProjectionHost: revealProjectionHost,
+    _shouldRevealProjection: shouldRevealProjection,
+    _projectionGateClass: PROJECTION_GATE_CLASS,
+    _projectionSizedClass: PROJECTION_SIZED_CLASS,
   };
 
   bindKeyHandler();

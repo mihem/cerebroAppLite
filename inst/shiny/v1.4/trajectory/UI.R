@@ -47,7 +47,6 @@ tab_trajectory <- tabItem(
       "trajectoryGetContainerDimensions"
     )
   ),
-  uiOutput("trajectory_select_method_and_name_UI"),
   uiOutput("trajectory_projection_UI"),
   uiOutput("trajectory_selected_cells_table_UI"),
   uiOutput("trajectory_distribution_along_pseudotime_UI"),

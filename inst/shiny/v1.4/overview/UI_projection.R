@@ -61,53 +61,56 @@ output[["overview_projection_UI"]] <- renderUI({
       offset = 0,
       class = "cerebro-viz-col",
       style = "padding: 0px;",
-      cerebroBox(
-        title = tagList(
-          boxTitle("Dimensional reduction"),
-          actionButton(
-            inputId = "overview_projection_info",
-            label = "info",
-            title = "Show additional information for this panel.",
-            icon = NULL,
-            class = "btn-xs",
-            style = "margin-right: 3px"
-          ),
-          #shinyFiles::shinySaveButton(
-          # "overview_projection_export",
-          #label = "export to PDF",
-          #title = "Export dimensional reduction to PDF file.",
-          #filetype = "pdf",
-          #viewtype = "icon",
-          #class = "btn-xs",
-          #style = "margin-right: 3px"
-          #),
-          shinyWidgets::dropdownButton(
-            inputId = "overview_projection_settings_dropdown",
-            tags$div(
-              style = "color: black !important;",
-              uiOutput("overview_projection_show_group_label_UI"),
-              uiOutput("overview_projection_point_border_UI"),
-              uiOutput("overview_projection_scales_UI")
+      shiny::tagAppendAttributes(
+        cerebroBox(
+          title = tagList(
+            boxTitle("Dimensional reduction"),
+            actionButton(
+              inputId = "overview_projection_info",
+              label = "info",
+              title = "Show additional information for this panel.",
+              icon = NULL,
+              class = "btn-xs",
+              style = "margin-right: 3px"
             ),
-            circle = FALSE,
-            icon = icon("cog"),
-            inline = TRUE,
-            size = "xs"
+            #shinyFiles::shinySaveButton(
+            # "overview_projection_export",
+            #label = "export to PDF",
+            #title = "Export dimensional reduction to PDF file.",
+            #filetype = "pdf",
+            #viewtype = "icon",
+            #class = "btn-xs",
+            #style = "margin-right: 3px"
+            #),
+            shinyWidgets::dropdownButton(
+              inputId = "overview_projection_settings_dropdown",
+              tags$div(
+                style = "color: black !important;",
+                uiOutput("overview_projection_show_group_label_UI"),
+                uiOutput("overview_projection_point_border_UI"),
+                uiOutput("overview_projection_scales_UI")
+              ),
+              circle = FALSE,
+              icon = icon("cog"),
+              inline = TRUE,
+              size = "xs"
+            )
+          ),
+          tagList(
+            shinycssloaders::withSpinner(
+              plotly::plotlyOutput(
+                "overview_projection",
+                width = "auto",
+                height = "60vh"
+              ),
+              type = 8,
+              hide.ui = FALSE
+            ),
+            tags$br(),
+            htmlOutput("overview_number_of_selected_cells"),
           )
         ),
-        tagList(
-          shinycssloaders::withSpinner(
-            plotly::plotlyOutput(
-              "overview_projection",
-              width = "auto",
-              height = "85vh"
-            ),
-            type = 8,
-            hide.ui = FALSE
-          ),
-          tags$br(),
-          htmlOutput("overview_number_of_selected_cells"),
-        )
+        class = "cerebro-projection-gate"
       )
     )
   )

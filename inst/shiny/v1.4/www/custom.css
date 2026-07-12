@@ -1047,6 +1047,34 @@ body .btn:active { transform: translateY(0.5px); }
 }
 
 /* -------------------------------------------------------------------------
+   Projection first-paint flash suppression (all projection tabs)
+
+   Each projection output is wrapped in a plain <div class="cerebro-projection-
+   gate"> that Shiny renders and the plotly htmlwidget never reconstructs (the
+   widget rewrites className on its OWN .js-plotly-plot div, so a class put
+   directly on the output is lost — the gate wrapper survives). This rule hides
+   the plotly plot inside the gate the instant Shiny inserts it, before any JS
+   runs. The plot is created at a fixed 60vh placeholder, then re-sized to the
+   measured viewport height a frame after its data arrives; without this the
+   empty placeholder paints and visibly jumps to the settled size on first open.
+   The shared renderer (www/projection_scatter.js) adds `is-sized` to the gate
+   once the first MEASURED height is on a plot that already holds data, so the
+   settled size is the first thing the user ever sees.
+
+   Hide the GATE itself, not the plotly div: the htmlwidget writes an inline
+   `visibility` on its own .js-plotly-plot div, and an inline style beats any
+   stylesheet rule targeting that div. The plot ships with `visibility:inherit`,
+   so hiding the ancestor gate makes the plot inherit `hidden` regardless — and
+   `is-sized` flips the gate back to visible.
+   ------------------------------------------------------------------------- */
+.cerebro-projection-gate {
+  visibility: hidden;
+}
+.cerebro-projection-gate.is-sized {
+  visibility: visible;
+}
+
+/* -------------------------------------------------------------------------
    Shared projection legend (all projection tabs)
 
    The projection-scatter renderer (www/projection_scatter.js) builds a custom

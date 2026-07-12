@@ -16,24 +16,11 @@ output[["trajectory_select_method_and_name_UI"]] <- renderUI({
   available_methods <- available_methods[available_methods %in% c('monocle2')]
 
   if (length(available_methods) == 0) {
-    fluidRow(
-      cerebroBox(
-        title = "Trajectory",
-        textOutput("trajectory_missing")
-      )
-    )
+    textOutput("trajectory_missing")
   } else if (length(available_methods) > 0) {
     tagList(
-      fluidRow(
-        column(
-          6,
-          uiOutput("trajectory_selected_method_UI")
-        ),
-        column(
-          6,
-          uiOutput("trajectory_selected_name_UI")
-        )
-      )
+      uiOutput("trajectory_selected_method_UI"),
+      uiOutput("trajectory_selected_name_UI")
     )
   }
 })
@@ -47,25 +34,11 @@ output[["trajectory_selected_method_UI"]] <- renderUI({
   available_methods <- getMethodsForTrajectories()
   available_methods <- available_methods[available_methods %in% c('monocle2')]
 
-  tagList(
-    div(
-      HTML(
-        '<h3 style="text-align: center; margin-top: 0"><strong>Choose a method:</strong></h2>'
-      )
-    ),
-    fluidRow(
-      column(2),
-      column(
-        8,
-        selectInput(
-          "trajectory_selected_method",
-          label = NULL,
-          choices = available_methods,
-          width = "100%"
-        )
-      ),
-      column(2)
-    )
+  selectInput(
+    "trajectory_selected_method",
+    label = "Choose a method",
+    choices = available_methods,
+    width = "100%"
   )
 })
 
@@ -77,27 +50,13 @@ output[["trajectory_selected_name_UI"]] <- renderUI({
   req(
     input[["trajectory_selected_method"]]
   )
-  tagList(
-    div(
-      HTML(
-        '<h3 style="text-align: center; margin-top: 0"><strong>Choose a trajectory:</strong></h2>'
-      )
-    ),
-    fluidRow(
-      column(2),
-      column(
-        8,
-        selectInput(
-          "trajectory_selected_name",
-          label = NULL,
-          choices = getNamesOfTrajectories(input[[
-            "trajectory_selected_method"
-          ]]),
-          width = "100%"
-        )
-      ),
-      column(2)
-    )
+  selectInput(
+    "trajectory_selected_name",
+    label = "Choose a trajectory",
+    choices = getNamesOfTrajectories(input[[
+      "trajectory_selected_method"
+    ]]),
+    width = "100%"
   )
 })
 

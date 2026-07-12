@@ -9,10 +9,19 @@
 ##----------------------------------------------------------------------------##
 
 output[["trajectory_projection_UI"]] <- renderUI({
-  req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]]
-  )
+  available_methods <- getMethodsForTrajectories()
+  available_methods <- available_methods[available_methods %in% c("monocle2")]
+
+  if (length(available_methods) == 0) {
+    return(
+      fluidRow(
+        cerebroBox(
+          title = "Trajectory",
+          textOutput("trajectory_missing")
+        )
+      )
+    )
+  }
 
   tagList(
     fluidRow(
@@ -34,7 +43,10 @@ output[["trajectory_projection_UI"]] <- renderUI({
               style = "margin-left: 5px"
             )
           ),
-          uiOutput("trajectory_projection_main_parameters_UI")
+          tagList(
+            uiOutput("trajectory_select_method_and_name_UI"),
+            uiOutput("trajectory_projection_main_parameters_UI")
+          )
         ),
         cerebroBox(
           title = tagList(
@@ -72,35 +84,38 @@ output[["trajectory_projection_UI"]] <- renderUI({
         offset = 0,
         class = "cerebro-viz-col",
         style = "padding: 0px;",
-        cerebroBox(
-          title = tagList(
-            boxTitle("Trajectory"),
-            actionButton(
-              inputId = "trajectory_projection_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-right: 3px"
+        shiny::tagAppendAttributes(
+          cerebroBox(
+            title = tagList(
+              boxTitle("Trajectory"),
+              actionButton(
+                inputId = "trajectory_projection_info",
+                label = "info",
+                icon = NULL,
+                class = "btn-xs",
+                title = "Show additional information for this panel.",
+                style = "margin-right: 3px"
+              ),
+              shinyFiles::shinySaveButton(
+                "trajectory_projection_export",
+                label = "export to PDF",
+                title = "Export trajectory to PDF file.",
+                filetype = "pdf",
+                viewtype = "icon",
+                class = "btn-xs"
+              )
             ),
-            shinyFiles::shinySaveButton(
-              "trajectory_projection_export",
-              label = "export to PDF",
-              title = "Export trajectory to PDF file.",
-              filetype = "pdf",
-              viewtype = "icon",
-              class = "btn-xs"
+            tagList(
+              plotly::plotlyOutput(
+                "trajectory_projection",
+                width = "auto",
+                height = "60vh"
+              ),
+              tags$br(),
+              htmlOutput("trajectory_number_of_selected_cells")
             )
           ),
-          tagList(
-            plotly::plotlyOutput(
-              "trajectory_projection",
-              width = "auto",
-              height = "85vh"
-            ),
-            tags$br(),
-            htmlOutput("trajectory_number_of_selected_cells")
-          )
+          class = "cerebro-projection-gate"
         )
       )
     )
@@ -169,6 +184,8 @@ trajectory_projection_main_parameters_info <- list(
     "
     The elements in this panel allow you to control what and how results are displayed across the whole tab.
     <ul>
+      <li><b>Choose a method:</b> Select the trajectory-inference method.</li>
+      <li><b>Choose a trajectory:</b> Select the trajectory to display.</li>
       <li><b>Color cells by:</b> Select which variable, categorical or continuous, from the meta data should be used to color the cells.</li>
     </ul>
     "
