@@ -1566,3 +1566,88 @@ serverSideGeneSelector <- function(
     later::later(send_update, delay = 1.0)
   })
 }
+
+##----------------------------------------------------------------------------##
+## Filter a projection selection down to cells in still-visible groups.
+##
+## The custom legend lets the user hide a group (Plotly.restyle on the client);
+## the shared JS pushes the currently-hidden group names to Shiny under
+## <plot_id>_hidden_groups. Selected cells belonging to a hidden group should
+## stop counting, so the count and the selected-cells panels reflect only what
+## is visible. Shared across the projection tabs (overview / spatial /
+## trajectory); each tab builds the identifier->group `metadata` from its own
+## coordinate source and passes it in. Pure data transform, no Shiny state.
+##
+## selection: data.frame of selected cells with an `identifier` column, or NULL.
+## metadata:  data.frame with the same `identifier` column plus grouping columns.
+## color_variable: name of the column the legend groups by (current "Color by").
+## hidden_groups: character vector of group names currently hidden (may be NULL).
+##
+## Returns the selection with hidden-group cells removed. NULL stays NULL; an
+## empty / absent hidden set, or a color_variable not in the metadata, returns
+## the selection unchanged.
+##----------------------------------------------------------------------------##
+filterSelectionByHiddenGroups <- function(
+  selection,
+  metadata,
+  color_variable,
+  hidden_groups
+) {
+  if (is.null(selection)) {
+    return(NULL)
+  }
+  if (length(hidden_groups) == 0) {
+    return(selection)
+  }
+  if (
+    is.null(color_variable) ||
+      !color_variable %in% colnames(metadata) ||
+      !"identifier" %in% colnames(metadata) ||
+      !"identifier" %in% colnames(selection)
+  ) {
+    return(selection)
+  }
+
+  ## Map each selected identifier to its group, then keep only the cells whose
+  ## group is not hidden. match() on identifier avoids a join dependency and
+  ## keeps selection row order intact.
+  group_by_identifier <- metadata[[color_variable]][
+    match(selection[["identifier"]], metadata[["identifier"]])
+  ]
+  keep <- !(group_by_identifier %in% hidden_groups)
+  selection[keep, , drop = FALSE]
+}
+
+##----------------------------------------------------------------------------##
+## Is the selected trajectory method/name valid for the CURRENT dataset?
+##
+## On a dataset switch the Shiny inputs trajectory_selected_method /
+## trajectory_selected_name keep their previous values until the selectors
+## round-trip. A bare req() on those strings passes even when the new dataset has
+## no such method, so getTrajectory() throws "Method `X` is not available." This
+## predicate is req()-ed at every getTrajectory() call site so the output bails
+## out cleanly instead of erroring while the stale value lingers.
+##
+## method / name: the currently selected method and trajectory name (may be NULL).
+## available_methods: methods present in the current dataset
+##   (getMethodsForTrajectories()).
+## names_for_method: trajectory names for `method` in the current dataset
+##   (getNamesOfTrajectories(method)); pass character(0) when method is absent.
+##----------------------------------------------------------------------------##
+trajectorySelectionValid <- function(
+  method,
+  name,
+  available_methods,
+  names_for_method
+) {
+  if (is.null(method) || is.null(name)) {
+    return(FALSE)
+  }
+  if (length(method) != 1 || length(name) != 1 || method == "" || name == "") {
+    return(FALSE)
+  }
+  if (!method %in% available_methods) {
+    return(FALSE)
+  }
+  name %in% names_for_method
+}

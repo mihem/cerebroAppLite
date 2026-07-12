@@ -144,14 +144,23 @@ output[["spatial_projection_UI"]] <- renderUI({
               column(width = 8, htmlOutput("spatial_number_of_selected_cells")),
               column(
                 width = 4,
-                style = "text-align: right;",
-                shinyjs::hidden(
-                  actionButton(
-                    inputId = "spatial_projection_clear_selection",
-                    label = "Clear selection",
-                    icon = icon("eraser"),
-                    class = "btn-xs btn-default btn-breathing",
-                    style = "margin-top: 5px;"
+                tags$div(
+                  class = "cerebro-selection-actions",
+                  shinyjs::hidden(
+                    actionButton(
+                      inputId = "spatial_projection_zoom_to_selection",
+                      label = "Zoom to selection",
+                      icon = icon("magnifying-glass-plus"),
+                      class = "btn-xs btn-default"
+                    )
+                  ),
+                  shinyjs::hidden(
+                    actionButton(
+                      inputId = "spatial_projection_clear_selection",
+                      label = "Clear selection",
+                      icon = icon("eraser"),
+                      class = "btn-xs btn-default btn-breathing"
+                    )
                   )
                 )
               )

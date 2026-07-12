@@ -9,10 +9,7 @@
 ##----------------------------------------------------------------------------##
 
 output[["trajectory_states_by_group_UI"]] <- renderUI({
-  req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]]
-  )
+  req(trajectory_selection_ok())
 
   fluidRow(
     cerebroBox(
@@ -89,8 +86,7 @@ output[["states_by_group_table_UI"]] <- renderUI({
 output[["states_by_group_plot"]] <- plotly::renderPlotly({
   ## wait for this input
   req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]],
+    trajectory_selection_ok(),
     input[["states_by_group_select_other_group"]],
     input[["states_by_group_plot_type"]]
   )
@@ -167,8 +163,7 @@ output[["states_by_group_plot"]] <- plotly::renderPlotly({
 output[["states_by_group_table"]] <- DT::renderDataTable({
   ## wait for these inputs
   req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]],
+    trajectory_selection_ok(),
     input[["states_by_group_select_other_group"]]
   )
 

@@ -2,6 +2,7 @@
 ## UI element for output.
 ##----------------------------------------------------------------------------##
 output[["overview_selected_cells_plot_UI"]] <- renderUI({
+  req(overview_projection_selected_cells())
   fluidRow(
     cerebroBox(
       title = tagList(

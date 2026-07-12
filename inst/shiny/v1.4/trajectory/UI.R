@@ -44,7 +44,9 @@ tab_trajectory <- tabItem(
     functions = c(
       "trajectoryUpdatePlot2DContinuous",
       "trajectoryUpdatePlot2DCategorical",
-      "trajectoryGetContainerDimensions"
+      "trajectoryGetContainerDimensions",
+      "trajectoryClearSelection",
+      "trajectoryZoomToSelection"
     )
   ),
   uiOutput("trajectory_projection_UI"),

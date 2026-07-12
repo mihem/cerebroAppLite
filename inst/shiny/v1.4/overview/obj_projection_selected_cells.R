@@ -18,10 +18,36 @@ overview_projection_selected_cells <- reactive({
   if (is.null(sel) || is.null(sel[["x"]]) || length(sel[["x"]]) == 0) {
     return(NULL)
   }
-  data.frame(
+  selection <- data.frame(
     x = as.numeric(sel[["x"]]),
     y = as.numeric(sel[["y"]]),
     identifier = paste0(as.numeric(sel[["x"]]), '-', as.numeric(sel[["y"]])),
     stringsAsFactors = FALSE
   )
+
+  ## Drop cells whose group is currently hidden via the legend, so the count and
+  ## the selected-cells panels reflect only visible groups. The shared JS pushes
+  ## the hidden group names under <plot_id>_hidden_groups; the grouping variable
+  ## is whatever the projection is coloured by. Cells are mapped to their group
+  ## through an `identifier` (X1-X2) built the same way as the selection key.
+  hidden_groups <- input[["overview_projection_hidden_groups"]]
+  if (length(hidden_groups) > 0) {
+    color_variable <- input[["overview_projection_point_color"]]
+    projection <- getProjection(input[["overview_projection_to_display"]])
+    metadata <- cbind(projection, getMetaData())
+    metadata <- metadata %>%
+      dplyr::rename(X1 = 1, X2 = 2) %>%
+      dplyr::mutate(identifier = paste0(X1, '-', X2))
+    selection <- filterSelectionByHiddenGroups(
+      selection,
+      metadata,
+      color_variable,
+      hidden_groups
+    )
+    if (is.null(selection) || nrow(selection) == 0) {
+      return(NULL)
+    }
+  }
+
+  selection
 })

@@ -62,6 +62,11 @@ shinyjs.spatialClearSelection = function () {
   window.cerebroProjection.clearSelection(SPATIAL_PLOT_ID);
 };
 
+// Zoom-to-selection button: frame the selection at the true data aspect ratio.
+shinyjs.spatialZoomToSelection = function () {
+  window.cerebroProjection.zoomToSelection(SPATIAL_PLOT_ID);
+};
+
 // =============================================================================
 // Spatial-only page chrome (unchanged behaviour, kept out of the shared module
 // because only spatial has these controls).

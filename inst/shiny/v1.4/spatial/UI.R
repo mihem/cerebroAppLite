@@ -133,6 +133,7 @@ tab_spatial <- tabItem(
       "updateSpatialBackgroundAppearance",
       "getContainerDimensions",
       "spatialClearSelection",
+      "spatialZoomToSelection",
       "showScrollDownIndicator",
       "hideScrollDownIndicator"
     )

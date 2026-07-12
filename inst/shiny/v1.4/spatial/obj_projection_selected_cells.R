@@ -19,10 +19,34 @@ spatial_projection_selected_cells <- reactive({
   if (is.null(sel) || is.null(sel[["x"]]) || length(sel[["x"]]) == 0) {
     return(NULL)
   }
-  data.frame(
+  selection <- data.frame(
     x = as.numeric(sel[["x"]]),
     y = as.numeric(sel[["y"]]),
     identifier = paste0(as.numeric(sel[["x"]]), '-', as.numeric(sel[["y"]])),
     stringsAsFactors = FALSE
   )
+
+  ## Drop cells whose group is currently hidden via the legend, so the count and
+  ## the selected-cells panels reflect only visible groups (shared helper in
+  ## utility_functions.R). The plotted coordinates come from
+  ## spatial_projection_data_to_plot(), keyed the same way as the selection.
+  hidden_groups <- input[["spatial_projection_hidden_groups"]]
+  if (length(hidden_groups) > 0) {
+    color_variable <- input[["spatial_projection_point_color"]]
+    plot_data <- spatial_projection_data_to_plot()
+    metadata <- cbind(plot_data$coordinates, plot_data$cells_df) %>%
+      dplyr::rename(X1 = 1, X2 = 2) %>%
+      dplyr::mutate(identifier = paste0(X1, '-', X2))
+    selection <- filterSelectionByHiddenGroups(
+      selection,
+      metadata,
+      color_variable,
+      hidden_groups
+    )
+    if (is.null(selection) || nrow(selection) == 0) {
+      return(NULL)
+    }
+  }
+
+  selection
 })

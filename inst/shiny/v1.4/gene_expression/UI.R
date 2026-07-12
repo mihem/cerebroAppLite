@@ -44,7 +44,9 @@ tab_gene_expression <- tabItem(
     functions = c(
       "expressionProjectionUpdatePlot2D",
       "expressionProjectionUpdatePlot2DMultiPanel",
-      "expressionProjectionUpdatePlot3D"
+      "expressionProjectionUpdatePlot3D",
+      "expressionClearSelection",
+      "expressionZoomToSelection"
     )
   ),
   uiOutput("expression_projection_UI"),

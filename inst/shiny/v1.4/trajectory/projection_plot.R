@@ -42,8 +42,7 @@ output[["trajectory_projection"]] <- plotly::renderPlotly({
 ##----------------------------------------------------------------------------##
 trajectory_projection_prepared <- reactive({
   req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]],
+    trajectory_selection_ok(),
     input[["trajectory_percentage_cells_to_show"]],
     input[["trajectory_point_color"]],
     input[["trajectory_point_size"]],
@@ -270,10 +269,7 @@ trajectory_projection_info <- list(
 ## Reactive that holds IDs of selected cells (from the persistent selection).
 ##----------------------------------------------------------------------------##
 trajectory_projection_selected_cells <- reactive({
-  req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]]
-  )
+  req(trajectory_selection_ok())
 
   ## The selection is held persistently on the JS side (shared
   ## projection_scatter.js) and pushed here as {x, y} under
@@ -284,12 +280,38 @@ trajectory_projection_selected_cells <- reactive({
   if (is.null(sel) || is.null(sel[["x"]]) || length(sel[["x"]]) == 0) {
     return(NULL)
   }
-  data.frame(
+  selection <- data.frame(
     x = as.numeric(sel[["x"]]),
     y = as.numeric(sel[["y"]]),
     identifier = paste0(as.numeric(sel[["x"]]), '-', as.numeric(sel[["y"]])),
     stringsAsFactors = FALSE
   )
+
+  ## Drop cells whose group is currently hidden via the legend, so the count and
+  ## the selected-cells panels reflect only visible groups (shared helper in
+  ## utility_functions.R). Coordinates come from the trajectory's DR_1 / DR_2,
+  ## keyed the same way as the selection and the selected-cells table.
+  hidden_groups <- input[["trajectory_projection_hidden_groups"]]
+  if (length(hidden_groups) > 0) {
+    color_variable <- input[["trajectory_point_color"]]
+    trajectory_data <- getTrajectory(
+      input[["trajectory_selected_method"]],
+      input[["trajectory_selected_name"]]
+    )
+    metadata <- mergeTrajectoryWithMetaData(trajectory_data) %>%
+      dplyr::mutate(identifier = paste0(DR_1, '-', DR_2))
+    selection <- filterSelectionByHiddenGroups(
+      selection,
+      metadata,
+      color_variable,
+      hidden_groups
+    )
+    if (is.null(selection) || nrow(selection) == 0) {
+      return(NULL)
+    }
+  }
+
+  selection
 })
 
 ##----------------------------------------------------------------------------##

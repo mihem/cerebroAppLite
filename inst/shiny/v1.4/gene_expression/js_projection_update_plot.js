@@ -57,6 +57,14 @@ shinyjs.expressionProjectionUpdatePlot3D = function (params) {
   window.cerebroProjection.render3DContinuous(meta, sharedData, hover, null, null, {});
 };
 
+shinyjs.expressionClearSelection = function () {
+  window.cerebroProjection.clearSelection(EXPRESSION_PLOT_ID);
+};
+
+shinyjs.expressionZoomToSelection = function () {
+  window.cerebroProjection.zoomToSelection(EXPRESSION_PLOT_ID);
+};
+
 // =============================================================================
 // Multi-panel mode (tab-specific): a grid of independent scatter sub-plots, one
 // per gene, sharing a single colorbar. Kept out of the shared module because it

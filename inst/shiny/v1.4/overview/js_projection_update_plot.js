@@ -42,3 +42,11 @@ shinyjs.updatePlot3DCategorical = function (params) {
   meta.plot_id = OVERVIEW_PLOT_ID;
   window.cerebroProjection.render3DCategorical(meta, data, hover, group_centers, null, {});
 };
+
+shinyjs.overviewClearSelection = function () {
+  window.cerebroProjection.clearSelection(OVERVIEW_PLOT_ID);
+};
+
+shinyjs.overviewZoomToSelection = function () {
+  window.cerebroProjection.zoomToSelection(OVERVIEW_PLOT_ID);
+};

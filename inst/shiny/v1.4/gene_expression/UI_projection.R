@@ -144,7 +144,34 @@ output[["expression_projection_UI"]] <- renderUI({
               hide.ui = FALSE
             ),
             tags$br(),
-            htmlOutput("expression_number_of_selected_cells"),
+            fluidRow(
+              column(
+                width = 8,
+                htmlOutput("expression_number_of_selected_cells")
+              ),
+              column(
+                width = 4,
+                tags$div(
+                  class = "cerebro-selection-actions",
+                  shinyjs::hidden(
+                    actionButton(
+                      inputId = "expression_projection_zoom_to_selection",
+                      label = "Zoom to selection",
+                      icon = icon("magnifying-glass-plus"),
+                      class = "btn-xs btn-default"
+                    )
+                  ),
+                  shinyjs::hidden(
+                    actionButton(
+                      inputId = "expression_projection_clear_selection",
+                      label = "Clear selection",
+                      icon = icon("eraser"),
+                      class = "btn-xs btn-default btn-breathing"
+                    )
+                  )
+                )
+              )
+            ),
             tags$br(),
             htmlOutput("expression_genes_displayed")
           )

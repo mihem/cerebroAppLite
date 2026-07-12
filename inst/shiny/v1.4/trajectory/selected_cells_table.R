@@ -49,8 +49,7 @@ output[["trajectory_selected_cells_table_UI"]] <- renderUI({
 output[["trajectory_details_selected_cells_table"]] <- DT::renderDataTable({
   ## don't do anything before these inputs are selected
   req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]],
+    trajectory_selection_ok(),
     input[["trajectory_percentage_cells_to_show"]],
     input[["trajectory_point_color"]],
     input[["trajectory_point_size"]],

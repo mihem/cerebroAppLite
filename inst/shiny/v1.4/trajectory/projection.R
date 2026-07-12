@@ -112,7 +112,34 @@ output[["trajectory_projection_UI"]] <- renderUI({
                 height = "60vh"
               ),
               tags$br(),
-              htmlOutput("trajectory_number_of_selected_cells")
+              fluidRow(
+                column(
+                  width = 8,
+                  htmlOutput("trajectory_number_of_selected_cells")
+                ),
+                column(
+                  width = 4,
+                  tags$div(
+                    class = "cerebro-selection-actions",
+                    shinyjs::hidden(
+                      actionButton(
+                        inputId = "trajectory_projection_zoom_to_selection",
+                        label = "Zoom to selection",
+                        icon = icon("magnifying-glass-plus"),
+                        class = "btn-xs btn-default"
+                      )
+                    ),
+                    shinyjs::hidden(
+                      actionButton(
+                        inputId = "trajectory_projection_clear_selection",
+                        label = "Clear selection",
+                        icon = icon("eraser"),
+                        class = "btn-xs btn-default btn-breathing"
+                      )
+                    )
+                  )
+                )
+              )
             )
           ),
           class = "cerebro-projection-gate"

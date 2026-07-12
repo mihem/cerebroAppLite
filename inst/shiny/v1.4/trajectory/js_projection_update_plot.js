@@ -38,3 +38,11 @@ shinyjs.trajectoryUpdatePlot2DCategorical = function (params) {
 shinyjs.trajectoryGetContainerDimensions = function () {
   return window.cerebroProjection.getContainerDimensions(TRAJECTORY_PLOT_ID);
 };
+
+shinyjs.trajectoryClearSelection = function () {
+  window.cerebroProjection.clearSelection(TRAJECTORY_PLOT_ID);
+};
+
+shinyjs.trajectoryZoomToSelection = function () {
+  window.cerebroProjection.zoomToSelection(TRAJECTORY_PLOT_ID);
+};

@@ -37,6 +37,26 @@
   // each projection plot has its own independent selection.
   const selectionByPlot = new Map(); // plotId -> Set<"x|y"> (or absent)
 
+  // Groups hidden via the legend, per plot. Pushed to Shiny so the selected-
+  // cells count/panels can exclude cells in hidden groups. Kept separate from
+  // the Plotly trace visibility so it survives re-renders that rebuild traces.
+  const hiddenGroupsByPlot = new Map(); // plotId -> Set<groupName>
+  function setHiddenGroup(plotId, groupName, hidden) {
+    let set = hiddenGroupsByPlot.get(plotId);
+    if (!set) {
+      set = new Set();
+      hiddenGroupsByPlot.set(plotId, set);
+    }
+    if (hidden) {
+      set.add(groupName);
+    } else {
+      set.delete(groupName);
+    }
+    if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+      Shiny.setInputValue(plotId + '_hidden_groups', Array.from(set));
+    }
+  }
+
   // --- viewport sizing -------------------------------------------------------
   // Projection legends and footers are ordinary HTML outside Plotly's fixed-
   // height widget. Their height is only known after layout (and categorical
@@ -169,6 +189,14 @@
     // revealing then would show one size and visibly shrink to the next. When
     // this measurement is not yet stable, record it and force one more resize so
     // a confirming frame is guaranteed even without any external trigger.
+    //
+    // Why state-driven, not a timer: do NOT "simplify" this into
+    // setTimeout(reveal, N) / a debounce. The number of settling frames is not a
+    // fixed duration — it depends on legend wrap, font load and viewport — so any
+    // constant N either flashes (too short) or stalls visibly blank (too long) on
+    // some machine. Revealing on two equal measurements is deterministic: it
+    // fires exactly when layout has actually settled, on every machine, with no
+    // magic number to tune.
     if (state && fullLayout && !projectionRevealed.has(plotId)) {
       if (shouldRevealProjection(fullLayout, height, state.settledHeight)) {
         revealProjectionHost(elements.plot);
@@ -336,6 +364,183 @@
     return null;
   }
 
+  // --- zoom to selection ------------------------------------------------------
+  // Extra span added to the framed box so the zoom never butts the selection
+  // right up against the plot edge — a little breathing room all around. This is
+  // the TOTAL fractional growth (split evenly, so each side gets half). Applied
+  // after the aspect-ratio match, so it scales both axes equally and the 1:1
+  // data-per-pixel is preserved.
+  const ZOOM_FRAME_PADDING = 0.08;
+
+  // Expand a data-space selection box to the plot area's pixel aspect ratio so
+  // that after zooming one data unit spans the same number of pixels on x and y
+  // — the selected region is framed, never stretched. We only ever GROW the
+  // shorter axis (and centre the box within it), so the whole selection stays
+  // visible with letterbox whitespace on the longer side, then add a uniform
+  // margin on all sides. A zero-area (single point / degenerate) selection is
+  // padded to a tiny non-zero span first, so the ratio maths never divides by
+  // zero and Plotly gets a valid range.
+  function computeEqualAspectRange(xMin, xMax, yMin, yMax, pxW, pxH) {
+    let dataW = xMax - xMin;
+    let dataH = yMax - yMin;
+    let cx = (xMin + xMax) / 2;
+    let cy = (yMin + yMax) / 2;
+    // Degenerate box: give it a small span around its centre.
+    if (!(dataW > 0)) dataW = Math.max(Math.abs(cx), 1) * 1e-3 || 1e-3;
+    if (!(dataH > 0)) dataH = Math.max(Math.abs(cy), 1) * 1e-3 || 1e-3;
+    // Guard against a zero/invalid pixel box (pre-layout): fall back to square.
+    const pxRatio = pxW > 0 && pxH > 0 ? pxW / pxH : 1;
+    // Target: dataW/dataH === pxW/pxH. Grow whichever axis is too short.
+    if (dataW / dataH < pxRatio) {
+      dataW = dataH * pxRatio; // widen x
+    } else {
+      dataH = dataW / pxRatio; // heighten y
+    }
+    // Uniform margin on all sides (scales both axes equally -> ratio unchanged).
+    const scale = 1 + ZOOM_FRAME_PADDING;
+    dataW *= scale;
+    dataH *= scale;
+    return {
+      xRange: [cx - dataW / 2, cx + dataW / 2],
+      yRange: [cy - dataH / 2, cy + dataH / 2],
+    };
+  }
+
+  // Data-space bounding box of the currently selected points (or null).
+  function selectionBounds(plotId) {
+    const keys = getSelection(plotId);
+    if (!keys) return null;
+    let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+    keys.forEach((k) => {
+      const sep = k.indexOf('|');
+      const x = parseFloat(k.slice(0, sep));
+      const y = parseFloat(k.slice(sep + 1));
+      if (Number.isFinite(x)) {
+        if (x < xMin) xMin = x;
+        if (x > xMax) xMax = x;
+      }
+      if (Number.isFinite(y)) {
+        if (y < yMin) yMin = y;
+        if (y > yMax) yMax = y;
+      }
+    });
+    if (xMin === Infinity || yMin === Infinity) return null;
+    return { xMin, xMax, yMin, yMax };
+  }
+
+  // Which plots are currently zoomed into their selection. Drives the toggle
+  // (zoom in vs. reset) and the button style/label reported to Shiny.
+  const zoomedPlots = new Set();
+  // Plotly's native selection rectangle stashed on zoom-in (per plot), so reset
+  // can restore it after it was cleared to hide the editable drag handles.
+  const zoomSavedSelections = new Map();
+
+  // Pure decision for the zoom toggle. Not zoomed -> zoom in and LOCK the plot
+  // (dragmode false: no box-select while zoomed, so the user must reset before
+  // selecting again). Zoomed -> reset to the full view and UNLOCK (dragmode
+  // 'select'). Returned `zoomed` is the state to report to Shiny for the button.
+  function nextZoomAction(isZoomed) {
+    return isZoomed
+      ? { zoomIn: false, zoomed: false, dragmode: 'select' }
+      : { zoomIn: true, zoomed: true, dragmode: false };
+  }
+
+  // Report the zoom state to Shiny so the button can switch style/label. Named
+  // <plot_id>_zoom_state; true while zoomed into the selection.
+  function reportZoomState(plotId, zoomed) {
+    if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+      Shiny.setInputValue(plotId + '_zoom_state', zoomed);
+    }
+  }
+
+  // Toggle zoom-to-selection. Frames the selection at the true data aspect ratio
+  // (no stretch) and locks selection while zoomed; toggling again resets to the
+  // full autorange view and unlocks. The persistent selection and data are
+  // untouched, so selected points stay highlighted throughout.
+  // A dashed rectangle marking the selection bounds. While zoomed the plot is
+  // locked (dragmode:false), which hides Plotly's own selection outline, so we
+  // draw our own layout shape instead — it is independent of dragmode, so the
+  // user still sees exactly which region was zoomed. Tagged via `name` so it can
+  // be stripped on reset without touching tab-specific shapes (trajectory path).
+  const ZOOM_MARKER_NAME = 'cerebro-zoom-marker';
+  function zoomMarkerShape(bounds) {
+    return {
+      name: ZOOM_MARKER_NAME,
+      type: 'rect',
+      xref: 'x',
+      yref: 'y',
+      x0: bounds.xMin,
+      x1: bounds.xMax,
+      y0: bounds.yMin,
+      y1: bounds.yMax,
+      line: { color: '#2c7ab3', width: 1.5, dash: 'dash' },
+      fillcolor: 'rgba(44, 122, 179, 0.015)',
+      layer: 'above',
+    };
+  }
+  // Current shapes minus any previous zoom marker (keeps tab shapes intact).
+  function shapesWithoutZoomMarker(plot) {
+    const shapes = (plot._fullLayout && plot._fullLayout.shapes) || [];
+    return shapes.filter((s) => s && s.name !== ZOOM_MARKER_NAME);
+  }
+
+  function toggleZoom(plotId) {
+    const plot = document.getElementById(plotId);
+    if (!plot || !plot._fullLayout || typeof Plotly === 'undefined') return;
+    const action = nextZoomAction(zoomedPlots.has(plotId));
+
+    if (action.zoomIn) {
+      const bounds = selectionBounds(plotId);
+      if (!bounds) return; // nothing selected -> nothing to zoom into
+      const xa = plot._fullLayout.xaxis;
+      const ya = plot._fullLayout.yaxis;
+      // Plotly stores each axis's pixel length on _length after layout.
+      const pxW = xa && xa._length ? xa._length : plot._fullLayout.width;
+      const pxH = ya && ya._length ? ya._length : plot._fullLayout.height;
+      const r = computeEqualAspectRange(
+        bounds.xMin,
+        bounds.xMax,
+        bounds.yMin,
+        bounds.yMax,
+        pxW,
+        pxH
+      );
+      const shapes = shapesWithoutZoomMarker(plot).concat([
+        zoomMarkerShape(bounds),
+      ]);
+      // Stash Plotly's native selection rectangle so it can be restored on
+      // reset, then drop it: while zoomed we show our own static marker, so the
+      // native editable outline (with its drag handles) would be a redundant,
+      // misleading "you can still drag this" affordance. Clearing it also removes
+      // the handles the user asked to hide.
+      zoomSavedSelections.set(plotId, harvestSelectionOutline(plotId));
+      Plotly.relayout(plot, {
+        'xaxis.autorange': false,
+        'yaxis.autorange': false,
+        'xaxis.range': r.xRange,
+        'yaxis.range': r.yRange,
+        dragmode: action.dragmode,
+        shapes: shapes,
+        selections: [],
+      });
+      zoomedPlots.add(plotId);
+    } else {
+      // Restore the native selection outline harvested on zoom-in, so returning
+      // to the full view leaves the box exactly as it was before zooming.
+      const savedSelections = zoomSavedSelections.get(plotId) || [];
+      zoomSavedSelections.delete(plotId);
+      Plotly.relayout(plot, {
+        'xaxis.autorange': true,
+        'yaxis.autorange': true,
+        dragmode: action.dragmode,
+        shapes: shapesWithoutZoomMarker(plot),
+        selections: savedSelections,
+      });
+      zoomedPlots.delete(plotId);
+    }
+    reportZoomState(plotId, action.zoomed);
+  }
+
   // --- legend -----------------------------------------------------------------
   // Min/max over an array WITHOUT the spread operator. `Math.min(...arr)`
   // overflows V8's argument/stack limit (~1e5) on full Xenium/MERFISH slides.
@@ -442,6 +647,9 @@
         const newVisible = isVisible ? false : true;
         Plotly.restyle(plotId, { visible: newVisible }, [index]);
         item.classList.toggle('legend-item-hidden', isVisible);
+        // Report the now-hidden groups to Shiny so the selected-cells count and
+        // panels can drop cells in hidden groups. traceName is the group label.
+        setHiddenGroup(plotId, traceName, !newVisible);
       };
 
       legendContainer.appendChild(item);
@@ -932,17 +1140,24 @@
     });
   }
 
-  // Clear the selection for one plot (button / Esc / Delete).
+  // Clear the selection for one plot (button / Esc / Delete). Also drop any
+  // zoom-into-selection state: with no selection there is nothing to stay zoomed
+  // on, so return to the full autorange view, unlock, and reset the button.
   function clearSelection(plotId) {
     selectionByPlot.delete(plotId);
     syncSelectionToShiny(plotId);
+    const wasZoomed = zoomedPlots.delete(plotId);
+    zoomSavedSelections.delete(plotId);
+    if (wasZoomed) reportZoomState(plotId, false);
     const plotContainer = document.getElementById(plotId);
     if (plotContainer && plotContainer.data) {
-      Plotly.update(
-        plotId,
-        { selectedpoints: null },
-        { selections: [], dragmode: 'select' }
-      ).then(function () {
+      const relayout = { selections: [], dragmode: 'select' };
+      if (wasZoomed) {
+        relayout['xaxis.autorange'] = true;
+        relayout['yaxis.autorange'] = true;
+        relayout.shapes = shapesWithoutZoomMarker(plotContainer);
+      }
+      Plotly.update(plotId, { selectedpoints: null }, relayout).then(function () {
         plotContainer.emit('plotly_deselect');
       });
     }
@@ -994,6 +1209,7 @@
     render2DCategorical: render2DCategorical,
     render3DCategorical: render3DCategorical,
     clearSelection: clearSelection,
+    zoomToSelection: toggleZoom,
     getContainerDimensions: getContainerDimensions,
     // Hide both legend variants for a plot. Used by tab-specific render modes
     // that draw their own legend (gene_expression multi-panel uses a native
@@ -1015,6 +1231,10 @@
     _shouldRevealProjection: shouldRevealProjection,
     _projectionGateClass: PROJECTION_GATE_CLASS,
     _projectionSizedClass: PROJECTION_SIZED_CLASS,
+    _computeEqualAspectRange: computeEqualAspectRange,
+    _nextZoomAction: nextZoomAction,
+    _zoomMarkerShape: zoomMarkerShape,
+    _shapesWithoutZoomMarker: shapesWithoutZoomMarker,
   };
 
   bindKeyHandler();

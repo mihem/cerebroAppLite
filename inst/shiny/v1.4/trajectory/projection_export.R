@@ -1,8 +1,7 @@
 observeEvent(input[["trajectory_projection_export"]], {
   ##
   req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]],
+    trajectory_selection_ok(),
     input[["trajectory_point_color"]],
     input[["trajectory_percentage_cells_to_show"]],
     input[["trajectory_point_size"]],

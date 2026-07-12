@@ -47,8 +47,12 @@ output[["trajectory_selected_method_UI"]] <- renderUI({
 ##----------------------------------------------------------------------------##
 
 output[["trajectory_selected_name_UI"]] <- renderUI({
+  ## Guard against a stale method from a previous dataset: only ask for names
+  ## once the selected method is actually available in the current dataset,
+  ## otherwise getNamesOfTrajectories() throws "Method `X` is not available."
   req(
-    input[["trajectory_selected_method"]]
+    input[["trajectory_selected_method"]],
+    input[["trajectory_selected_method"]] %in% getMethodsForTrajectories()
   )
   selectInput(
     "trajectory_selected_name",

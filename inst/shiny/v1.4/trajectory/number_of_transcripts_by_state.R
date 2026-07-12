@@ -9,10 +9,7 @@
 ##----------------------------------------------------------------------------##
 
 output[["trajectory_nUMI_by_state_UI"]] <- renderUI({
-  req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]]
-  )
+  req(trajectory_selection_ok())
 
   fluidRow(
     cerebroBox(
@@ -31,10 +28,7 @@ output[["trajectory_nUMI_by_state_UI"]] <- renderUI({
 
 output[["states_nUMI_plot"]] <- plotly::renderPlotly({
   ##
-  req(
-    input[["trajectory_selected_method"]],
-    input[["trajectory_selected_name"]]
-  )
+  req(trajectory_selection_ok())
 
   ## collect trajectory data
   trajectory_data <- getTrajectory(
