@@ -594,8 +594,8 @@
       // Stash Plotly's native selection rectangle so it can be restored on
       // reset, then drop it: while zoomed we show our own static marker, so the
       // native editable outline (with its drag handles) would be a redundant,
-      // misleading "you can still drag this" affordance. Clearing it also removes
-      // the handles the user asked to hide.
+      // misleading "you can still drag this" affordance. Clearing it also hides
+      // those drag handles.
       zoomSavedSelections.set(plotId, harvestSelectionOutline(plotId));
       Plotly.relayout(plot, {
         'xaxis.autorange': false,
@@ -909,14 +909,57 @@
     }
   }
 
+  // Custom modebar buttons: "Zoom to selection" and "Clear selection". These
+  // used to be Shiny actionButtons under the plot, but they belong with the
+  // other plot tools in the top-right modebar. Each resolves the plot id from
+  // the graph div Plotly hands the click handler (gd.id), so one definition
+  // works for every tab. With nothing selected both are safe no-ops.
+  const zoomToSelectionButton = {
+    name: 'Zoom to selection',
+    title: 'Zoom to selection',
+    // magnifying glass with a "+"
+    icon: {
+      width: 512,
+      height: 512,
+      path:
+        'M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 ' +
+        '45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 ' +
+        '0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM184 296c0 13.3 10.7 24 24 ' +
+        '24s24-10.7 24-24V232h64c13.3 0 24-10.7 24-24s-10.7-24-24-24H232V120c0-13.3-' +
+        '10.7-24-24-24s-24 10.7-24 24v64H120c-13.3 0-24 10.7-24 24s10.7 24 24 24h64v64z',
+    },
+    click: function (gd) {
+      if (gd && gd.id) toggleZoom(gd.id);
+    },
+  };
+  const clearSelectionButton = {
+    name: 'Clear selection',
+    title: 'Clear selection',
+    // eraser / X-in-square
+    icon: {
+      width: 512,
+      height: 512,
+      path:
+        'M290.7 57.4L57.4 290.7c-25 25-25 65.5 0 90.5l80 80c12 12 28.3 18.7 ' +
+        '45.3 18.7H288h9.4H512c17.7 0 32-14.3 32-32s-14.3-32-32-32H387.9L518.6 ' +
+        '363.3c25-25 25-65.5 0-90.5L381.3 57.4c-25-25-65.5-25-90.5 0zM162.7 ' +
+        '416l-80-80L216 202.7 349.3 336 269.3 416H162.7z',
+    },
+    click: function (gd) {
+      if (gd && gd.id) clearSelection(gd.id);
+    },
+  };
+
   // A curated modebar: keep the tools that are genuinely useful — box-select +
   // lasso feed the shared plotly_selected selection, stepwise zoom-in (+) /
-  // zoom-out (-), pan, reset and PNG download — and drop the clutter (the
-  // drag-rectangle zoom, autoscale, hover-mode toggles, spikelines). 3D renders
-  // ignore the 2D button names and keep their own tools.
+  // zoom-out (-), pan, reset and PNG download — plus our zoom-to / clear
+  // selection — and drop the clutter (the drag-rectangle zoom, autoscale,
+  // hover-mode toggles, spikelines). 3D renders ignore the 2D button names and
+  // keep their own tools.
   const REACT_CONFIG = {
     displaylogo: false,
     displayModeBar: true,
+    modeBarButtonsToAdd: [zoomToSelectionButton, clearSelectionButton],
     modeBarButtonsToRemove: [
       'zoom2d',
       'autoScale2d',
