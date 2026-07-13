@@ -20,6 +20,7 @@ repo_file <- function(...) {
 }
 
 test_that("projection height is calculated from measured viewport geometry", {
+  testthat::skip_if(Sys.which("node") == "", "node not on PATH")
   js_path <- repo_file(
     "inst",
     "shiny",
@@ -77,6 +78,7 @@ test_that("all projection tabs delegate live height to the shared controller", {
 })
 
 test_that("projection sizing isolates Plotly from surrounding box content", {
+  testthat::skip_if(Sys.which("node") == "", "node not on PATH")
   js_path <- repo_file(
     "inst",
     "shiny",
@@ -169,6 +171,7 @@ test_that("shared controller observes wrapped legends and resizes Plotly", {
 })
 
 test_that("reveal waits for two equal measurements so the first frame is settled", {
+  testthat::skip_if(Sys.which("node") == "", "node not on PATH")
   js_path <- repo_file(
     "inst",
     "shiny",
@@ -206,6 +209,7 @@ test_that("reveal waits for two equal measurements so the first frame is settled
 })
 
 test_that("reveal marks the gate wrapper sized, not the plot itself", {
+  testthat::skip_if(Sys.which("node") == "", "node not on PATH")
   js_path <- repo_file(
     "inst",
     "shiny",
@@ -300,10 +304,11 @@ test_that("CSS hides projection outputs until the resize path reveals them", {
   expect_match(
     js_source,
     paste0(
-      "if \\(state && fullLayout && !projectionRevealed\\.has\\(plotId\\)\\)",
-      "[\\s\\S]{0,160}?",
+      "state &&[\\s\\S]{0,60}?fullLayout &&[\\s\\S]{0,40}?gate &&[\\s\\S]{0,80}?",
+      "!gate\\.classList\\.contains\\(PROJECTION_SIZED_CLASS\\)",
+      "[\\s\\S]{0,220}?",
       "shouldRevealProjection\\(fullLayout, height, state\\.settledHeight\\)",
-      "[\\s\\S]{0,80}?revealProjectionHost\\(elements\\.plot\\)"
+      "[\\s\\S]{0,140}?revealProjectionHost\\(elements\\.plot\\)"
     ),
     perl = TRUE
   )
@@ -316,8 +321,10 @@ test_that("CSS hides projection outputs until the resize path reveals them", {
     ),
     perl = TRUE
   )
-  # Reveal is one-shot: the plot is recorded so re-renders never matter.
-  expect_match(js_source, "projectionRevealed.add(plotId)", fixed = TRUE)
+  # Reveal state is keyed to the gate element's is-sized class (checked above),
+  # NOT a plotId-keyed set — so a host that is removed and recreated (e.g. the IR
+  # Clonal UMAP when faceting toggles) reveals again instead of staying hidden.
+  expect_false(grepl("projectionRevealed", js_source, fixed = TRUE))
 })
 
 test_that("Spatial background remains registered to Plotly data axes", {

@@ -25,6 +25,7 @@ repo_file <- function(...) {
 }
 
 run_node <- function(body) {
+  testthat::skip_if(Sys.which("node") == "", "node not on PATH")
   js_path <- repo_file(
     "inst",
     "shiny",
