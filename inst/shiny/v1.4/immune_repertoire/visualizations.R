@@ -87,7 +87,7 @@ output$ir_visualizations_UI <- renderUI({
       "Isotype",
       ir_fill_plot("ir_plot_isotype", plotly = TRUE)
     ),
-    # Hidden per review (kept available; renderer/help/param_spec retained).
+    # Hidden by default (kept available; renderer/help/param_spec retained).
     # tabPanel(
     #   "SHM Proxy",
     #   ir_fill_plot("ir_plot_shmProxy")
@@ -98,7 +98,7 @@ output$ir_visualizations_UI <- renderUI({
         "ir_ui_pairedScatter"
       )))
     ),
-    # Hidden per review (kept available; renderer/help/param_spec retained).
+    # Hidden by default (kept available; renderer/help/param_spec retained).
     # The clone-definition waterfall is an exploratory tool for choosing a
     # clone-call resolution, not a finalised figure for a reader, so it is not
     # in the default tab strip; uncomment to re-enable.
@@ -112,7 +112,7 @@ output$ir_visualizations_UI <- renderUI({
     )
   )
 
-  ## Remaining tabs. Most are hidden per review to keep the tab strip focused
+  ## Remaining tabs. Most are hidden by default to keep the tab strip focused
   ## on the commonly used plots; their renderers, help, and param_spec entries
   ## are retained so any of them can be re-enabled by uncommenting its tabPanel.
   other_tabs <- list(
@@ -170,7 +170,7 @@ output$ir_visualizations_UI <- renderUI({
         # ),
         tabPanel(
           "SizeDist",
-          ir_fill_plot("ir_plot_clonalSizeDistribution")
+          ir_fill_plot("ir_plot_clonalSizeDistribution", plotly = TRUE)
         )
       )
     )
@@ -976,31 +976,73 @@ output$ir_ui_pairedScatter <- renderUI({
   )
 })
 
+## Single-panel paired scatter is interactive (plotly); the faceted variant is a
+## patchwork grid that plotly cannot lay out cleanly, so it stays a static
+## ggplot. The renderUI returns the matching output type for the current mode.
+ir_paired_plotly_output <- function(height) {
+  shinycssloaders::withSpinner(
+    plotly::plotlyOutput(
+      "ir_plot_pairedScatter",
+      width = "auto",
+      height = height
+    ),
+    type = 8,
+    hide.ui = FALSE
+  )
+}
+
 output$ir_ui_pairedScatter_plot <- renderUI({
   pair_mode <- input$ir_pair_compare
   # Single-plot case (no compare mode): fill the viewport like every other tab,
   # accounting for the extra Pair-by control row (IR_PAIRED_PLOT_HEIGHT).
   if (is.null(pair_mode) || !nzchar(pair_mode)) {
-    return(plotOutput("ir_plot_pairedScatter", height = IR_PAIRED_PLOT_HEIGHT))
+    return(ir_paired_plotly_output(IR_PAIRED_PLOT_HEIGHT))
   }
   meta <- ir_sample_meta()
   req(!is.null(meta))
   facet_col <- input$ir_pair_facet
   if (is.null(facet_col) || facet_col == "") {
     # Still a single panel — viewport-relative height, less the Pair-by row.
-    return(plotOutput("ir_plot_pairedScatter", height = IR_PAIRED_PLOT_HEIGHT))
+    return(ir_paired_plotly_output(IR_PAIRED_PLOT_HEIGHT))
   }
   # Faceted: size by the number of facet rows so panels aren't squashed. This is
   # intentionally a fixed pixel height (can exceed the viewport and scroll),
   # because forcing many facets into one viewport height would flatten them.
+  # patchwork grid -> static ggplot output.
   n_facets <- length(unique(meta[[facet_col]]))
   ncol_p <- min(4L, n_facets)
   nrow_p <- ceiling(n_facets / ncol_p)
   h <- max(450, nrow_p * 420)
-  plotOutput("ir_plot_pairedScatter", height = paste0(h, "px"))
+  plotOutput("ir_plot_pairedScatter_facet", height = paste0(h, "px"))
 })
 
-output$ir_plot_pairedScatter <- renderPlot({
+## Build one clonalScatter panel. clonalScatter returns a table with a Var1
+## clonotype column, the two group columns, a `class` column (shared / expanded)
+## and a `size` column; the point layer maps x/y to internal `x`/`y` columns.
+ir_paired_scatter_panel <- function(
+  data,
+  pars,
+  x_axis,
+  y_axis,
+  title
+) {
+  p <- scRepertoire::clonalScatter(
+    data,
+    cloneCall = pars$cloneCall,
+    chain = pars$chain,
+    x.axis = x_axis,
+    y.axis = y_axis,
+    dot.size = ir_param("ir_p_dot_size", "total"),
+    graph = ir_param("ir_p_graph", "proportion"),
+    exportTable = FALSE,
+    palette = IR_PALETTE
+  )
+  p + ggplot2::ggtitle(title)
+}
+
+## Single-panel paired scatter -> interactive plotly. The default ggplotly hover
+## already shows the x/y group values and the clone class.
+output$ir_plot_pairedScatter <- plotly::renderPlotly({
   req(has_scRepertoire())
   req_plot_space("ir_plot_pairedScatter")
   data <- ir_data_annotated()
@@ -1010,9 +1052,8 @@ output$ir_plot_pairedScatter <- renderPlot({
   groups <- ir_compare_groups()
   req(length(groups) >= 2)
   pair_mode <- input$ir_pair_compare
-  facet_col <- input$ir_pair_facet
 
-  safeRenderPlot(
+  ir_render_ggplotly(
     {
       if (is.null(pair_mode) || !nzchar(pair_mode)) {
         x <- input$ir_pair_x_group
@@ -1022,87 +1063,21 @@ output$ir_plot_pairedScatter <- renderPlot({
           need(y %in% groups, "Select a Y group."),
           need(x != y, "Select two different groups.")
         )
-        p <- scRepertoire::clonalScatter(
-          data,
-          cloneCall = pars$cloneCall,
-          chain = pars$chain,
-          group.by = pars$groupBy,
-          x.axis = x,
-          y.axis = y,
-          dot.size = ir_param("ir_p_dot_size", "total"),
-          graph = ir_param("ir_p_graph", "proportion"),
-          exportTable = FALSE,
-          palette = IR_PALETTE
-        )
-        p <- p + ggplot2::ggtitle(paste(x, "vs", y))
-        p
+        ir_paired_scatter_panel(data, pars, x, y, paste(x, "vs", y))
       } else {
         req(!is.null(meta))
         compare_col <- pair_mode
-        req(!is.null(compare_col))
         lvls <- sort(unique(meta[[compare_col]]))
         req(length(lvls) == 2L)
-        if (!is.null(facet_col) && nzchar(facet_col)) {
-          facet_lvls <- unique(meta[[facet_col]])
-          panels <- list()
-          for (fl in facet_lvls) {
-            rows <- meta[meta[[facet_col]] == fl, , drop = FALSE]
-            s_a <- rows$.sample_name[rows[[compare_col]] == lvls[1]]
-            s_b <- rows$.sample_name[rows[[compare_col]] == lvls[2]]
-            if (length(s_a) == 0L || length(s_b) == 0L) {
-              next
-            }
-            tryCatch(
-              {
-                p <- scRepertoire::clonalScatter(
-                  data,
-                  cloneCall = pars$cloneCall,
-                  chain = pars$chain,
-                  x.axis = s_a[1],
-                  y.axis = s_b[1],
-                  dot.size = ir_param("ir_p_dot_size", "total"),
-                  graph = ir_param("ir_p_graph", "proportion"),
-                  exportTable = FALSE,
-                  palette = IR_PALETTE
-                )
-                p <- p +
-                  ggplot2::ggtitle(paste0(fl, ": ", lvls[1], " vs ", lvls[2]))
-                panels[[length(panels) + 1L]] <- p
-              },
-              error = function(e) {
-                message("[IR] Paired scatter for ", fl, " failed: ", e$message)
-              }
-            )
-          }
-          if (length(panels) == 0L) {
-            plot.new()
-            text(
-              0.5,
-              0.5,
-              "No valid pairs found for the selected columns.",
-              cex = 0.9
-            )
-          } else {
-            ncol_p <- min(4L, length(panels))
-            patchwork::wrap_plots(panels, ncol = ncol_p)
-          }
-        } else {
-          s_a <- meta$.sample_name[meta[[compare_col]] == lvls[1]][1]
-          s_b <- meta$.sample_name[meta[[compare_col]] == lvls[2]][1]
-          p <- scRepertoire::clonalScatter(
-            data,
-            cloneCall = pars$cloneCall,
-            chain = pars$chain,
-            x.axis = s_a,
-            y.axis = s_b,
-            dot.size = ir_param("ir_p_dot_size", "total"),
-            graph = ir_param("ir_p_graph", "proportion"),
-            exportTable = FALSE,
-            palette = IR_PALETTE
-          )
-          p <- p + ggplot2::ggtitle(paste(lvls[1], "vs", lvls[2]))
-          p
-        }
+        s_a <- meta$.sample_name[meta[[compare_col]] == lvls[1]][1]
+        s_b <- meta$.sample_name[meta[[compare_col]] == lvls[2]][1]
+        ir_paired_scatter_panel(
+          data,
+          pars,
+          s_a,
+          s_b,
+          paste(lvls[1], "vs", lvls[2])
+        )
       }
     },
     "pairedScatter"
@@ -1113,9 +1088,79 @@ output$ir_plot_pairedScatter <- renderPlot({
     input$ir_chain,
     input$ir_groupBy,
     input$ir_pair_compare,
-    input$ir_pair_facet,
     input$ir_pair_x_group,
     input$ir_pair_y_group,
+    input$ir_p_graph,
+    input$ir_p_dot_size
+  )
+
+## Faceted paired scatter -> static patchwork grid (plotly cannot lay out the
+## multi-panel grid cleanly, so this variant stays a ggplot).
+output$ir_plot_pairedScatter_facet <- renderPlot({
+  req(has_scRepertoire())
+  req_plot_space("ir_plot_pairedScatter_facet")
+  data <- ir_data_annotated()
+  req(!is.null(data))
+  meta <- ir_sample_meta()
+  req(!is.null(meta))
+  pars <- ir_params()
+  groups <- ir_compare_groups()
+  req(length(groups) >= 2)
+  compare_col <- input$ir_pair_compare
+  req(!is.null(compare_col) && nzchar(compare_col))
+  facet_col <- input$ir_pair_facet
+  req(!is.null(facet_col) && nzchar(facet_col))
+
+  safeRenderPlot(
+    {
+      lvls <- sort(unique(meta[[compare_col]]))
+      req(length(lvls) == 2L)
+      facet_lvls <- unique(meta[[facet_col]])
+      panels <- list()
+      for (fl in facet_lvls) {
+        rows <- meta[meta[[facet_col]] == fl, , drop = FALSE]
+        s_a <- rows$.sample_name[rows[[compare_col]] == lvls[1]]
+        s_b <- rows$.sample_name[rows[[compare_col]] == lvls[2]]
+        if (length(s_a) == 0L || length(s_b) == 0L) {
+          next
+        }
+        tryCatch(
+          {
+            panels[[length(panels) + 1L]] <- ir_paired_scatter_panel(
+              data,
+              pars,
+              s_a[1],
+              s_b[1],
+              paste0(fl, ": ", lvls[1], " vs ", lvls[2])
+            )
+          },
+          error = function(e) {
+            message("[IR] Paired scatter for ", fl, " failed: ", e$message)
+          }
+        )
+      }
+      if (length(panels) == 0L) {
+        plot.new()
+        text(
+          0.5,
+          0.5,
+          "No valid pairs found for the selected columns.",
+          cex = 0.9
+        )
+      } else {
+        ncol_p <- min(4L, length(panels))
+        patchwork::wrap_plots(panels, ncol = ncol_p)
+      }
+    },
+    "pairedScatterFacet"
+  )
+}) %>%
+  ir_bindCache(
+    input$ir_cloneCall,
+    input$ir_chain,
+    input$ir_groupBy,
+    input$ir_pair_compare,
+    input$ir_pair_facet,
     input$ir_p_graph,
     input$ir_p_dot_size
   )
@@ -1648,7 +1693,7 @@ output$ir_plot_clonalScatter <- renderPlot({
     input$ir_p_dot_size
   )
 
-output$ir_plot_clonalSizeDistribution <- renderPlot({
+output$ir_plot_clonalSizeDistribution <- plotly::renderPlotly({
   req(has_scRepertoire())
   req_plot_space("ir_plot_clonalSizeDistribution")
   data <- ir_data()
@@ -1662,7 +1707,7 @@ output$ir_plot_clonalSizeDistribution <- renderPlot({
   if (is.na(threshold) || threshold < 1) {
     threshold <- 1
   }
-  safeRenderPlot(
+  ir_render_ggplotly(
     scRepertoire::clonalSizeDistribution(
       data,
       cloneCall = "strict",

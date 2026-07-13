@@ -2,12 +2,10 @@
 ## Color management.
 ##----------------------------------------------------------------------------##
 # Qualitative palette for categorical groups (clusters, samples, ...) when the
-# user has NOT picked colours in the Color management tab. These are the original
-# vibrant flatuicolors sets (Dutch + Spanish): mihem prefers the saturated
-# cluster colours over the low-saturation experiment, so they are restored here.
-# The rest of the theme refresh (clean UI, fonts, continuous scales) is kept, and
-# cerebro_group_colors() below keeps the overflow-safe interpolation so many-
-# cluster data sets still get valid colours instead of NAs.
+# user has NOT picked colours in the Color management tab. These are the vibrant
+# flatuicolors sets (Dutch + Spanish), used so distinct clusters stay easy to
+# tell apart. cerebro_group_colors() below keeps the overflow-safe interpolation
+# so many-cluster data sets still get valid colours instead of NAs.
 #
 # Users can still override any group colour with the colour picker; this is only
 # the default fallback (see reactive_colors() below).

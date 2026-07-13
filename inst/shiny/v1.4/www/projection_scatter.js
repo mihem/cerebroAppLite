@@ -909,17 +909,16 @@
     }
   }
 
-  // A curated modebar (mihem: the plot tools, especially lasso, must stay
-  // reachable). Keep the genuinely useful ones — box-select + lasso feed the
-  // shared plotly_selected selection, plus zoom / pan / reset / PNG download —
-  // and drop the clutter (stepwise zoom, autoscale, hover-mode toggles,
-  // spikelines). 3D renders ignore the 2D button names and keep their own tools.
+  // A curated modebar: keep the tools that are genuinely useful — box-select +
+  // lasso feed the shared plotly_selected selection, stepwise zoom-in (+) /
+  // zoom-out (-), pan, reset and PNG download — and drop the clutter (the
+  // drag-rectangle zoom, autoscale, hover-mode toggles, spikelines). 3D renders
+  // ignore the 2D button names and keep their own tools.
   const REACT_CONFIG = {
     displaylogo: false,
     displayModeBar: true,
     modeBarButtonsToRemove: [
-      'zoomIn2d',
-      'zoomOut2d',
+      'zoom2d',
       'autoScale2d',
       'hoverClosestCartesian',
       'hoverCompareCartesian',

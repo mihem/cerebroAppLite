@@ -315,7 +315,7 @@ body .content { padding-left: 0 !important; padding-right: 0 !important; }
    insertion), so those boxes are a grandchild of the column, not a direct child.
    Zero their side padding too — otherwise they keep the default 15px box gutter
    while the unwrapped Group-filters box hugs the edge, and the two read as
-   misaligned (mihem). */
+   misaligned. */
 .cerebro-viz-row > .cerebro-param-col > div > .col-sm-12,
 .cerebro-viz-row > .cerebro-viz-col > div > .col-sm-12 {
   padding-left: 0 !important;

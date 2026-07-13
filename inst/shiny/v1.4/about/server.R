@@ -4,12 +4,10 @@
 
 ##
 output[["about"]] <- renderText({
-  ## Read the version from the package DESCRIPTION so this never goes stale
-  ## again (was hard-coded to v1.7.2 while the package was already at 2.x).
-  version <- tryCatch(
-    as.character(utils::packageVersion("cerebroAppLite")),
-    error = function(e) "2.1.0"
-  )
+  ## Version is set by hand here: the app can run from this inst/ folder without
+  ## the package installed, and any installed copy may be a different version, so
+  ## reading packageVersion() would be unreliable. Update this string on release.
+  version <- "2.1.0"
   paste0(
     '<b>Version of cerebroAppLite</b><br>
     v',
@@ -24,7 +22,6 @@ output[["about"]] <- renderText({
     <b>Links</b><br>
     <ul>
       <li><a href=https://github.com/mihem/cerebroAppLite title="Continuation and extension of cerebroApp (Michael Heming)" target="_blank"><b>Continuation and extension of cerebroApp (Michael Heming)</b></a></li>
-      <li><a href=https://github.com/duocang/cerebroAppLite title="Development fork (Xuesong Wang)" target="_blank"><b>Development fork (Xuesong Wang)</b></a></li>
       <li><a href=https://github.com/romanhaa/Cerebro title="Discontinued Cerebro repository on GitHub (Roman Hillje)" target="_blank"><b>Discontinued Cerebro repository on GitHub (Roman Hillje)</b></a></li>
     </ul>
     <br>
