@@ -57,6 +57,30 @@
     }
   }
 
+  // The colouring variable the hidden set was recorded against. When it changes,
+  // the group labels are a different set, so the old hidden state is meaningless
+  // (and would wrongly hide same-named groups under the new variable); drop it.
+  const hiddenGroupsVariableByPlot = new Map(); // plotId -> color_variable
+  function clearHiddenGroups(plotId) {
+    const set = hiddenGroupsByPlot.get(plotId);
+    if (set && set.size) {
+      set.clear();
+      if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+        Shiny.setInputValue(plotId + '_hidden_groups', []);
+      }
+    }
+  }
+  function syncHiddenGroupsForVariable(plotId, colorVariable) {
+    if (hiddenGroupsVariableByPlot.get(plotId) !== colorVariable) {
+      clearHiddenGroups(plotId);
+      hiddenGroupsVariableByPlot.set(plotId, colorVariable);
+    }
+  }
+  function isGroupHidden(plotId, groupName) {
+    const set = hiddenGroupsByPlot.get(plotId);
+    return !!(set && set.has(groupName));
+  }
+
   // --- viewport sizing -------------------------------------------------------
   // Projection legends and footers are ordinary HTML outside Plotly's fixed-
   // height widget. Their height is only known after layout (and categorical
@@ -141,7 +165,6 @@
   // first visible frame is already the final height with zero jump.
   const PROJECTION_GATE_CLASS = 'cerebro-projection-gate';
   const PROJECTION_SIZED_CLASS = 'is-sized';
-  const projectionRevealed = new Set(); // plotIds revealed at least once
   function shouldRevealProjection(fullLayoutPresent, height, settledHeight) {
     return Boolean(fullLayoutPresent) && height === settledHeight;
   }
@@ -211,14 +234,27 @@
     // would show the old size for one frame. Requiring plotlySizeMatches (and
     // !relayoutPending for the in-flight case) defers reveal to a frame where
     // the canvas is confirmed at the settled size.
-    if (state && fullLayout && !projectionRevealed.has(plotId)) {
+    // Key the "already revealed" state to the CURRENT gate element, not the
+    // plotId: the IR Clonal UMAP host is removed when faceting is enabled and
+    // recreated when it is cleared, so a plotId-keyed flag would leave the fresh
+    // gate permanently visibility:hidden. Reading the gate's own is-sized class
+    // makes a replaced host reveal again while an already-sized gate is skipped.
+    const gate =
+      elements.plot && typeof elements.plot.closest === 'function'
+        ? elements.plot.closest('.' + PROJECTION_GATE_CLASS)
+        : null;
+    if (
+      state &&
+      fullLayout &&
+      gate &&
+      !gate.classList.contains(PROJECTION_SIZED_CLASS)
+    ) {
       if (
         !state.relayoutPending &&
         plotlySizeMatches &&
         shouldRevealProjection(fullLayout, height, state.settledHeight)
       ) {
         revealProjectionHost(elements.plot);
-        projectionRevealed.add(plotId);
       } else {
         state.settledHeight = height;
         scheduleProjectionResize(plotId);
@@ -664,6 +700,12 @@
     traces.forEach((traceName, index) => {
       const item = document.createElement('div');
       item.className = 'custom-legend-item';
+      // Reflect a group hidden on a previous render (its trace is rebuilt as
+      // 'legendonly') so the fresh legend item reads as disabled rather than
+      // enabled-while-Shiny-still-excludes-it.
+      if (isGroupHidden(plotId, traceName)) {
+        item.classList.add('legend-item-hidden');
+      }
       item.style.marginBottom = itemMargin + 'px';
       item.style.padding = itemPadding + 'px ' + itemPaddingX + 'px';
 
@@ -851,21 +893,52 @@
       layout.yaxis.autorange = true;
       delete layout.yaxis.range;
     } else {
-      layout.xaxis.autorange = false;
-      layout.xaxis.range = Array.isArray(data.x_range) ? [...data.x_range] : data.x_range;
-      layout.yaxis.autorange = false;
-      layout.yaxis.range = Array.isArray(data.y_range) ? [...data.y_range] : data.y_range;
+      // Preserve the current view. Only pin an explicit range when the server
+      // sent a real [min, max]; an empty/absent range with autorange:false is
+      // not a valid viewport (Plotly falls back / resets on redraw), so leave
+      // the axis untouched and let the layout's uirevision keep the user's
+      // pan/zoom. Trajectory sends empty ranges to mean "keep the current view".
+      if (Array.isArray(data.x_range) && data.x_range.length === 2) {
+        layout.xaxis.autorange = false;
+        layout.xaxis.range = [...data.x_range];
+      }
+      if (Array.isArray(data.y_range) && data.y_range.length === 2) {
+        layout.yaxis.autorange = false;
+        layout.yaxis.range = [...data.y_range];
+      }
     }
   }
 
-  const REACT_CONFIG = { displayModeBar: false, displaylogo: false };
+  // A curated modebar (mihem: the plot tools, especially lasso, must stay
+  // reachable). Keep the genuinely useful ones — box-select + lasso feed the
+  // shared plotly_selected selection, plus zoom / pan / reset / PNG download —
+  // and drop the clutter (stepwise zoom, autoscale, hover-mode toggles,
+  // spikelines). 3D renders ignore the 2D button names and keep their own tools.
+  const REACT_CONFIG = {
+    displaylogo: false,
+    displayModeBar: true,
+    modeBarButtonsToRemove: [
+      'zoomIn2d',
+      'zoomOut2d',
+      'autoScale2d',
+      'hoverClosestCartesian',
+      'hoverCompareCartesian',
+      'toggleSpikelines',
+    ],
+  };
 
   // Optional histology background sync (spatial only). syncProjectionBackground
   // is defined in js_spatial_background.js and only prepended for the spatial
   // tab; guard so the other tabs (which never pass a background) don't error.
   function syncBackground(plotId, meta) {
     if (typeof shinyjs.syncSpatialBackground !== 'function') return;
-    if (meta && meta.background_image) {
+    // Only the spatial render manages the histology background. Every tab shares
+    // the same global shinyjs.syncSpatialBackground, so without this guard a
+    // non-spatial render (Overview / Gene expression / Trajectory / IR — which
+    // carry no is_spatial flag) would clear the image currently shown on the
+    // spatial tab. Spatial itself still clears explicitly below (3D / no image).
+    if (!meta || !meta.is_spatial) return;
+    if (meta.background_image) {
       shinyjs.syncSpatialBackground(
         meta.background_image,
         meta.background_flip_x,
@@ -882,6 +955,9 @@
     }
   }
 
+  // Plotly.react can leave a stale "detached" modebar in the parent on some
+  // re-renders. Strip only those strays; KEEP the live modebar inside the plot
+  // (the curated tools from REACT_CONFIG — lasso/select/zoom/pan/reset/download).
   function detachModebar(plotId) {
     const plotContainer = document.getElementById(plotId);
     if (!plotContainer) return;
@@ -889,9 +965,6 @@
     if (parent) {
       parent.querySelectorAll('.detached-modebar').forEach((el) => el.remove());
     }
-    plotContainer
-      .querySelectorAll('.modebar-container, .modebar')
-      .forEach((el) => el.remove());
   }
 
   // --- re-render loading feedback ---------------------------------------------
@@ -1144,6 +1217,11 @@
     const selectedKeys = getSelection(plotId);
     const selectionOutline = harvestSelectionOutline(plotId);
     removeContinuousLegend(plotId);
+    // A group hidden via the legend must survive trace rebuilds (size/opacity/
+    // colour changes) AND be dropped when the colouring variable itself changes,
+    // so client trace visibility and the <plot>_hidden_groups sent to Shiny stay
+    // in agreement. Reconcile against the current variable, then reapply below.
+    syncHiddenGroupsForVariable(plotId, meta.color_variable);
 
     // Legend mode. Existing tabs (spatial/overview/gene_expr/trajectory) never
     // set meta.legend_position, so they keep the custom top-bar legend. A tab
@@ -1172,6 +1250,10 @@
       x: xVal,
       y: data.y[i],
       name: meta.traces[i],
+      // Reapply a legend-hidden group across this rebuild so the trace stays
+      // 'legendonly' instead of springing back to visible while Shiny still
+      // treats it as hidden.
+      visible: isGroupHidden(plotId, meta.traces[i]) ? 'legendonly' : true,
       mode: 'markers',
       type: 'scattergl',
       marker: {
@@ -1405,6 +1487,10 @@
     render3DCategorical: render3DCategorical,
     clearSelection: clearSelection,
     zoomToSelection: toggleZoom,
+    // Reattach the shared plotly_selected handler. gene_expression multi-panel
+    // renders directly via Plotly.react (not the shared 2D path), so it must
+    // call this after each react to restore box/lasso selection.
+    setupSelection: setupSelection,
     getContainerDimensions: getContainerDimensions,
     // Hide both legend variants for a plot. Used by tab-specific render modes
     // that draw their own legend (gene_expression multi-panel uses a native

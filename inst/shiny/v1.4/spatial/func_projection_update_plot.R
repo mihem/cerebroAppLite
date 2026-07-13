@@ -271,6 +271,7 @@ spatial_projection_update_plot <- function(input) {
       if (nzchar(plot_parameters[["coexpr_b"]] %||% "")) "rgb(0,0,255)"
     )
     output_meta <- list(
+      is_spatial = TRUE,
       color_type = "coexpression",
       traces = as.list(coexpr_labels),
       coexpr_colors = as.list(coexpr_colors),
@@ -321,6 +322,7 @@ spatial_projection_update_plot <- function(input) {
   if (is.numeric(color_input)) {
     ## put together meta data
     output_meta <- list(
+      is_spatial = TRUE,
       color_type = 'continuous',
       traces = plot_parameters[['color_variable']],
       color_variable = plot_parameters[['color_variable']],
@@ -385,6 +387,7 @@ spatial_projection_update_plot <- function(input) {
   } else {
     ## put together meta data
     output_meta <- list(
+      is_spatial = TRUE,
       color_type = 'categorical',
       traces = list(),
       color_variable = plot_parameters[['color_variable']],

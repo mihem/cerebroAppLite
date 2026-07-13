@@ -310,7 +310,14 @@ body .content { padding-left: 0 !important; padding-right: 0 !important; }
    Zero that inner padding so each box hugs its column edge — the flex `gap`
    above is then the ONLY space between the two panels. */
 .cerebro-viz-row > .cerebro-param-col > .col-sm-12,
-.cerebro-viz-row > .cerebro-viz-col > .col-sm-12 {
+.cerebro-viz-row > .cerebro-viz-col > .col-sm-12,
+/* Spatial wraps its Main/Additional boxes in a <div> (for the histology-control
+   insertion), so those boxes are a grandchild of the column, not a direct child.
+   Zero their side padding too — otherwise they keep the default 15px box gutter
+   while the unwrapped Group-filters box hugs the edge, and the two read as
+   misaligned (mihem). */
+.cerebro-viz-row > .cerebro-param-col > div > .col-sm-12,
+.cerebro-viz-row > .cerebro-viz-col > div > .col-sm-12 {
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
@@ -1080,8 +1087,47 @@ body .btn:active { transform: translateY(0.5px); }
    Responsive
    ------------------------------------------------------------------------- */
 @media (max-width: 767px) {
-  body .content-wrapper, body .right-side { padding: 12px 14px; }
+  body .content-wrapper, body .right-side { padding: 56px 14px 12px; }
   body .box-body { padding: 14px 16px; }
+
+  /* Below the AdminLTE breakpoint the sidebar is pushed off-canvas, and its
+     hamburger (.sidebar-toggle, data-toggle="push-menu") is the ONLY way back to
+     it. The desktop rules above hide the whole header (the logo now lives inside
+     the sidebar), which also hid that hamburger — leaving phone users stuck on
+     the first tab. Re-expose just the toggle here as a floating control. It is
+     position:fixed so the header's height:0 / overflow:hidden never clips it,
+     and AdminLTE's push-menu JS still drives it. */
+  /* Un-collapse the header AND the navbar (the toggle's parent, also hidden by
+     the desktop rule) just enough that the toggle can render — both stay
+     height:0 so no bar reappears, and the toggle floats free via position:fixed.
+     The `html` prefix out-specifies the always-on desktop display:none rule. */
+  html body.skin-blue .main-header,
+  html body.skin-blue .main-header .navbar {
+    display: block !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  html body.skin-blue .main-header .sidebar-toggle {
+    display: flex !important;
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 1030;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    background: var(--c-surface, #ffffff);
+    color: var(--c-text, #333333);
+    border: 1px solid var(--c-border, rgba(0, 0, 0, 0.12));
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  }
 }
 
 /* -------------------------------------------------------------------------

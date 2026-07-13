@@ -181,7 +181,24 @@ shinyjs.expressionProjectionUpdatePlot2DMultiPanel = function (params) {
     }
   });
   Plotly.react('expression_projection', data, layout_here, {
-    displayModeBar: false,
-    displaylogo: false
+    displaylogo: false,
+    displayModeBar: true,
+    modeBarButtonsToRemove: [
+      'zoomIn2d',
+      'zoomOut2d',
+      'autoScale2d',
+      'hoverClosestCartesian',
+      'hoverCompareCartesian',
+      'toggleSpikelines'
+    ]
+  }).then(function () {
+    // This multi-panel path renders directly via Plotly.react instead of the
+    // shared 2D renderer, so it must reattach the shared plotly_selected handler
+    // itself: react drops listeners, and R reads the selection only from the
+    // shared engine's <plot>_persistent_selection input. Without this, box/lasso
+    // selection in multi-panel mode never creates or updates selected-cell state.
+    if (window.cerebroProjection && window.cerebroProjection.setupSelection) {
+      window.cerebroProjection.setupSelection('expression_projection');
+    }
   });
 };
