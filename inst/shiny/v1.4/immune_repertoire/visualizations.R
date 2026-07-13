@@ -77,7 +77,7 @@ output$ir_visualizations_UI <- renderUI({
     ),
     tabPanel(
       "Diversity",
-      ir_fill_plot("ir_plot_clonalDiversity")
+      ir_fill_plot("ir_plot_clonalDiversity", plotly = TRUE)
     ),
     tabPanel(
       "Homeostasis",
@@ -1322,7 +1322,7 @@ ir_plot_clonal_diversity <- function(
     )
 }
 
-output$ir_plot_clonalDiversity <- renderPlot({
+output$ir_plot_clonalDiversity <- plotly::renderPlotly({
   req(has_scRepertoire())
   req_plot_space("ir_plot_clonalDiversity")
   data <- ir_data()
@@ -1335,7 +1335,7 @@ output$ir_plot_clonalDiversity <- renderPlot({
   if (is.na(n_boots) || n_boots < 1) {
     n_boots <- 20
   }
-  safeRenderPlot(
+  ir_render_ggplotly(
     ir_plot_clonal_diversity(
       data = data,
       clone_call = pars$cloneCall,
