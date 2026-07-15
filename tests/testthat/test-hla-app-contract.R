@@ -137,3 +137,42 @@ test_that("bundled HLA demo states synthetic receptor-to-cell linkage", {
   }
   expect_match(app, "synthetic TCR linkage", ignore.case = TRUE)
 })
+
+## ---- shipped demo contracts ------------------------------------------- ##
+## The bulk demo makes claims the UI depends on. If a rebuild drops one, the
+## page silently changes meaning: donor-level counting reverts to sample-level,
+## or the positive-control disclosure disappears while the contrast remains.
+
+hla_bulk_demo <- function() {
+  path <- hla_inst_file("extdata/v1.4/demo_hla_tcr_bulk.crb")
+  testthat::skip_if_not(file.exists(path), "bulk demo not built")
+  readRDS(path)
+}
+
+test_that("bulk demo declares its association-conditioned selection", {
+  ti <- hla_bulk_demo()$technical_info
+  expect_equal(ti$tcr_selection, "association-conditioned")
+  expect_true(nzchar(ti$tcr_selection_detail))
+})
+
+test_that("bulk demo declares a V-gene+CDR3 receptor key", {
+  # Its CDR3s recur across V families, so CDR3-only nodes would fuse receptors
+  # the source counts separately.
+  expect_equal(hla_bulk_demo()$technical_info$receptor_key, "v_gene+cdr3")
+})
+
+test_that("bulk demo carries donor ids, so counting is donor-level", {
+  ht <- hla_bulk_demo()$getHLATyping()
+  expect_false(any(is.na(ht$donor_id)))
+  units <- hla_analysis_unit_map(ht, unique(ht$sample))
+  expect_equal(unique(units$unit_type), "donor")
+})
+
+test_that("bulk demo HLA is real, and measures no genes", {
+  crb <- hla_bulk_demo()
+  expect_true(all(crb$getHLATyping()$source_type == "genotyped"))
+  # Bulk: no transcriptome. A 0-row matrix states that; NULL would break
+  # ncol()/nrow() call sites.
+  expect_equal(nrow(crb$expression), 0L)
+  expect_equal(ncol(crb$expression), nrow(crb$meta_data))
+})

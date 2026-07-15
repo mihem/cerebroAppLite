@@ -164,6 +164,22 @@ hla_usable_color_cols <- reactive({
   cols[n_levels <= HLA_MAX_COLOR_LEVELS]
 })
 
+## ---- Does the source key its receptors on V gene + CDR3? --------------- ##
+## Node identity defaults to the CDR3 alone, which is right when the source
+## reports a full rearrangement. Some sources (bulk V-family + CDR3, e.g. the
+## Emerson/pubtcrs cohort) define a receptor as the PAIR: merging on CDR3 alone
+## would fuse receptors the source counts as distinct and double-count a donor
+## across them. The .crb declares this in `technical_info$receptor_key`;
+## "v_gene+cdr3" makes split-by-V the default. The user can still override.
+hla_source_keys_on_v <- reactive({
+  ti <- tryCatch(data_set()$technical_info, error = function(e) NULL)
+  is.list(ti) && identical(ti$receptor_key, "v_gene+cdr3")
+})
+
+hla_by_v_default <- reactive({
+  isTRUE(hla_source_keys_on_v())
+})
+
 ## ---- Default minimum motif size --------------------------------------- ##
 ## A fixed default of 2 keeps every 2-node component, which on a real repertoire
 ## means thousands of nodes in hundreds of tiny motifs: physics is disabled, the
@@ -199,6 +215,16 @@ hla_allele_choices <- reactive({
   if (is.null(summ) || nrow(summ) == 0) {
     return(character(0))
   }
+  # Offer ONLY the loci this version can interpret (HLA_MVP_LOCI: A/B/C/DRB1).
+  # DQ and DP are alpha/beta heterodimers: a lone DQB1 or DPB1 allele is not an
+  # independently interpretable unit without pairing/phasing, so presenting one
+  # in an allele picker would invite exactly the over-reading the page exists to
+  # avoid. Other loci stay stored and visible in Data & QC, just not offered
+  # here as an analysis axis.
+  summ <- summ[summ$locus %in% HLA_MVP_LOCI, , drop = FALSE]
+  if (nrow(summ) == 0) {
+    return(character(0))
+  }
   # Informativeness = the size of the smaller of the two groups: that is the
   # most donors a carrier/non-carrier contrast could ever rest on.
   contrast <- pmin(summ$n_carrier, summ$n_noncarrier)
@@ -218,6 +244,10 @@ hla_allele_choices <- reactive({
 ## ---- Allele currently colouring the network --------------------------- ##
 ## Falls back to the most informative allele so the first carrier render is
 ## meaningful before the picker has reported a value.
+## ONE allele for the whole page. The network's colour and the Associations
+## tables must answer the same question: two independent pickers let the user
+## colour by one allele while reading another's numbers, and nothing on screen
+## would reveal the mismatch. Either control writes this input.
 hla_color_allele <- reactive({
   choices <- hla_allele_choices()
   if (length(choices) == 0) {
@@ -228,6 +258,20 @@ hla_color_allele <- reactive({
     return(a)
   }
   unname(choices[1])
+})
+
+## Keep the Associations picker and the network picker pointing at one allele.
+observeEvent(input$hla_association_allele, {
+  a <- input$hla_association_allele
+  if (!is.null(a) && nzchar(a) && !identical(a, input$hla_color_allele)) {
+    updateSelectInput(session, "hla_color_allele", selected = a)
+  }
+})
+observeEvent(input$hla_color_allele, {
+  a <- input$hla_color_allele
+  if (!is.null(a) && nzchar(a) && !identical(a, input$hla_association_allele)) {
+    updateSelectInput(session, "hla_association_allele", selected = a)
+  }
 })
 
 ## ---- What one row of the data actually is ----------------------------- ##
@@ -296,7 +340,7 @@ hla_motif_graph <- reactive({
   ctx_col <- if ("mhc_context" %in% colnames(seg)) "mhc_context" else NULL
   hla_build_motif_graph(
     seg,
-    by_v = isTRUE(hla_param("hla_by_v", FALSE)),
+    by_v = isTRUE(hla_param("hla_by_v", hla_by_v_default())),
     min_nodes = as.integer(hla_param("hla_min_nodes", hla_default_min_nodes())),
     show_isolated = isTRUE(hla_param("hla_show_isolated", FALSE)),
     meta_cols = hla_node_meta_cols(),
@@ -305,12 +349,38 @@ hla_motif_graph <- reactive({
 }) %>%
   hla_bindCache(
     hla_active_chain(),
-    hla_param("hla_by_v", FALSE),
+    hla_param("hla_by_v", hla_by_v_default()),
     hla_param("hla_min_nodes", hla_default_min_nodes()),
     hla_param("hla_show_isolated", FALSE),
     paste(hla_node_meta_cols(), collapse = ","),
     available_crb_files$selected
   )
+
+## ---- Selection provenance of the receptor set -------------------------- ##
+## A data set may have been assembled by SELECTING receptors on the very HLA
+## association the page then displays (a positive control). The carrier/
+## non-carrier contrast is then true but circular: it was put there by the
+## selection, and re-computing overlap on it is not independent evidence.
+##
+## This cannot be inferred from the data, so the .crb must declare it in
+## `technical_info$tcr_selection`:
+##   "association-conditioned" -> receptors were chosen using an HLA association
+##   "unselected"              -> receptors were not chosen using HLA
+## `technical_info$tcr_selection_detail` carries the human-readable specifics.
+## Anything else (or absent) is treated as unknown and stays silent, so this
+## never invents a caveat for a data set that did not declare one.
+hla_selection_caveat <- reactive({
+  ti <- tryCatch(data_set()$technical_info, error = function(e) NULL)
+  if (!is.list(ti) || !identical(ti$tcr_selection, "association-conditioned")) {
+    return(NULL)
+  }
+  ti$tcr_selection_detail %||%
+    paste(
+      "This data set's receptors were selected using a published HLA",
+      "association, so a carrier/non-carrier difference here is expected by",
+      "construction and is not independent evidence."
+    )
+})
 
 ## ---- Stored HLA typing (canonical long table) ------------------------- ##
 hla_stored_typing <- reactive({
@@ -321,6 +391,21 @@ hla_stored_typing <- reactive({
 ## Session-only; never written back to the .crb. NULL until the user uploads
 ## and activates a session source.
 hla_session_typing <- reactiveVal(NULL)
+
+## Drop the session override the moment the data set changes. HLA is matched to
+## samples by exact name, so an override uploaded for one data set could
+## silently re-attach to same-named samples in the next one and present another
+## cohort's genotypes as this one's. Uploading again after switching is a small
+## cost; showing the wrong donor's HLA is not recoverable by the reader.
+observeEvent(available_crb_files$selected, ignoreInit = TRUE, {
+  if (!is.null(hla_session_typing())) {
+    hla_session_typing(NULL)
+    showNotification(
+      "Data set changed - the uploaded HLA typing was cleared.",
+      type = "warning"
+    )
+  }
+})
 
 ## ---- Active typing (session override wins over stored) ---------------- ##
 hla_active_typing <- reactive({

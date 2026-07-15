@@ -49,6 +49,7 @@ hla_build_motif_visnet <- function(
   color_by = NULL,
   chain = NULL,
   carrier_status = NULL,
+  carrier_counts = NULL,
   carrier_allele = NULL,
   unit_noun = "cell"
 ) {
@@ -163,11 +164,25 @@ hla_build_motif_visnet <- function(
         ),
         sprintf("Neighbours: %s", hla_esc(deg[i])),
         if (use_carrier) {
+          # Never let the label stand alone: "Carrier" can mean ten carriers or
+          # one carrier and nine untyped, and the colour cannot tell them apart.
+          cnt <- if (!is.null(carrier_counts)) {
+            sprintf(
+              "<br>&nbsp;&nbsp;%d carrier / %d non-carrier / %d untyped %s",
+              carrier_counts$n_carrier[i],
+              carrier_counts$n_noncarrier[i],
+              carrier_counts$n_untyped[i],
+              if (identical(unit_noun, "cell")) "sample(s)" else "donor(s)"
+            )
+          } else {
+            ""
+          }
           sprintf(
-            "%s: <b>%s</b>%s",
+            "%s: <b>%s</b>%s%s",
             hla_esc(carrier_allele %||% "HLA carrier status"),
             hla_esc(group_raw[i]),
-            " (candidate co-occurrence, not restriction)"
+            cnt,
+            "<br>&nbsp;&nbsp;<i>candidate co-occurrence, not restriction</i>"
           )
         },
         if (!is.na(cell_dist[i])) hla_esc(cell_dist[i]),
@@ -263,21 +278,21 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
   # `samples_all` attribute, so switching allele re-colours without recomputing
   # a single Hamming distance.
   allele <- hla_color_allele()
-  carrier <- if (identical(color_by, "hla_carrier") && !is.null(allele)) {
-    hla_node_carrier_status(
-      samples_all = igraph::vertex_attr(g, "samples_all"),
-      typing = hla_active_typing(),
-      samples = names(getImmuneRepertoire()),
-      allele = allele
-    )
-  } else {
-    NULL
+  carrier <- NULL
+  carrier_cnt <- NULL
+  if (identical(color_by, "hla_carrier") && !is.null(allele)) {
+    sa <- igraph::vertex_attr(g, "samples_all")
+    typing <- hla_active_typing()
+    smp <- names(getImmuneRepertoire())
+    carrier <- hla_node_carrier_status(sa, typing, smp, allele)
+    carrier_cnt <- hla_node_carrier_counts(sa, typing, smp, allele)
   }
   vn <- hla_build_motif_visnet(
     g,
     color_by = color_by,
     chain = hla_active_chain(),
     carrier_status = carrier,
+    carrier_counts = carrier_cnt,
     carrier_allele = allele,
     unit_noun = hla_unit_noun()
   )

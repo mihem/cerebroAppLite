@@ -103,6 +103,33 @@ test_that("wide table preserves donor mapping", {
   expect_equal(t$donor_id[match(c("s1", "s2"), t$sample)], c("d1", "d2"))
 })
 
+test_that("donor_id survives normalization of a long table", {
+  # Losing donor_id here silently demotes the whole app to sample-level
+  # counting while the UI still says donor-level, so it is contract-critical.
+  t <- hla_normalize_typing(
+    data.frame(
+      sample = c("s1", "s2"),
+      donor_id = c("d1", "d1"),
+      locus = "HLA-A",
+      allele = c("HLA-A*02:01", "HLA-A*01:01"),
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+  expect_false(any(is.na(t$donor_id)))
+  expect_equal(unique(t$donor_id), "d1")
+})
+
+test_that("a named list has no donor column, so donor_id is NA", {
+  # The named-list adapter cannot express donors; callers who need donor-level
+  # counting must supply a long table (see the test above).
+  t <- hla_normalize_typing(
+    list(s1 = "HLA-A*02:01"),
+    source_type = "genotyped"
+  )
+  expect_true(all(is.na(t$donor_id)))
+})
+
 ## ---- provenance safety ------------------------------------------------ ##
 
 test_that("missing source_type defaults to unknown with a QC warning", {

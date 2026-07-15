@@ -263,8 +263,31 @@ message(sprintf(
 ))
 
 ## ---- 6. Real HLA typing table for the kept donors ------------------------- ##
-typing_list <- lapply(donors, function(d) hla_by_donor[[d]])
-names(typing_list) <- vapply(donors, donor_label, character(1))
+## Write the CANONICAL LONG TABLE directly rather than going through the
+## named-list adapter: the adapter has no donor column, so it would leave
+## donor_id NA and silently demote the whole data set to sample-level counting.
+## Here one donor is one sample, so donor_id is stated explicitly and the app
+## can honour its donor-level contract.
+typing_rows <- lapply(donors, function(d) {
+  alleles <- hla_by_donor[[d]]
+  if (length(alleles) == 0) {
+    return(NULL)
+  }
+  lab <- donor_label(d)
+  loci <- sub("\\*.*$", "", alleles)
+  # copy 1/2 within each locus, in the source's order
+  copy <- unlist(lapply(split(seq_along(alleles), loci), seq_along))
+  copy <- copy[order(unlist(split(seq_along(alleles), loci)))]
+  data.frame(
+    sample = lab,
+    donor_id = lab,
+    locus = loci,
+    copy = as.integer(copy),
+    allele = alleles,
+    stringsAsFactors = FALSE
+  )
+})
+typing_long <- do.call(rbind, typing_rows)
 
 ## ---- 7. Assemble the .crb ------------------------------------------------ ##
 crb <- Cerebro_v1.3$new()
@@ -279,6 +302,25 @@ crb$technical_info <- list(
   note = paste(
     "Bulk TCR-beta immunosequencing; no transcriptome, no single cells.",
     "Each row is a (donor, TCR clonotype) analysis unit, not a sequenced cell."
+  ),
+  # Declared contract, read by the app (see hla_selection_caveat): the receptor
+  # set was chosen USING the published HLA association, and the donors were then
+  # chosen for carrying those receptors. Any carrier/non-carrier difference the
+  # page shows is therefore built in by that selection. This is a positive
+  # control for the workflow, NOT independent evidence of an association, and
+  # the app must say so wherever the contrast is displayed.
+  # This source identifies a receptor by (V family, CDR3), not by CDR3 alone:
+  # 22 of its CDR3s occur on more than one V family. Declaring the key makes
+  # split-by-V the app's default, so nodes match the source's own receptor
+  # identity instead of fusing two receptors (and double-counting a donor).
+  receptor_key = "v_gene+cdr3",
+  tcr_selection = "association-conditioned",
+  tcr_selection_detail = paste(
+    "Receptors are the published HLA-associated TCRs for six alleles",
+    "(DeWitt et al. 2018), and donors were kept only if they carry at least",
+    "one of them. A carrier/non-carrier contrast here is a consequence of that",
+    "selection, not a new finding, and re-computing overlap on the same cohort",
+    "the association was derived from is not independent replication."
   )
 )
 # Bulk TCR-seq measures no transcriptome and produces no embedding, so this data
@@ -295,7 +337,7 @@ colnames(crb$expression) <- meta$cell_barcode
 crb$meta_data <- meta
 crb$addImmuneRepertoire(ir)
 crb$addHLATyping(
-  typing_list,
+  typing_long,
   source_type = "genotyped",
   typing_method = "Emerson et al. 2017 cohort HLA typing",
   source_reference = "Zenodo 1248193 (pubtcrs_data_v1); DeWitt et al. eLife 2018"

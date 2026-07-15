@@ -91,14 +91,18 @@ hla_allele_status_by_unit <- function(typing, samples, allele) {
 #' baked into the graph, so switching allele re-colours without rebuilding the
 #' Hamming graph.
 #'
-#' A node aggregates cells from possibly several samples, so the status is a
-#' summary of those samples' statuses:
-#'   - "Carrier"      every sample carrying this node carries the allele;
-#'   - "Non-carrier"  every such sample was locus-typed and lacks the allele;
-#'   - "Mixed"        both carriers and non-carriers carry this node;
-#'   - "Untyped"      no carrying sample has typing at the allele's locus.
-#' A node seen in untyped samples plus carriers is "Mixed" only when a
-#' non-carrier is also present; untyped alone never invents a class.
+#' A node aggregates observations from possibly several samples, so the status
+#' summarises those samples' statuses. The labels describe the TYPED samples
+#' only, because an untyped sample carries no information either way:
+#'   - "Carrier"      at least one typed carrier and NO typed non-carrier;
+#'   - "Non-carrier"  at least one typed non-carrier and NO typed carrier;
+#'   - "Mixed"        both a typed carrier and a typed non-carrier;
+#'   - "Untyped"      no carrying sample is typed at the allele's locus.
+#'
+#' A "Carrier" node may therefore also have been seen in untyped samples: it
+#' means "no evidence against", not "every sample is a carrier". Because that
+#' distinction is invisible in a colour, callers must surface the counts (see
+#' [hla_node_carrier_counts()]) rather than let the label stand alone.
 #'
 #' This is candidate co-occurrence, NOT restriction: a carrier's TCR is not
 #' thereby restricted by that allele.
@@ -128,41 +132,85 @@ hla_node_carrier_status <- function(samples_all, typing, samples, allele) {
   sample_to_unit <- stats::setNames(unit_map$analysis_unit, unit_map$sample)
   unit_status <- stats::setNames(status$hla_status, status$analysis_unit)
 
-  vapply(
-    samples_all,
-    function(s) {
-      if (is.na(s) || !nzchar(s)) {
-        return("Untyped")
-      }
-      smp <- strsplit(s, ",", fixed = TRUE)[[1]]
-      st <- unname(unit_status[unname(sample_to_unit[smp])])
-      st <- st[!is.na(st)]
-      if (length(st) == 0) {
-        return("Untyped")
-      }
-      has_c <- any(st == "carrier")
-      has_n <- any(st == "non-carrier")
-      if (has_c && has_n) {
-        return("Mixed")
-      }
-      if (has_c) {
-        return("Carrier")
-      }
-      if (has_n) {
-        return("Non-carrier")
-      }
-      "Untyped"
-    },
-    character(1),
-    USE.NAMES = FALSE
+  counts <- hla_node_carrier_counts(samples_all, typing, samples, allele)
+  # The label is a thin function of the counts, so the two can never disagree.
+  out <- rep("Untyped", n)
+  has_c <- counts$n_carrier > 0
+  has_n <- counts$n_noncarrier > 0
+  out[has_c] <- "Carrier"
+  out[has_n] <- "Non-carrier"
+  out[has_c & has_n] <- "Mixed"
+  out
+}
+
+#' Per-node carrier / non-carrier / untyped counts for one allele
+#'
+#' The counts behind [hla_node_carrier_status()]. A colour alone cannot say
+#' whether a "Carrier" node rests on ten carriers or on one carrier and nine
+#' untyped samples, so the UI shows these next to the label.
+#'
+#' @inheritParams hla_node_carrier_status
+#' @return data.frame(n_carrier, n_noncarrier, n_untyped), one row per node.
+#' @keywords internal
+hla_node_carrier_counts <- function(samples_all, typing, samples, allele) {
+  n <- length(samples_all)
+  empty <- data.frame(
+    n_carrier = integer(n),
+    n_noncarrier = integer(n),
+    n_untyped = integer(n)
+  )
+  if (n == 0) {
+    return(empty[0, , drop = FALSE])
+  }
+  status <- tryCatch(
+    hla_allele_status_by_unit(typing, samples, allele),
+    error = function(e) NULL
+  )
+  if (is.null(status) || nrow(status) == 0) {
+    return(empty)
+  }
+  unit_map <- hla_analysis_unit_map(typing, samples)
+  sample_to_unit <- stats::setNames(unit_map$analysis_unit, unit_map$sample)
+  unit_status <- stats::setNames(status$hla_status, status$analysis_unit)
+
+  parts <- lapply(samples_all, function(s) {
+    if (is.na(s) || !nzchar(s)) {
+      return(c(0L, 0L, 0L))
+    }
+    smp <- strsplit(s, ",", fixed = TRUE)[[1]]
+    # Count DISTINCT analysis units, not samples: two samples of one donor are
+    # one unit and must not count twice.
+    units <- unique(unname(sample_to_unit[smp]))
+    units <- units[!is.na(units)]
+    st <- unname(unit_status[units])
+    c(
+      sum(st == "carrier", na.rm = TRUE),
+      sum(st == "non-carrier", na.rm = TRUE),
+      sum(is.na(st) | st == "untyped")
+    )
+  })
+  m <- do.call(rbind, parts)
+  data.frame(
+    n_carrier = as.integer(m[, 1]),
+    n_noncarrier = as.integer(m[, 2]),
+    n_untyped = as.integer(m[, 3])
   )
 }
 
 #' Descriptive overlap of one HLA allele with a frozen TCR feature
 #'
 #' A feature is supplied as its member CDR3 strings (one node or all nodes in a
-#' frozen motif component). The function reports per-unit presence, repertoire
-#' breadth and cell fraction. It deliberately performs no hypothesis test.
+#' frozen motif component). The function reports per-unit presence plus two
+#' fractions. It deliberately performs no hypothesis test.
+#'
+#' **What the denominators are.** Both fractions are over what the DATA SET
+#' contains for that unit — `n_cells` counts rows (observations), not
+#' necessarily sequenced cells, and `n_unique_clonotypes` counts the clonotypes
+#' present here. When the data set holds a selected subset of receptors (e.g.
+#' one assembled from a published HLA association), these are fractions of that
+#' subset and are NOT the unit's repertoire breadth or bulk clonal depth. The
+#' caller is responsible for naming the unit and disclosing any selection; see
+#' `technical_info$tcr_selection`.
 #'
 #' @param typing Canonical HLA typing table.
 #' @param segments Parsed IR segments with `sample` and `cdr3` columns.

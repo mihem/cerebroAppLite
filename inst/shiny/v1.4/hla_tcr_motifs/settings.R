@@ -63,7 +63,7 @@ output$hla_parameters_ui <- renderUI({
     checkboxInput(
       "hla_by_v",
       "Split motifs by V gene",
-      value = isTRUE(hla_param("hla_by_v", FALSE))
+      value = isTRUE(hla_param("hla_by_v", hla_by_v_default()))
     ),
     checkboxInput(
       "hla_show_isolated",

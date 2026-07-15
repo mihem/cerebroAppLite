@@ -27,14 +27,18 @@ baked into the graph, so switching allele re-colours without rebuilding the
 Hamming graph.
 }
 \details{
-A node aggregates cells from possibly several samples, so the status is a
-summary of those samples' statuses:
-  - "Carrier"      every sample carrying this node carries the allele;
-  - "Non-carrier"  every such sample was locus-typed and lacks the allele;
-  - "Mixed"        both carriers and non-carriers carry this node;
-  - "Untyped"      no carrying sample has typing at the allele's locus.
-A node seen in untyped samples plus carriers is "Mixed" only when a
-non-carrier is also present; untyped alone never invents a class.
+A node aggregates observations from possibly several samples, so the status
+summarises those samples' statuses. The labels describe the TYPED samples
+only, because an untyped sample carries no information either way:
+  - "Carrier"      at least one typed carrier and NO typed non-carrier;
+  - "Non-carrier"  at least one typed non-carrier and NO typed carrier;
+  - "Mixed"        both a typed carrier and a typed non-carrier;
+  - "Untyped"      no carrying sample is typed at the allele's locus.
+
+A "Carrier" node may therefore also have been seen in untyped samples: it
+means "no evidence against", not "every sample is a carrier". Because that
+distinction is invisible in a colour, callers must surface the counts (see
+[hla_node_carrier_counts()]) rather than let the label stand alone.
 
 This is candidate co-occurrence, NOT restriction: a carrier's TCR is not
 thereby restricted by that allele.

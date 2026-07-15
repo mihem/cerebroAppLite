@@ -32,7 +32,17 @@ Per-unit descriptive data.frame.
 }
 \description{
 A feature is supplied as its member CDR3 strings (one node or all nodes in a
-frozen motif component). The function reports per-unit presence, repertoire
-breadth and cell fraction. It deliberately performs no hypothesis test.
+frozen motif component). The function reports per-unit presence plus two
+fractions. It deliberately performs no hypothesis test.
+}
+\details{
+**What the denominators are.** Both fractions are over what the DATA SET
+contains for that unit — `n_cells` counts rows (observations), not
+necessarily sequenced cells, and `n_unique_clonotypes` counts the clonotypes
+present here. When the data set holds a selected subset of receptors (e.g.
+one assembled from a published HLA association), these are fractions of that
+subset and are NOT the unit's repertoire breadth or bulk clonal depth. The
+caller is responsible for naming the unit and disclosing any selection; see
+`technical_info$tcr_selection`.
 }
 \keyword{internal}
