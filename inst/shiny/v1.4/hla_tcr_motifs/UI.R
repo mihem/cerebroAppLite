@@ -32,6 +32,14 @@ tab_hla_tcr_motifs <- tabItem(
         ),
         cerebroBox(
           title = tagList(
+            "Additional parameters",
+            cerebroInfoButton("hla_additional_parameters_info")
+          ),
+          content = uiOutput("hla_additional_params_ui"),
+          collapsed = TRUE
+        ),
+        cerebroBox(
+          title = tagList(
             "Evidence status",
             cerebroInfoButton("hla_status_info")
           ),
@@ -58,6 +66,7 @@ tab_hla_tcr_motifs <- tabItem(
           tabPanel(
             "Motif Network",
             br(),
+            uiOutput("hla_legend_ui"),
             shinycssloaders::withSpinner(
               visNetwork::visNetworkOutput(
                 "hla_plot_motifNetwork",

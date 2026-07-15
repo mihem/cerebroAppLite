@@ -404,6 +404,18 @@ hla_motif_graph <- reactive({
     available_crb_files$selected
   )
 
+## ---- How many motif clusters the current view holds -------------------- ##
+## Only used to explain the suppressed legend, so it reads the built graph
+## rather than re-deriving anything.
+hla_motif_n_clusters <- reactive({
+  g <- hla_motif_graph()
+  if (!hla_motif_graph_ok(g)) {
+    return(0L)
+  }
+  cl <- tryCatch(igraph::vertex_attr(g, "cluster"), error = function(e) NULL)
+  if (is.null(cl)) 0L else length(unique(cl))
+})
+
 ## ---- Selection provenance of the receptor set -------------------------- ##
 ## A data set may have been assembled by SELECTING receptors on the very HLA
 ## association the page then displays (a positive control). The carrier/

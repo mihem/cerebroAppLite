@@ -2,6 +2,34 @@
 ## HLA & TCR Motifs — parameter + status panels
 ##----------------------------------------------------------------------------##
 
+## ---- Two-line option renderer ----------------------------------------- ##
+## selectize draws each option/item as one run of text, so a label long enough
+## to wrap breaks wherever it runs out of room — "re-colours" split across two
+## lines. This renders "name|explanation" as a name plus a smaller, muted second
+## line, so the break is a decision. escape() is selectize's own HTML escaper;
+## the labels are ours, but rendering them raw would make any future label an
+## injection point.
+HLA_SCOPE_RENDER <- I(
+  "{
+    option: function(item, escape) {
+      var p = item.label.split('|');
+      return '<div class=\"option\" style=\"padding:6px 10px;line-height:1.35;\">' +
+             '<div>' + escape(p[0]) + '</div>' +
+             (p[1] ? '<div style=\"font-size:11px;color:#8a8a90;\">' +
+                     escape(p[1]) + '</div>' : '') +
+             '</div>';
+    },
+    item: function(item, escape) {
+      var p = item.label.split('|');
+      return '<div class=\"item\" style=\"line-height:1.35;\">' +
+             '<div>' + escape(p[0]) + '</div>' +
+             (p[1] ? '<div style=\"font-size:11px;color:#8a8a90;\">' +
+                     escape(p[1]) + '</div>' : '') +
+             '</div>';
+    }
+  }"
+)
+
 ## ---- Left-column parameters ------------------------------------------- ##
 output$hla_parameters_ui <- renderUI({
   chains <- hla_tcr_chains()
@@ -52,15 +80,21 @@ output$hla_parameters_ui <- renderUI({
     # Scope decides WHICH CELLS the graph is built from; colour only decides how
     # the built graph is painted. Offered only with typing, since both scopes
     # other than "all" need to know who carries what.
+    # Two lines per option, not one long label: at this column width the single
+    # label wrapped wherever it happened to run out of room, splitting
+    # "re-colours" across lines. The name goes on line one and the explanation
+    # on a smaller second line, so the break is chosen rather than accidental.
+    # Labels carry "name|explanation"; HLA_SCOPE_RENDER splits on the bar.
     if (hla_has_typing()) {
-      selectInput(
+      selectizeInput(
         "hla_scope",
         "Network scope:",
         choices = c(
-          "All cells (one graph, allele re-colours it)" = "all",
-          "One HLA allele (rebuild on its carriers)" = "allele"
+          "All cells|one graph; the allele only re-colours it" = "all",
+          "One HLA allele|rebuild the graph on its carriers" = "allele"
         ),
-        selected = hla_param("hla_scope", "all")
+        selected = hla_param("hla_scope", "all"),
+        options = list(render = HLA_SCOPE_RENDER)
       )
     },
     selectInput(
@@ -106,6 +140,44 @@ output$hla_parameters_ui <- renderUI({
     )
   )
 })
+
+## ---- Additional parameters (collapsed by default) --------------------- ##
+## Display-only controls: nothing here rebuilds the graph.
+##
+## The box ships collapsed, and Shiny suspends a hidden output — but
+## shinydashboard's collapse animation never triggers a recalculation, so the
+## control stayed empty even after the user opened the box. Unsuspend it. Safe
+## here precisely because this UI is static: it reads no data set, so it cannot
+## drag reactive work into a hidden panel (cf. the spatial_images regression).
+output$hla_additional_params_ui <- renderUI({
+  tagList(
+    radioButtons(
+      "hla_legend_mode",
+      "Legend:",
+      choices = c(
+        "Auto" = "auto",
+        "Always show" = "always",
+        "Hide" = "never"
+      ),
+      selected = hla_param("hla_legend_mode", "auto"),
+      inline = TRUE
+    ),
+    tags$p(
+      class = "text-muted",
+      style = "font-size: 11px;",
+      sprintf(
+        paste(
+          "Auto hides it only when colouring by motif cluster with more than",
+          "%d motifs, where the numbers are arbitrary and the swatches map to",
+          "nothing. Every other colouring always keeps its key."
+        ),
+        HLA_MOTIF_MAX_LEGEND_CLUSTERS
+      )
+    )
+  )
+})
+
+outputOptions(output, "hla_additional_params_ui", suspendWhenHidden = FALSE)
 
 ## ---- Allele picker for carrier colouring ------------------------------ ##
 ## Labelled with the carrier split and ordered by informativeness, so the user

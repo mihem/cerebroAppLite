@@ -77,3 +77,41 @@ observeEvent(input$hla_status_info, {
     )
   ))
 })
+
+observeEvent(input$hla_additional_parameters_info, {
+  showModal(modalDialog(
+    title = "Additional parameters",
+    size = "m",
+    easyClose = TRUE,
+    footer = modalButton("Close"),
+    tagList(
+      tags$p(
+        "Display-only controls. Nothing here rebuilds the graph, so changes",
+        "apply instantly."
+      ),
+      tags$h4("Legend"),
+      tags$p(
+        tags$b("Auto"),
+        " — hides the legend only when colouring by motif cluster with more",
+        "than 12 motifs. Motif numbers are arbitrary (no order, no meaning), so",
+        "past a dozen the swatches map to nothing you can act on. Every other",
+        "colouring is a real scale and always keeps its key."
+      ),
+      tags$p(
+        tags$b("Always show"),
+        " — force it on, including the long motif list. Useful when you are",
+        "chasing one motif id and need to find its colour."
+      ),
+      tags$p(
+        tags$b("Hide"),
+        " — free the vertical space; node tooltips still name the motif."
+      ),
+      tags$p(
+        class = "text-muted",
+        style = "font-size: 12px;",
+        "The legend sits above the plot and wraps onto as many rows as it",
+        "needs, so a long scale is readable rather than clipped."
+      )
+    )
+  ))
+})

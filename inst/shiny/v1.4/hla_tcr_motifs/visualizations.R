@@ -72,7 +72,8 @@ hla_build_motif_visnet <- function(
   carrier_status = NULL,
   carrier_counts = NULL,
   carrier_allele = NULL,
-  unit_noun = "cell"
+  unit_noun = "cell",
+  legend_mode = "auto"
 ) {
   if (!hla_motif_graph_ok(graph)) {
     return(NULL)
@@ -273,8 +274,17 @@ hla_build_motif_visnet <- function(
   }
 
   n_levels <- length(levels_ord)
-  hide_legend <- color_col == "cluster" &&
-    n_levels > HLA_MOTIF_MAX_LEGEND_CLUSTERS
+  # Motif ids are arbitrary — no order, no meaning — so past a dozen the legend
+  # is a wall of swatches that map to nothing a reader can use. "auto" suppresses
+  # it for THAT colouring only; every other scale is a real one and keeps its
+  # key. The user can override either way: "auto" is a default, not a verdict,
+  # and someone chasing one motif id out of 18 has a use for the wall.
+  hide_legend <- switch(
+    legend_mode,
+    always = FALSE,
+    never = TRUE,
+    color_col == "cluster" && n_levels > HLA_MOTIF_MAX_LEGEND_CLUSTERS
+  )
   legend <- if (hide_legend) {
     NULL
   } else {
@@ -315,7 +325,11 @@ hla_build_motif_visnet <- function(
 }
 
 ## ---- The interactive motif network ------------------------------------ ##
-output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
+## ---- The drawable network data ---------------------------------------- ##
+## Extracted from the renderer so the LEGEND can be drawn outside the canvas
+## (see output$hla_legend_ui): both must come from one build, or the key and the
+## picture could disagree about what a colour means.
+hla_visnet <- reactive({
   if (!hla_has_deps()) {
     return(NULL)
   }
@@ -342,15 +356,20 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
     carrier <- hla_node_carrier_status(sa, typing, smp, allele)
     carrier_cnt <- hla_node_carrier_counts(sa, typing, smp, allele)
   }
-  vn <- hla_build_motif_visnet(
+  hla_build_motif_visnet(
     g,
     color_by = color_by,
     chain = hla_active_chain(),
     carrier_status = carrier,
     carrier_counts = carrier_cnt,
     carrier_allele = allele,
-    unit_noun = hla_unit_noun()
+    unit_noun = hla_unit_noun(),
+    legend_mode = hla_param("hla_legend_mode", "auto")
   )
+})
+
+output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
+  vn <- hla_visnet()
   if (is.null(vn)) {
     return(NULL)
   }
@@ -387,16 +406,9 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
       "function() { Shiny.setInputValue('hla_selected_node_id', null, {priority: 'event'}); }"
     )
   )
-  if (!is.null(vn$legend)) {
-    net <- visNetwork::visLegend(
-      net,
-      addNodes = vn$legend,
-      useGroups = FALSE,
-      main = vn$legend_title,
-      position = "right",
-      width = 0.15
-    )
-  }
+  # No visLegend: it can only sit left or right, it cannot wrap, and it eats 15%
+  # of the canvas width. The legend is drawn above the plot as flowing HTML
+  # instead (output$hla_legend_ui), which wraps to as many rows as it needs.
   net
 })
 
@@ -610,6 +622,70 @@ output$hla_motif_note <- renderUI({
       ),
       hla_unit_noun(),
       HLA_NODE_MAX_EXACT
+    ),
+    # A legend that silently disappears reads as a bug. Say when, and why —
+    # but ONLY when it is actually hidden. This has to track the same three-way
+    # mode the renderer uses, or the note contradicts the screen: forcing the
+    # legend on left it still claiming to be hidden.
+    if (
+      identical(hla_param("hla_color_by", ""), "") &&
+        identical(hla_param("hla_legend_mode", "auto"), "auto") &&
+        hla_motif_n_clusters() > HLA_MOTIF_MAX_LEGEND_CLUSTERS
+    ) {
+      tagList(
+        tags$br(),
+        sprintf(
+          paste(
+            "The legend is hidden: this view has %d motifs and motif numbers are",
+            "arbitrary, so past %d swatches it maps to nothing you can use.",
+            "Hover a node for its motif, force the legend on under Additional",
+            "parameters, or narrow the view (raise the minimum motif size, or",
+            "scope to one allele)."
+          ),
+          hla_motif_n_clusters(),
+          HLA_MOTIF_MAX_LEGEND_CLUSTERS
+        )
+      )
+    }
+  )
+})
+
+## ---- Legend, above the plot and wrapping ------------------------------ ##
+## Drawn as flowing HTML rather than visLegend: visLegend can only sit left or
+## right, never wraps, and reserves 15% of the canvas whether it needs it or
+## not. A flex row wraps to as many lines as the levels require, so a 20-level
+## scale is readable instead of clipped, and the network keeps the full width.
+output$hla_legend_ui <- renderUI({
+  vn <- hla_visnet()
+  if (is.null(vn) || is.null(vn$legend) || nrow(vn$legend) == 0) {
+    return(NULL)
+  }
+  items <- lapply(seq_len(nrow(vn$legend)), function(i) {
+    tags$span(
+      style = paste0(
+        "display:inline-flex;align-items:center;gap:5px;",
+        "margin:0 12px 4px 0;font-size:11px;color:#33333a;white-space:nowrap;"
+      ),
+      tags$span(
+        style = paste0(
+          "width:11px;height:11px;border-radius:50%;flex:none;",
+          "border:1px solid #333;background:",
+          vn$legend$color[i],
+          ";"
+        )
+      ),
+      vn$legend$label[i]
+    )
+  })
+  tags$div(
+    style = "margin:2px 0 6px;",
+    tags$span(
+      style = "font-size:11px;font-weight:700;color:#1c1c1e;margin-right:10px;",
+      vn$legend_title
+    ),
+    tags$div(
+      style = "display:flex;flex-wrap:wrap;align-items:center;margin-top:4px;",
+      items
     )
   )
 })
