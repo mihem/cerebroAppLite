@@ -111,8 +111,8 @@ output$hla_associations_ui <- renderUI({
       tags$div(
         class = "alert alert-warning",
         style = "font-size: 13px;",
-        tags$b("Positive control - the contrast below is built in. "),
-        hla_selection_caveat()
+        tags$b(paste0(hla_selection_caveat()$headline, " ")),
+        hla_selection_caveat()$body
       )
     },
     tags$div(
@@ -165,11 +165,7 @@ output$hla_associations_ui <- renderUI({
           "for each unit%s - not of the unit's full repertoire."
         ),
         hla_unit_noun(),
-        if (!is.null(hla_selection_caveat())) {
-          ", which holds a selected subset of receptors"
-        } else {
-          ""
-        }
+        hla_selection_caveat()$subset_phrase %||% ""
       )
     ),
     DT::dataTableOutput("hla_overlap_table"),

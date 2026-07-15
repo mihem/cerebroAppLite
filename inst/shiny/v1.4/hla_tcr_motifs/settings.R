@@ -25,6 +25,16 @@ output$hla_parameters_ui <- renderUI({
       "HLA carrier status (pick allele below)" = "hla_carrier"
     )
   }
+  # Sample of origin, with every CDR3 seen in >1 sample collapsed to "Shared".
+  # Distinct from colouring by the plain `sample` column, which shows the node's
+  # MODAL sample and so hides the cross-sample recurrence an HLA screen looks
+  # for. Offered only when the repertoire actually has more than one sample.
+  if (length(names(getImmuneRepertoire())) > 1) {
+    color_choices <- c(
+      color_choices,
+      "Sample of origin (shared = black)" = "sample_origin"
+    )
+  }
   tagList(
     if (length(chains) > 1) {
       selectInput(
@@ -39,19 +49,38 @@ output$hla_parameters_ui <- renderUI({
         if (length(chains) == 1) chains[1] else "none"
       )
     },
+    # Scope decides WHICH CELLS the graph is built from; colour only decides how
+    # the built graph is painted. Offered only with typing, since both scopes
+    # other than "all" need to know who carries what.
+    if (hla_has_typing()) {
+      selectInput(
+        "hla_scope",
+        "Network scope:",
+        choices = c(
+          "All cells (one graph, allele re-colours it)" = "all",
+          "One HLA allele (rebuild on its carriers)" = "allele"
+        ),
+        selected = hla_param("hla_scope", "all")
+      )
+    },
     selectInput(
       "hla_color_by",
       "Colour nodes by:",
       choices = color_choices,
       selected = hla_param("hla_color_by", "")
     ),
-    # The allele whose carrier status colours the network. Only meaningful for
-    # the carrier colouring, so it is shown only then. Changing it re-colours
-    # from the cached graph; it never rebuilds the Hamming distance matrix.
+    # The page's single allele. It drives the carrier colouring AND the allele
+    # scope, so it is shown for either. Under "all" scope, changing it only
+    # re-colours the cached graph; under "allele" scope it is a build parameter
+    # and rebuilds the Hamming distance matrix.
     conditionalPanel(
-      condition = "input.hla_color_by == 'hla_carrier'",
+      condition = paste(
+        "input.hla_color_by == 'hla_carrier'",
+        "|| input.hla_scope == 'allele'"
+      ),
       uiOutput("hla_color_allele_ui")
     ),
+    uiOutput("hla_scope_status"),
     sliderInput(
       "hla_min_nodes",
       "Minimum motif size (nodes):",
@@ -141,12 +170,96 @@ output$hla_status_ui <- renderUI({
         "Contains synthetic / unknown-provenance typing: descriptive context only."
       )
     },
+    ## The typing warning above covers the HLA side only. Colouring the network
+    ## by carrier status is itself an association display, so a declared
+    ## selection caveat has to reach every tab, not just HLA Associations.
+    if (!is.null(hla_selection_caveat())) {
+      tags$p(
+        class = "text-warning",
+        style = "font-size: 12px;",
+        tags$b(hla_selection_caveat()$headline)
+      )
+    },
     tags$p(
       class = "text-muted",
       style = "font-size: 12px;",
       paste(
         "Alleles shown for a motif are candidate co-occurrences, not confirmed",
         "TCR restrictions."
+      )
+    )
+  )
+})
+
+## ---- What the current scope actually kept ----------------------------- ##
+## A scope silently dropping most of the data is the failure mode here: the user
+## sees a smaller network and has no way to tell whether the allele is rare, the
+## class filter bit, or the lineage was Unknown. State the counts.
+output$hla_scope_status <- renderUI({
+  if (!identical(hla_scope_mode(), "allele")) {
+    return(NULL)
+  }
+  full <- hla_segments()
+  scoped <- hla_scoped_segments()
+  allele <- hla_color_allele()
+  if (is.null(full) || is.null(allele)) {
+    return(NULL)
+  }
+  n_full <- nrow(full)
+  n_scoped <- if (is.null(scoped)) 0L else nrow(scoped)
+  cls <- hla_locus_class(hla_allele_locus(allele))
+  has_ctx <- "mhc_context" %in% colnames(full)
+  noun <- hla_unit_noun()
+  tagList(
+    tags$p(
+      class = if (n_scoped == 0) "text-danger" else "text-muted",
+      style = "font-size: 12px;",
+      sprintf(
+        "Scope: %s of %s %ss — carriers of %s%s.",
+        format(n_scoped, big.mark = ","),
+        format(n_full, big.mark = ","),
+        noun,
+        allele,
+        if (has_ctx && cls %in% c("Class I", "Class II")) {
+          sprintf(", %s lineage only", cls)
+        } else {
+          ""
+        }
+      )
+    ),
+    # A bulk repertoire has no lineage to match on. Saying so beats letting the
+    # user read a carrier-only scope as class-matched.
+    if (!has_ctx) {
+      tags$p(
+        class = "text-warning",
+        style = "font-size: 12px;",
+        paste(
+          "No lineage available, so this scope is carriers only and is NOT",
+          "class-matched."
+        )
+      )
+    },
+    if (n_scoped == 0) {
+      tags$p(
+        class = "text-danger",
+        style = "font-size: 12px;",
+        sprintf(
+          "Nothing in scope: no typed carrier of %s has a %s-lineage cell here.",
+          allele,
+          cls
+        )
+      )
+    },
+    # The scope removes the comparison group. That is the whole reason the
+    # carrier colouring on the "All cells" scope exists, so say it here rather
+    # than let a carrier-only network read as evidence.
+    tags$p(
+      class = "text-muted",
+      style = "font-size: 12px;",
+      paste(
+        "Every donor in this scope is a carrier, so recurrence across donors",
+        "here cannot be told apart from an ordinary public TCR. Use the",
+        "\"All cells\" scope with HLA carrier colouring for that contrast."
       )
     )
   )

@@ -9,8 +9,12 @@
 # Contract highlights enforced here:
 #   * Edges join two EQUAL-length CDR3s at Hamming distance exactly 1.
 #   * A "motif" is a Hamming-1 connected component; membership can be transitive
-#     (A-B=1, B-C=1 keeps A,C together even when A-C>1). The component diameter
-#     is reported so callers never imply all-pairs distance <= 1.
+#     (A-B=1, B-C=1 keeps A,C together even when A-C>1). The component's MAX
+#     MISMATCH (max pairwise Hamming distance) is reported so callers never
+#     imply all-pairs distance <= 1. Deliberately NOT called a diameter: on a
+#     graph that word means the longest shortest-path in HOPS, which is a
+#     different and larger number (measured on the shipped demo: 16 of 20
+#     motifs disagree, e.g. max mismatch 6 vs graph diameter 8).
 #   * `min_nodes` keeps components with size >= N (NOT > N). Default 2.
 #   * Node identity is the unique CDR3 amino-acid string; V/J are kept as
 #     distributions, never folded into the node key unless `by_v = TRUE`.
@@ -40,6 +44,11 @@ HLA_BCR_CHAINS <- c("IGH", "IGK", "IGL")
 HLA_MOTIF_MAX_BIN <- 2500L # unique CDR3 in one length bin
 HLA_MOTIF_MAX_TOTAL <- 20000L # unique CDR3 across all bins
 HLA_MOTIF_MAX_RENDER <- 5000L # rendered nodes before physics is disabled
+
+## Label for a CDR3 seen in more than one sample. Cross-sample recurrence is the
+## signal an HLA screen rests on (a motif recurring across carriers), so it gets
+## its own level rather than being folded into one sample's colour.
+HLA_SHARED_LABEL <- "Shared"
 
 #' Detect receptor chains present in an immune-repertoire list
 #'
@@ -228,9 +237,15 @@ hla_process_length_group <- function(df) {
   g <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected")
   comps <- igraph::components(g)
 
-  # Component diameter = max pairwise Hamming distance within the component.
-  # Reported so a transitive component (A-B=1, B-C=1, A-C=2) is never presented
-  # as if every pair were <= 1.
+  # Max pairwise Hamming distance within the component: how far apart its two
+  # most different members are. Reported so a transitive component (A-B=1,
+  # B-C=1, A-C=2) is never presented as if every pair were <= 1.
+  #
+  # This is the diameter of the member SET under the Hamming metric, but it is
+  # NOT the graph's diameter (longest shortest-path, counted in hops), which is
+  # larger: a hop changes one position and later hops can change it back, so
+  # Hamming(u,v) <= hops(u,v). Naming it `diameter` on a network invited exactly
+  # the wrong reading, so it is `max_mismatch` everywhere the user can see it.
   diam <- vapply(
     seq_len(comps$no),
     function(k) {
@@ -251,7 +266,7 @@ hla_process_length_group <- function(df) {
   len_label <- nchar(seqs[1])
   df$motif_group <- paste0("M", len_label, "_", comps$membership)
   df$motif_size <- comps$csize[comps$membership]
-  df$motif_diameter <- diam[comps$membership]
+  df$motif_max_mismatch <- diam[comps$membership]
   df$motif_consensus <- consensus[comps$membership]
 
   edges <- NULL
@@ -399,7 +414,45 @@ hla_aggregate_cdr3_nodes <- function(
     })
   )
   rownames(agg) <- NULL
+  # Derived from samples_all, so it is allele-independent and cannot disagree
+  # with the sample set the tooltip reports.
+  agg$sample_origin <- hla_node_sample_origin(agg$samples_all)
   agg
+}
+
+#' Sample of origin per node, collapsing multi-sample nodes to "Shared"
+#'
+#' A node's `sample` metadata column is summarised as its MODE, which paints a
+#' CDR3 seen in three samples with its dominant sample's colour and hides the
+#' recurrence entirely. This reports the sample only when the node was seen in
+#' exactly one; anything seen in more becomes [HLA_SHARED_LABEL].
+#'
+#' Cross-sample sharing is not by itself evidence of an HLA association: public
+#' CDR3s recur across unrelated donors. It is the observation an association
+#' screen starts from, not its conclusion.
+#'
+#' @param samples_all Character vector of comma-separated sorted sample lists
+#'   (the `samples_all` node attribute).
+#' @return Character vector: one sample name, "Shared", or NA when untracked.
+#' @keywords internal
+hla_node_sample_origin <- function(samples_all) {
+  if (length(samples_all) == 0) {
+    return(character(0))
+  }
+  vapply(
+    strsplit(as.character(samples_all), ",", fixed = TRUE),
+    function(s) {
+      s <- s[!is.na(s) & nzchar(s)]
+      if (length(s) == 0) {
+        NA_character_
+      } else if (length(s) == 1) {
+        s
+      } else {
+        HLA_SHARED_LABEL
+      }
+    },
+    character(1)
+  )
 }
 
 #' Is a motif-graph result a usable igraph?

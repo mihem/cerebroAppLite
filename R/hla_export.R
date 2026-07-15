@@ -103,6 +103,13 @@ hla_build_manifest <- function(
       "consequence of that selection, not independent evidence."
     )
   }
+  if (identical(tcr_selection, "synthetic")) {
+    fields[["interpretation_warning"]] <- paste(
+      "FABRICATED FIXTURE: this data set's receptor sequences and their HLA",
+      "association were both constructed. Nothing exported here is a",
+      "measurement, and no contrast in it is evidence of anything."
+    )
+  }
   data.frame(
     field = names(fields),
     value = unlist(fields, use.names = FALSE),
@@ -133,12 +140,14 @@ hla_graph_tables <- function(graph) {
 
 #' Per-motif summary table
 #'
-#' One row per Hamming-1 connected component: size, consensus and diameter.
-#' The diameter is included because a component's membership is transitive, so
-#' its members are not all within distance 1 of each other.
+#' One row per Hamming-1 connected component: size, consensus and max mismatch.
+#' `max_mismatch` is included because a component's membership is transitive, so
+#' its members are not all within distance 1 of each other. It is the largest
+#' pairwise Hamming distance in the component — NOT the graph's diameter, which
+#' counts hops and is larger.
 #'
 #' @param graph A motif igraph from [hla_build_motif_graph()].
-#' @return data.frame(motif_group, n_cdr3, consensus, diameter).
+#' @return data.frame(motif_group, n_cdr3, consensus, max_mismatch).
 #' @keywords internal
 hla_motif_summary <- function(graph) {
   if (!hla_motif_graph_ok(graph)) {
@@ -146,7 +155,7 @@ hla_motif_summary <- function(graph) {
       motif_group = character(0),
       n_cdr3 = integer(0),
       consensus = character(0),
-      diameter = integer(0),
+      max_mismatch = integer(0),
       stringsAsFactors = FALSE
     ))
   }
@@ -156,7 +165,7 @@ hla_motif_summary <- function(graph) {
       motif_group = character(0),
       n_cdr3 = integer(0),
       consensus = character(0),
-      diameter = integer(0),
+      max_mismatch = integer(0),
       stringsAsFactors = FALSE
     ))
   }
@@ -173,8 +182,8 @@ hla_motif_summary <- function(graph) {
         } else {
           NA_character_
         },
-        diameter = if ("motif_diameter" %in% colnames(d)) {
-          as.integer(d$motif_diameter[1])
+        max_mismatch = if ("motif_max_mismatch" %in% colnames(d)) {
+          as.integer(d$motif_max_mismatch[1])
         } else {
           NA_integer_
         },

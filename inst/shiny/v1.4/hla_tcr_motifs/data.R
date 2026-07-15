@@ -325,14 +325,62 @@ hla_node_meta_cols <- reactive({
   unique(c(base, if (nzchar(cb) && cb %in% cols) cb else character(0)))
 })
 
+## ---- Network scope ----------------------------------------------------- ##
+## "all"    -> one graph over every cell; an allele only re-colours it.
+## "allele" -> the graph is REBUILT on the cells that could bear on the page's
+##             allele (its carriers, class-matched). This is a different graph,
+##             not a different colour: edges never join a carrier's CDR3 to a
+##             non-carrier's, which the global graph does by construction.
+## Scoping needs typing, so it collapses to "all" without it.
+hla_scope_mode <- reactive({
+  m <- hla_param("hla_scope", "all")
+  if (!hla_has_typing() || !(m %in% c("all", "allele"))) "all" else m
+})
+
+## The scope reuses the page's single allele rather than adding a picker: see
+## hla_color_allele() — one allele must answer for the whole page, or the user
+## scopes to one allele while reading another's numbers.
+hla_scoped_segments <- reactive({
+  seg <- hla_segments()
+  if (
+    is.null(seg) ||
+      nrow(seg) == 0 ||
+      !identical(hla_scope_mode(), "allele")
+  ) {
+    return(seg)
+  }
+  allele <- hla_color_allele()
+  if (is.null(allele)) {
+    return(seg)
+  }
+  out <- hla_scope_segments_by_allele(
+    seg,
+    hla_active_typing(),
+    allele,
+    context_col = if ("mhc_context" %in% colnames(seg)) "mhc_context" else NULL
+  )
+  if (is.null(out)) seg else out
+})
+
+## Cache key fragment: constant while unscoped, so changing the allele still
+## re-colours the cached global graph instead of rebuilding it. Only in "allele"
+## scope does the allele become a build parameter.
+hla_scope_key <- reactive({
+  if (identical(hla_scope_mode(), "allele")) {
+    paste0("allele:", hla_color_allele() %||% "")
+  } else {
+    "all"
+  }
+})
+
 ## ---- The motif graph (heavy; keyed on build parameters) --------------- ##
-## Only build parameters (chain, min_nodes, split-by-V, show-isolated) and the
-## dataset re-trigger this; colour is applied downstream in the renderer.
+## Only build parameters (chain, min_nodes, split-by-V, show-isolated, scope)
+## and the dataset re-trigger this; colour is applied downstream in the renderer.
 hla_motif_graph <- reactive({
   if (!hla_has_deps()) {
     return(NULL)
   }
-  seg <- hla_segments()
+  seg <- hla_scoped_segments()
   if (is.null(seg) || nrow(seg) == 0) {
     return(NULL)
   }
@@ -352,6 +400,7 @@ hla_motif_graph <- reactive({
     hla_param("hla_min_nodes", hla_default_min_nodes()),
     hla_param("hla_show_isolated", FALSE),
     paste(hla_node_meta_cols(), collapse = ","),
+    hla_scope_key(),
     available_crb_files$selected
   )
 
@@ -362,23 +411,62 @@ hla_motif_graph <- reactive({
 ## selection, and re-computing overlap on it is not independent evidence.
 ##
 ## This cannot be inferred from the data, so the .crb must declare it in
-## `technical_info$tcr_selection`:
-##   "association-conditioned" -> receptors were chosen using an HLA association
+## `technical_info$tcr_selection`. Recognised values:
+##   "association-conditioned" -> receptors were chosen using a published HLA
+##                                association; the sequences and genotypes are
+##                                real but the contrast is circular
+##   "synthetic"               -> receptors AND their HLA association were both
+##                                fabricated. Strictly weaker than the above:
+##                                there is no measurement anywhere underneath
 ##   "unselected"              -> receptors were not chosen using HLA
 ## `technical_info$tcr_selection_detail` carries the human-readable specifics.
 ## Anything else (or absent) is treated as unknown and stays silent, so this
 ## never invents a caveat for a data set that did not declare one.
-hla_selection_caveat <- reactive({
-  ti <- tryCatch(data_set()$technical_info, error = function(e) NULL)
-  if (!is.list(ti) || !identical(ti$tcr_selection, "association-conditioned")) {
-    return(NULL)
-  }
-  ti$tcr_selection_detail %||%
-    paste(
+## Each recognised value carries its OWN wording. "Positive control" and "a
+## selected subset of receptors" are true of association-conditioned data (real
+## sequences, real genotypes, circular selection) and false of a synthetic
+## fixture, where nothing was selected because nothing was measured — so the
+## headline and the subset phrase travel with the value instead of being
+## hard-coded at the call site.
+HLA_SELECTION_CAVEATS <- list(
+  "association-conditioned" = list(
+    headline = "Positive control - the contrast below is built in.",
+    body = paste(
       "This data set's receptors were selected using a published HLA",
       "association, so a carrier/non-carrier difference here is expected by",
       "construction and is not independent evidence."
-    )
+    ),
+    subset_phrase = ", which holds a selected subset of receptors"
+  ),
+  "synthetic" = list(
+    headline = "Fabricated fixture - nothing below is a measurement.",
+    body = paste(
+      "This data set's receptor sequences and their HLA association were both",
+      "constructed, so every contrast shown here was put there on purpose. It",
+      "demonstrates the page and is not evidence of anything."
+    ),
+    subset_phrase = ", whose receptors are fabricated"
+  )
+)
+
+## Returns NULL, or a list(headline, body, subset_phrase). `body` may be
+## overridden per data set via technical_info$tcr_selection_detail.
+hla_selection_caveat <- reactive({
+  ti <- tryCatch(data_set()$technical_info, error = function(e) NULL)
+  if (!is.list(ti)) {
+    return(NULL)
+  }
+  sel <- ti$tcr_selection
+  if (
+    !is.character(sel) ||
+      length(sel) != 1L ||
+      !(sel %in% names(HLA_SELECTION_CAVEATS))
+  ) {
+    return(NULL)
+  }
+  entry <- HLA_SELECTION_CAVEATS[[sel]]
+  entry$body <- ti$tcr_selection_detail %||% entry$body
+  entry
 })
 
 ## ---- Stored HLA typing (canonical long table) ------------------------- ##

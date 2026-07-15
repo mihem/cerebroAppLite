@@ -92,6 +92,54 @@ test_that("an association-conditioned data set gets a warning in the export", {
   expect_match(w, "not independent evidence")
 })
 
+test_that("a synthetic data set gets its own, stronger export warning", {
+  # A fabricated fixture is NOT a positive control: a positive control has real
+  # sequences and real genotypes and only its selection is circular, whereas
+  # here there is no measurement underneath at all. An exported table outlives
+  # the app, so the distinction has to survive in the manifest.
+  m <- hla_build_manifest(
+    dataset = "d",
+    chain = "TRB",
+    input_channel = "stored .crb",
+    hla_source_type = "synthetic",
+    unit_type = "donor",
+    observation_unit = "cell",
+    n_units = 30,
+    n_nodes = 430,
+    n_edges = 727,
+    n_motifs = 20,
+    min_nodes = 6,
+    split_by_v = TRUE,
+    show_isolated = FALSE,
+    tcr_selection = "synthetic"
+  )
+  w <- m$value[m$field == "interpretation_warning"]
+  expect_length(w, 1L)
+  expect_match(w, "FABRICATED FIXTURE")
+  expect_no_match(w, "POSITIVE CONTROL")
+  expect_equal(m$value[m$field == "tcr_selection"], "synthetic")
+})
+
+test_that("an unselected data set gets no interpretation warning", {
+  m <- hla_build_manifest(
+    dataset = "d",
+    chain = "TRB",
+    input_channel = "stored .crb",
+    hla_source_type = "genotyped",
+    unit_type = "donor",
+    observation_unit = "cell",
+    n_units = 10,
+    n_nodes = 10,
+    n_edges = 9,
+    n_motifs = 1,
+    min_nodes = 2,
+    split_by_v = TRUE,
+    show_isolated = FALSE,
+    tcr_selection = "unselected"
+  )
+  expect_length(m$value[m$field == "interpretation_warning"], 0L)
+})
+
 test_that("manifest carries QC warnings", {
   m <- hla_build_manifest(
     dataset = "d",
@@ -131,15 +179,19 @@ test_that("graph tables are empty frames for an unusable graph", {
 
 ## ---- motif summary ---------------------------------------------------- ##
 
-test_that("motif summary reports size, consensus and diameter", {
+test_that("motif summary reports size, consensus and max mismatch", {
   g <- make_export_graph()
   s <- hla_motif_summary(g)
   expect_equal(nrow(s), 1L)
   expect_equal(s$n_cdr3, 2L)
   expect_equal(s$consensus, "CASSx")
-  # Diameter travels with the summary: component membership is transitive, so
+  # The spread travels with the summary: component membership is transitive, so
   # a reader must not assume every pair is within distance 1.
-  expect_equal(s$diameter, 1L)
+  expect_equal(s$max_mismatch, 1L)
+  # An exported table outlives the app and carries no legend with it, so the
+  # column must not be called `diameter`: on a network that reads as the
+  # longest shortest-path in hops, which is a different, larger number.
+  expect_false("diameter" %in% names(s))
 })
 
 test_that("motif summary is an empty frame for an unusable graph", {

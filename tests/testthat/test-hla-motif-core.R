@@ -133,11 +133,11 @@ test_that("distance-2 pairs get no direct edge", {
 
 ## ---- transitive components + diameter --------------------------------- ##
 
-test_that("transitive component keeps A,C together and reports diameter 2", {
+test_that("transitive component keeps A,C together and reports max mismatch 2", {
   # A=XAAAA, B=XBAAA, C=XBBAA :
   #   A-B = 1 (pos2), B-C = 1 (pos3), A-C = 2 (pos2,pos3).
   # So A and C are only linked transitively via B; the component is {A,B,C}
-  # with diameter 2. This proves membership is transitive AND that we surface
+  # with max mismatch 2. This proves membership is transitive AND that we surface
   # the true max pairwise distance rather than implying all pairs are <= 1.
   seg <- hla_parse_ir_segments(
     make_ir_list(c("CAAAA", "CABAA", "CABBA")),
@@ -148,7 +148,7 @@ test_that("transitive component keeps A,C together and reports diameter 2", {
   expect_equal(igraph::components(g)$no, 1L)
   expect_equal(igraph::vcount(g), 3L)
   expect_equal(igraph::ecount(g), 2L) # A-B and B-C only, NOT A-C
-  expect_true(all(igraph::V(g)$motif_diameter == 2L))
+  expect_true(all(igraph::V(g)$motif_max_mismatch == 2L))
 })
 
 ## ---- min_nodes uses >= (not >) ---------------------------------------- ##
@@ -258,4 +258,108 @@ test_that("total size guard trips with a guard message (not a usable graph)", {
   g <- hla_build_motif_graph(seg, min_nodes = 2L)
   expect_false(hla_motif_graph_ok(g))
   expect_true(grepl("unique CDR3", attr(g, "guard")))
+})
+
+## ---- sample of origin -------------------------------------------------- ##
+
+test_that("sample origin names a single sample and collapses the rest", {
+  expect_equal(hla_node_sample_origin("s1"), "s1")
+  expect_equal(hla_node_sample_origin("s1,s2"), HLA_SHARED_LABEL)
+  expect_equal(hla_node_sample_origin("s1,s2,s3"), HLA_SHARED_LABEL)
+  expect_equal(
+    hla_node_sample_origin(c("s1", "s1,s2", "s3")),
+    c("s1", HLA_SHARED_LABEL, "s3")
+  )
+})
+
+test_that("sample origin is NA when the node tracks no sample", {
+  expect_true(is.na(hla_node_sample_origin("")))
+  expect_true(is.na(hla_node_sample_origin(NA_character_)))
+  expect_equal(hla_node_sample_origin(character(0)), character(0))
+})
+
+test_that("sample origin is not the modal sample", {
+  # The point of the column: a CDR3 seen once in s1 and three times in s2 has
+  # mode "s2", which would paint it as an s2-private clone and hide that it
+  # recurs across samples. Origin must say "Shared" instead.
+  df <- data.frame(
+    barcode = c("a", "b", "c", "d"),
+    CTgene = "TRBV1.TRBJ2",
+    CTaa = "CASSL",
+    sample = c("s1", "s2", "s2", "s2"),
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  agg <- hla_aggregate_cdr3_nodes(seg, meta_cols = "sample")
+  expect_equal(nrow(agg), 1L)
+  expect_equal(agg$sample, "s2") # the mode
+  expect_equal(agg$sample_origin, HLA_SHARED_LABEL) # what we must show
+  expect_equal(agg$samples_all, "s1,s2")
+})
+
+test_that("sample origin reaches the graph as a vertex attribute", {
+  # It has to survive aggregation -> motif grouping -> igraph, or the renderer
+  # silently falls back to the "cluster" colouring.
+  df <- data.frame(
+    barcode = c("a", "b", "c"),
+    CTgene = "TRBV1.TRBJ2",
+    CTaa = c("CASSL", "CASSF", "CASSL"),
+    sample = c("s1", "s2", "s2"),
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  g <- hla_build_motif_graph(seg, min_nodes = 2L, meta_cols = "sample")
+  expect_true(hla_motif_graph_ok(g))
+  origin <- igraph::vertex_attr(g, "sample_origin")
+  expect_setequal(origin, c(HLA_SHARED_LABEL, "s2"))
+})
+
+test_that("max mismatch is the Hamming spread, NOT the graph diameter", {
+  # These are different numbers and the reported one must stay the Hamming
+  # spread. A chain A-B-C-D-E where every hop touches a fresh position has a
+  # graph diameter of 4 hops, and here that happens to equal the Hamming spread.
+  # The distinguishing case is below.
+  seqs <- c("CAAAAA", "CBAAAA", "CBBAAA", "CBBBAA", "CBBBBA")
+  seg <- hla_parse_ir_segments(make_ir_list(seqs), "TRB")
+  g <- hla_build_motif_graph(seg, min_nodes = 2L)
+  expect_equal(igraph::diameter(g), 4)
+  expect_true(all(igraph::V(g)$motif_max_mismatch == 4L))
+
+  # Now a walk that REVISITS a position: A->B changes pos2, B->C changes pos3,
+  # C->D changes pos2 again. D differs from A at pos3 only, so A-D is an edge
+  # and the graph is a cycle: graph diameter 2 hops, but the Hamming spread is
+  # still 2. Reporting hops would answer a question nobody asked - how many
+  # substitution steps the walk took - rather than how different the sequences
+  # are, which is what a reader of a CDR3 motif needs.
+  seqs2 <- c("CAAAA", "CABAA", "CABBA", "CAABA")
+  seg2 <- hla_parse_ir_segments(make_ir_list(seqs2), "TRB")
+  g2 <- hla_build_motif_graph(seg2, min_nodes = 2L)
+  expect_equal(igraph::components(g2)$no, 1L)
+  expect_equal(igraph::ecount(g2), 4L) # a 4-cycle: A-B, B-C, C-D, D-A
+  expect_true(all(igraph::V(g2)$motif_max_mismatch == 2L))
+  # The reported value must equal the max pairwise Hamming distance, computed
+  # independently of the implementation.
+  dm <- stringdist::stringdistmatrix(seqs2, seqs2, method = "hamming")
+  expect_equal(max(dm), 2)
+})
+
+test_that("no user-facing string calls the max mismatch a diameter", {
+  # `diameter` on a network reads as the longest shortest-path in hops, which is
+  # a different and larger number: measured on the shipped demo, 16 of 20 motifs
+  # disagree (e.g. max mismatch 6 against graph diameter 8). The word may appear
+  # only where the two are being contrasted.
+  viz <- paste(
+    readLines(
+      system.file(
+        "shiny/v1.4/hla_tcr_motifs/visualizations.R",
+        package = "cerebroAppLite"
+      ),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  expect_no_match(viz, "consensus %s &middot; diameter", fixed = TRUE)
+  expect_match(viz, "max mismatch", fixed = TRUE)
+  expect_no_match(names(hla_motif_summary(NULL)), "^diameter$", perl = TRUE)
+  expect_true("max_mismatch" %in% names(hla_motif_summary(NULL)))
 })
