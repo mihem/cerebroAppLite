@@ -585,6 +585,25 @@ server <- function(input, output, session) {
     }
   )
   insertConditionalTab(
+    "HLA & TCR Motifs",
+    "hla_tcr_motifs",
+    "project-diagram",
+    ## Show only when the data set actually carries a TCR (TRA/TRB). HLA typing
+    ## is NOT required — the motif network works without it, and the Data & QC
+    ## tab is where a user would add HLA, so the page must be reachable first.
+    ## `detect_chains()` is defined in the IR module's server scope, which is
+    ## sourced before this closure is ever evaluated.
+    function() {
+      any(
+        tryCatch(
+          detect_chains(getImmuneRepertoire()),
+          error = function(e) character(0)
+        ) %in%
+          c("TRA", "TRB")
+      )
+    }
+  )
+  insertConditionalTab(
     "Trajectory",
     "trajectory",
     "route",
@@ -637,6 +656,13 @@ server <- function(input, output, session) {
     paste0(
       Cerebro.options[["cerebro_root"]],
       "/shiny/v1.4/immune_repertoire/server.R"
+    ),
+    local = TRUE
+  )
+  source(
+    paste0(
+      Cerebro.options[["cerebro_root"]],
+      "/shiny/v1.4/hla_tcr_motifs/server.R"
     ),
     local = TRUE
   )

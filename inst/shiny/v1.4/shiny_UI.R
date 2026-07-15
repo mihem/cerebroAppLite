@@ -140,6 +140,10 @@ source(
   paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/spatial/UI.R"),
   local = TRUE
 )
+source(
+  paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/hla_tcr_motifs/UI.R"),
+  local = TRUE
+)
 
 ##----------------------------------------------------------------------------##
 ## Create dashboard with different tabs.
@@ -214,6 +218,7 @@ ui <- dashboardPage(
       div(id = "sidebar_item_enriched_pathways_placeholder"),
       div(id = "sidebar_item_extra_material_placeholder"),
       div(id = "sidebar_item_immune_repertoire_placeholder"),
+      div(id = "sidebar_item_hla_tcr_motifs_placeholder"),
       div(id = "sidebar_item_trajectory_placeholder"),
       div(id = "sidebar_item_spatial_placeholder"),
       menuItem(
@@ -251,6 +256,7 @@ ui <- dashboardPage(
       tab_enriched_pathways,
       tab_extra_material,
       tab_immune_repertoire,
+      tab_hla_tcr_motifs,
       tab_trajectory,
       tab_spatial,
       tab_gene_expression,
