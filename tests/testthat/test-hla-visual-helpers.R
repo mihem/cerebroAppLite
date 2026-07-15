@@ -13,3 +13,45 @@ test_that("empty colour levels return an empty named vector", {
     stats::setNames(character(0), character(0))
   )
 })
+
+## ---- node radius: area, not radius, carries the count ------------------ ##
+
+test_that("node area is proportional to the clone count", {
+  # The property that matters: the eye compares AREAS, so area/count must be
+  # constant. Encoding the count on the radius (vis-network's default for
+  # `value`) squares the difference instead.
+  n <- c(1, 2, 3, 4, 5, 10, 25)
+  r <- hla_node_radius(n)
+  area_per_unit <- pi * r^2 / n
+  expect_equal(area_per_unit, rep(area_per_unit[1], length(n)))
+})
+
+test_that("a single-unit node sits at the minimum radius", {
+  expect_equal(hla_node_radius(1), HLA_NODE_R_MIN)
+})
+
+test_that("radius is capped, and the documented threshold is where it bites", {
+  expect_equal(hla_node_radius(HLA_NODE_MAX_EXACT), HLA_NODE_R_MAX)
+  expect_equal(hla_node_radius(HLA_NODE_MAX_EXACT + 1), HLA_NODE_R_MAX)
+  expect_equal(hla_node_radius(1e6), HLA_NODE_R_MAX)
+  # Above the cap proportionality is GONE; the constant must not be quietly
+  # wrong, because the caption states it as the point where that happens.
+  expect_lt(
+    pi * hla_node_radius(1e6)^2 / 1e6,
+    pi * hla_node_radius(1)^2 / 1
+  )
+})
+
+test_that("radius floors degenerate counts to one unit", {
+  expect_equal(hla_node_radius(0), HLA_NODE_R_MIN)
+  expect_equal(hla_node_radius(NA), HLA_NODE_R_MIN)
+  expect_equal(hla_node_radius(-5), HLA_NODE_R_MIN)
+  expect_equal(hla_node_radius(numeric(0)), numeric(0))
+})
+
+test_that("radius grows as the square root, never linearly", {
+  # Pins the actual shape: doubling the count must multiply the radius by
+  # sqrt(2), not by 2.
+  expect_equal(hla_node_radius(4) / hla_node_radius(1), 2)
+  expect_equal(hla_node_radius(2) / hla_node_radius(1), sqrt(2))
+})

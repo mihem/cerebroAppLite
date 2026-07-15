@@ -26,6 +26,26 @@ HLA_CARRIER_COLORS <- c(
   "Untyped" = "#b8bcc4"
 )
 
+## MHC context is a fixed scale for the same reason carrier status is: Class I /
+## Class II / Mixed / Unknown always mean the same thing. It used to fall through
+## to the generic categorical palette, which assigns colours in the order levels
+## HAPPEN to appear among the nodes — so Class I could be blue on one data set
+## and red on the next, and the scale silently re-meant itself.
+##
+## The hues are deliberately disjoint from HLA_CARRIER_COLORS. The two axes are
+## orthogonal — carrier status is about the DONOR's genotype, MHC context about
+## the CELL's lineage — and sharing red/blue/purple across them invited exactly
+## the wrong inference ("red here and red there must be related"). Nothing links
+## them, so nothing should look linked. Both scales keep the same neutral grey
+## for their no-information level, which is the one thing they really do share.
+HLA_CONTEXT_LEVELS <- c("Class I", "Class II", "Mixed", "Unknown")
+HLA_CONTEXT_COLORS <- c(
+  "Class I" = "#e08214",
+  "Class II" = "#0f9b8e",
+  "Mixed" = "#8a6d3b",
+  "Unknown" = "#b8bcc4"
+)
+
 ## ---- HTML-escape helper ----------------------------------------------- ##
 hla_esc <- function(x) {
   x <- as.character(x)
@@ -35,10 +55,11 @@ hla_esc <- function(x) {
 }
 
 ## ---- Build visNetwork data from a motif igraph ------------------------- ##
-## Node size = clone_count; colour follows `color_by` (a node attribute) or the
+## Node area is proportional to clone_count; colour follows `color_by` (a node attribute) or the
 ## motif cluster by default. Tooltip shows CDR3, clone size + fraction, motif
-## cluster + consensus + DIAMETER (so a transitive component is never implied to
-## be all-pairs <= 1), V/J, and the active colour column's distribution.
+## cluster + consensus + MAX MISMATCH (so a transitive component is never
+## implied to be all-pairs <= 1), V/J, and the active colour column's
+## distribution.
 ## `carrier_status` is an optional per-node vector computed at RENDER time (see
 ## hla_node_carrier_status): the HLA allele is a display choice, so it must never
 ## enter the cached graph. When supplied it becomes the colour attribute.
@@ -84,23 +105,48 @@ hla_build_motif_visnet <- function(
   v_gene <- get_attr("v_gene")
   j_gene <- get_attr("j_gene")
   consensus <- get_attr("motif_consensus")
-  diameter <- get_attr("motif_diameter")
+  diameter <- get_attr("motif_max_mismatch")
   topo_cluster <- as.character(get_attr("cluster"))
 
   # Explicit colour per level so nodes + legend share one palette.
   group_raw <- as.character(get_attr(color_col))
+  use_origin <- identical(color_col, "sample_origin")
+  use_context <- identical(color_col, "mhc_context")
   levels_ord <- if (color_col == "cluster") {
     as.character(sort(unique(suppressWarnings(as.numeric(group_raw)))))
   } else if (use_carrier) {
     # Fixed, meaningful order — the reader compares carrier against non-carrier,
     # so those must not swap places or change hue between alleles.
     intersect(HLA_CARRIER_LEVELS, unique(group_raw))
+  } else if (use_context) {
+    # Same reasoning: a fixed scale, fixed order, fixed hues across data sets.
+    intersect(HLA_CONTEXT_LEVELS, unique(group_raw))
+  } else if (use_origin) {
+    # Samples alphabetical, "Shared" last: it is the level the eye should find,
+    # and pinning it to the end keeps its slot stable as samples come and go.
+    c(
+      sort(setdiff(unique(group_raw[!is.na(group_raw)]), HLA_SHARED_LABEL)),
+      intersect(HLA_SHARED_LABEL, group_raw)
+    )
   } else {
     unique(group_raw[!is.na(group_raw)])
   }
   levels_ord <- levels_ord[!is.na(levels_ord)]
   level_colors <- if (use_carrier) {
     HLA_CARRIER_COLORS[levels_ord]
+  } else if (use_context) {
+    HLA_CONTEXT_COLORS[levels_ord]
+  } else if (use_origin) {
+    # Per-sample hues, then "Shared" in near-black so a CDR3 recurring across
+    # samples reads against every sample colour rather than competing with one.
+    per_sample <- setdiff(levels_ord, HLA_SHARED_LABEL)
+    stats::setNames(
+      c(
+        unname(hla_distinct_colors(per_sample)),
+        rep("#222222", length(intersect(HLA_SHARED_LABEL, levels_ord)))
+      ),
+      c(per_sample, intersect(HLA_SHARED_LABEL, levels_ord))
+    )
   } else {
     hla_distinct_colors(levels_ord)
   }
@@ -145,7 +191,7 @@ hla_build_motif_visnet <- function(
         sprintf("<b>%s</b>", hla_esc(cdr3[i])),
         if (!is.na(consensus[i])) {
           sprintf(
-            "Motif %s &middot; consensus %s &middot; diameter %s",
+            "Motif %s &middot; consensus %s &middot; max mismatch %s",
             hla_esc(topo_cluster[i]),
             hla_esc(consensus[i]),
             hla_esc(diameter[i])
@@ -197,11 +243,20 @@ hla_build_motif_visnet <- function(
     character(1)
   )
 
+  ## NO `group` column, deliberately. vis-network auto-registers any group it
+  ## has not been told about and paints it from its own default palette
+  ## (#97C2FC, #FFFF00, #FB7E81, #7BE141, ...), which overrides the per-node
+  ## `color` set above: measured at 246 of 430 nodes rendering in vis defaults
+  ## instead of their carrier colour, e.g. a "Mixed" node drawn bright yellow.
+  ## Nothing here needs the column — the legend is built by hand with
+  ## `useGroups = FALSE` and there is no `selectedBy` — so the colour travels on
+  ## `color` alone. Re-adding `group` requires a matching visGroups() call.
   nodes <- data.frame(
     id = seq_len(n),
     label = node_label,
-    value = as.numeric(clone_count),
-    group = group_raw,
+    # `size`, not `value`: vis scales `value` linearly onto the radius, which
+    # squares the difference the eye reads. See hla_node_radius().
+    size = hla_node_radius(clone_count),
     color = node_color,
     title = titles,
     font.size = 16,
@@ -308,11 +363,9 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
     vn$nodes,
     vn$edges
   )
-  net <- visNetwork::visNodes(
-    net,
-    scaling = list(min = 8, max = 40),
-    shape = "dot"
-  )
+  # No `scaling`: it only applies to nodes carrying a `value`, and the radius is
+  # already computed per node by hla_node_radius().
+  net <- visNetwork::visNodes(net, shape = "dot")
   net <- visNetwork::visEdges(net, color = list(color = "#cccccc"))
   net <- visNetwork::visPhysics(
     net,
@@ -380,10 +433,10 @@ output$hla_node_details <- renderUI({
     tags$span(sprintf(" · V/J: %s / %s", value("v_gene"), value("j_gene"))),
     tags$br(),
     tags$span(sprintf(
-      "Motif: %s · consensus: %s · diameter: %s · cells: %s",
+      "Motif: %s · consensus: %s · max mismatch: %s · cells: %s",
       value("motif_group"),
       value("motif_consensus"),
-      value("motif_diameter"),
+      value("motif_max_mismatch"),
       value("clone_count")
     )),
     if (value("cell_type_dist") != "—") {
@@ -549,10 +602,14 @@ output$hla_motif_note <- renderUI({
       paste(
         "Nodes = unique CDR3; an edge joins two equal-length CDR3 at Hamming",
         "distance 1. A motif is a Hamming-1 connected component (membership can",
-        "be transitive; the tooltip reports the component diameter). Node size",
-        "= number of %ss carrying that CDR3."
+        "be transitive; the tooltip reports its max mismatch — how far apart",
+        "its two most different members are). Node AREA",
+        "is proportional to the number of %ss carrying that CDR3, up to",
+        "%d; above that every node is drawn the same size, so read the tooltip",
+        "for the exact count."
       ),
-      hla_unit_noun()
+      hla_unit_noun(),
+      HLA_NODE_MAX_EXACT
     )
   )
 })
