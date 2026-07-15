@@ -75,10 +75,29 @@ hla_allele_status_by_unit <- function(typing, samples, allele) {
   locus <- hla_allele_locus(allele)
   locus_rows <- in_scope[in_scope$locus == locus, , drop = FALSE]
   typed_units <- unique(unname(sample_to_unit[locus_rows$sample]))
+
+  # Field-wise, not string-equal: typing is never zero-padded, so `A*02` and
+  # `A*02:01` are different strings for the same family. See hla_allele_compare.
+  cmp <- vapply(
+    as.character(locus_rows$allele),
+    hla_allele_compare,
+    character(1),
+    query_allele = allele,
+    USE.NAMES = FALSE
+  )
   carrier_units <- unique(unname(sample_to_unit[
-    locus_rows$sample[locus_rows$allele == allele]
+    locus_rows$sample[cmp == "carrier"]
   ]))
+  ambiguous_units <- unique(unname(sample_to_unit[
+    locus_rows$sample[cmp == "ambiguous"]
+  ]))
+
   units$hla_status[units$analysis_unit %in% typed_units] <- "non-carrier"
+  # Typing too coarse to decide cannot rule the allele OUT, so the unit must not
+  # join the comparison group. "untyped" already means "no information either
+  # way" and is already excluded from carrier calls, which is exactly right.
+  units$hla_status[units$analysis_unit %in% ambiguous_units] <- "untyped"
+  # Applied last: one copy that settles it outranks another that does not.
   units$hla_status[units$analysis_unit %in% carrier_units] <- "carrier"
   units
 }
@@ -334,5 +353,81 @@ hla_unit_allele_matrix <- function(typing, samples) {
       status$hla_status[match(out$analysis_unit, status$analysis_unit)]
     ])
   }
+  out
+}
+
+## ---- Per-allele evidence scope ----------------------------------------- ##
+
+#' Restrict segments to the cells that could bear on one HLA allele
+#'
+#' The per-allele view of an HLA screen. Two filters, both necessary:
+#'   1. the cell's sample must CARRY the allele (a non-carrier's receptor cannot
+#'      be restricted by an allele the donor does not have);
+#'   2. the cell's lineage-derived MHC class must MATCH the allele's class — a
+#'      class II allele cannot restrict a CD8 cell's receptor, and vice versa.
+#' The Hamming graph is then rebuilt on the subset, so an edge never joins a
+#' carrier's CDR3 to a non-carrier's. That is the difference from re-colouring a
+#' global graph, which leaves such edges in place.
+#'
+#' Cells whose context is "Unknown" are dropped by the class filter rather than
+#' assumed into a class. When the data set has no context column at all (a bulk
+#' repertoire has no lineage), only the carrier filter applies — a weaker scope,
+#' which the caller must surface rather than present as class-matched.
+#'
+#' This is a SUBSET, not a test, and it deliberately removes the comparison
+#' group: inside it every donor is a carrier, so "this motif recurs across
+#' donors" cannot be told apart from an ordinary public TCR. The carrier
+#' colouring on the unscoped graph is what supplies that contrast.
+#'
+#' Note also that a carrier has up to six class I alleles; scoping to one of
+#' them keeps ALL of that donor's class-I-restricted receptors, including those
+#' restricted by the other five. The scope is candidate co-occurrence, never
+#' confirmed restriction.
+#'
+#' @param seg Parsed segments; needs a `sample` column.
+#' @param typing Canonical HLA typing table.
+#' @param allele Canonical allele, e.g. `"HLA-A*02:01"`.
+#' @param context_col Name of the per-cell MHC-context column
+#'   ("Class I"/"Class II"/"Unknown"), or NULL to skip class matching.
+#' @return A subset of `seg` (possibly zero rows), or NULL when unusable.
+#' @keywords internal
+hla_scope_segments_by_allele <- function(
+  seg,
+  typing,
+  allele,
+  context_col = "mhc_context"
+) {
+  if (is.null(seg) || nrow(seg) == 0) {
+    return(seg)
+  }
+  if (
+    is.null(allele) ||
+      length(allele) != 1L ||
+      is.na(allele) ||
+      !nzchar(allele) ||
+      !hla_is_typing_table(typing) ||
+      !("sample" %in% colnames(seg))
+  ) {
+    return(NULL)
+  }
+  # Resolution-aware: a donor typed A*02:01 carries A*02, and the scope must not
+  # drop them over a string mismatch. Donors too coarsely typed to decide stay
+  # out — they are unknown, not carriers.
+  carriers <- hla_carriers_of(typing, allele)
+  keep <- if (length(carriers) == 0) {
+    rep(FALSE, nrow(seg))
+  } else {
+    as.character(seg$sample) %in% carriers
+  }
+  cls <- hla_locus_class(hla_allele_locus(allele))
+  if (
+    !is.null(context_col) &&
+      context_col %in% colnames(seg) &&
+      cls %in% c("Class I", "Class II")
+  ) {
+    keep <- keep & !is.na(seg[[context_col]]) & seg[[context_col]] == cls
+  }
+  out <- seg[keep, , drop = FALSE]
+  rownames(out) <- NULL
   out
 }

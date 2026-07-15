@@ -83,9 +83,13 @@ if (.hla_has_source_tree) {
     "hla_locus_class",
     "hla_is_typing_table",
     "hla_carrier_index",
+    "hla_allele_compare",
+    "hla_carriers_of",
     "hla_allele_carrier_summary",
     "hla_node_carrier_status",
     "hla_node_carrier_counts",
+    "hla_node_sample_origin",
+    "hla_scope_segments_by_allele",
     "hla_build_manifest",
     "hla_graph_tables",
     "hla_motif_summary",
@@ -95,11 +99,16 @@ if (.hla_has_source_tree) {
     "hla_unit_allele_matrix",
     "hla_coverage_by_sample",
     "hla_distinct_colors",
+    "hla_node_radius",
     "HLA_TYPING_COLUMNS",
     "HLA_SOURCE_TYPES",
     "HLA_MVP_LOCI",
     "HLA_CLASS_I_LOCI",
-    "HLA_CLASS_II_LOCI"
+    "HLA_CLASS_II_LOCI",
+    "HLA_SHARED_LABEL",
+    "HLA_NODE_R_MIN",
+    "HLA_NODE_R_MAX",
+    "HLA_NODE_MAX_EXACT"
   )) {
     .hla_obj <- tryCatch(
       utils::getFromNamespace(.hla_fn, "cerebroAppLite"),

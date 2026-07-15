@@ -214,3 +214,207 @@ test_that("unit by allele matrix distinguishes non-carrier from locus-untyped", 
   expect_true(is.na(mat[mat$analysis_unit == "d3", "HLA-A*02:01"]))
   expect_equal(mat[mat$analysis_unit == "d3", "HLA-B*08:01"], 1L)
 })
+
+## ---- per-allele evidence scope ----------------------------------------- ##
+
+scope_seg <- function() {
+  # s1 carries A*02:01, s2 does not. Each has a CD8 and a CD4 cell.
+  df <- data.frame(
+    barcode = c("a", "b", "c", "d"),
+    CTgene = "TRBV1.TRBJ2",
+    CTaa = c("CASSL", "CASSF", "CASSW", "CASSY"),
+    sample = c("s1", "s1", "s2", "s2"),
+    mhc_context = c("Class I", "Class II", "Class I", "Class II"),
+    stringsAsFactors = FALSE
+  )
+  hla_parse_ir_segments(list(s1 = df), "TRB")
+}
+
+scope_typing <- function() {
+  hla_normalize_typing(
+    list(
+      s1 = c("HLA-A*02:01", "HLA-A*01:01", "HLA-DRB1*15:01", "HLA-DRB1*03:01"),
+      s2 = c("HLA-A*01:01", "HLA-A*03:01", "HLA-DRB1*03:01", "HLA-DRB1*04:01")
+    ),
+    source_type = "genotyped"
+  )
+}
+
+test_that("a class I allele scopes to carriers' class I cells only", {
+  out <- hla_scope_segments_by_allele(
+    scope_seg(),
+    scope_typing(),
+    "HLA-A*02:01"
+  )
+  # s1 carries it; only s1's Class I cell survives. s2 is a non-carrier, and
+  # s1's CD4 cell cannot be restricted by a class I allele.
+  expect_equal(nrow(out), 1L)
+  expect_equal(out$cdr3, "CASSL")
+})
+
+test_that("a class II allele scopes to carriers' class II cells only", {
+  out <- hla_scope_segments_by_allele(
+    scope_seg(),
+    scope_typing(),
+    "HLA-DRB1*15:01"
+  )
+  expect_equal(nrow(out), 1L)
+  expect_equal(out$cdr3, "CASSF")
+})
+
+test_that("an allele both samples carry still splits by class", {
+  out <- hla_scope_segments_by_allele(
+    scope_seg(),
+    scope_typing(),
+    "HLA-A*01:01"
+  )
+  expect_setequal(out$cdr3, c("CASSL", "CASSW"))
+  expect_setequal(out$sample, c("s1", "s2"))
+})
+
+test_that("scoping drops Unknown context rather than assuming a class", {
+  seg <- scope_seg()
+  seg$mhc_context <- "Unknown"
+  out <- hla_scope_segments_by_allele(seg, scope_typing(), "HLA-A*02:01")
+  expect_equal(nrow(out), 0L)
+})
+
+test_that("without a context column the scope is carrier-only", {
+  # A bulk repertoire has no lineage, so class matching is impossible. The
+  # carrier filter must still apply rather than the whole scope silently
+  # passing everything through.
+  seg <- scope_seg()
+  seg$mhc_context <- NULL
+  out <- hla_scope_segments_by_allele(seg, scope_typing(), "HLA-A*02:01")
+  expect_equal(nrow(out), 2L)
+  expect_true(all(out$sample == "s1"))
+})
+
+test_that("an allele nobody carries scopes to nothing, not to everything", {
+  out <- hla_scope_segments_by_allele(
+    scope_seg(),
+    scope_typing(),
+    "HLA-B*07:02"
+  )
+  expect_equal(nrow(out), 0L)
+})
+
+test_that("scoping refuses rather than guesses without usable inputs", {
+  expect_null(hla_scope_segments_by_allele(scope_seg(), NULL, "HLA-A*02:01"))
+  expect_null(hla_scope_segments_by_allele(scope_seg(), scope_typing(), ""))
+  expect_null(hla_scope_segments_by_allele(scope_seg(), scope_typing(), NA))
+})
+
+test_that("scoping a carrier's cells keeps every class I allele's receptors", {
+  # The honesty limit worth pinning: s1 carries A*02:01 AND A*01:01, so scoping
+  # to A*02:01 keeps ALL of s1's class I receptors. The scope is candidate
+  # co-occurrence; it cannot attribute a receptor to one of the donor's alleles.
+  a2 <- hla_scope_segments_by_allele(scope_seg(), scope_typing(), "HLA-A*02:01")
+  a1 <- hla_scope_segments_by_allele(scope_seg(), scope_typing(), "HLA-A*01:01")
+  expect_true(all(a2$cdr3 %in% a1$cdr3))
+})
+
+## ---- typing resolution must not manufacture non-carriers --------------- ##
+## HLA typing arrives at whatever resolution the lab reported and is never
+## zero-padded, so "HLA-A*02" and "HLA-A*02:01" are different strings for the
+## same molecule family. Exact string matching mis-called BOTH directions, and
+## both errors push people into the comparison group that must not hold them.
+
+res_typing <- function() {
+  hla_normalize_typing(
+    list(
+      donor_lo = c("HLA-A*02", "HLA-A*01:01"), # 1-field only
+      donor_hi = c("HLA-A*02:01", "HLA-A*01:01"), # 2-field
+      donor_no = c("HLA-A*03:01", "HLA-A*01:01") # definitely not A*02
+    ),
+    source_type = "genotyped"
+  )
+}
+res_samples <- c("donor_lo", "donor_hi", "donor_no")
+
+status_of <- function(allele, unit) {
+  st <- hla_allele_status_by_unit(res_typing(), res_samples, allele)
+  st$hla_status[st$analysis_unit == unit]
+}
+
+test_that("coarser typing than the query is untyped, never non-carrier", {
+  # donor_lo was typed A*02 and A*02:01 IS an A*02, so this donor may well
+  # carry it. Calling them a non-carrier puts a possible carrier into the
+  # "definitely lacks it" group and biases the very contrast this page rests on.
+  expect_equal(status_of("HLA-A*02:01", "donor_lo"), "untyped")
+})
+
+test_that("finer typing than the query is a carrier", {
+  # donor_hi is A*02:01, which is an A*02. Anything else is a false negative.
+  expect_equal(status_of("HLA-A*02", "donor_hi"), "carrier")
+})
+
+test_that("a real mismatch is still a non-carrier", {
+  expect_equal(status_of("HLA-A*02:01", "donor_no"), "non-carrier")
+  expect_equal(status_of("HLA-A*02", "donor_no"), "non-carrier")
+})
+
+test_that("an exact match is still a carrier", {
+  expect_equal(status_of("HLA-A*02:01", "donor_hi"), "carrier")
+  expect_equal(status_of("HLA-A*01:01", "donor_lo"), "carrier")
+})
+
+test_that("a definite carrier at one copy beats an ambiguous other copy", {
+  # Both copies are inspected: A*02:01 settles it regardless of the A*02.
+  typing <- hla_normalize_typing(
+    list(d1 = c("HLA-A*02", "HLA-A*02:01")),
+    source_type = "genotyped"
+  )
+  st <- hla_allele_status_by_unit(typing, "d1", "HLA-A*02:01")
+  expect_equal(st$hla_status, "carrier")
+})
+
+test_that("ambiguity at one copy and a mismatch at the other is untyped", {
+  typing <- hla_normalize_typing(
+    list(d1 = c("HLA-A*02", "HLA-A*03:01")),
+    source_type = "genotyped"
+  )
+  st <- hla_allele_status_by_unit(typing, "d1", "HLA-A*02:01")
+  expect_equal(st$hla_status, "untyped")
+})
+
+test_that("an untyped locus stays untyped", {
+  typing <- hla_normalize_typing(
+    list(d1 = c("HLA-B*07:02")),
+    source_type = "genotyped"
+  )
+  st <- hla_allele_status_by_unit(typing, "d1", "HLA-A*02:01")
+  expect_equal(st$hla_status, "untyped")
+})
+
+test_that("field prefixes do not match across loci or on partial digits", {
+  # A*02 must not match B*02, and A*2 must not match A*24 (fields compare whole,
+  # never as string prefixes).
+  typing <- hla_normalize_typing(
+    list(d1 = c("HLA-A*24:02"), d2 = c("HLA-B*02:01")),
+    source_type = "genotyped"
+  )
+  st <- hla_allele_status_by_unit(typing, c("d1", "d2"), "HLA-A*02")
+  expect_equal(st$hla_status[st$analysis_unit == "d1"], "non-carrier")
+  expect_equal(st$hla_status[st$analysis_unit == "d2"], "untyped")
+})
+
+test_that("the per-allele scope follows the same resolution rule", {
+  # The scope must not drop a donor whose typing REFINES the queried allele.
+  seg <- hla_parse_ir_segments(
+    list(
+      s = data.frame(
+        barcode = c("a", "b"),
+        CTgene = "TRBV1.TRBJ2",
+        CTaa = c("CASSL", "CASSF"),
+        sample = c("donor_hi", "donor_no"),
+        mhc_context = "Class I",
+        stringsAsFactors = FALSE
+      )
+    ),
+    "TRB"
+  )
+  out <- hla_scope_segments_by_allele(seg, res_typing(), "HLA-A*02")
+  expect_equal(nrow(out), 1L)
+  expect_equal(out$sample, "donor_hi")
+})

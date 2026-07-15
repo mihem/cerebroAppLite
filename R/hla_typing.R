@@ -384,6 +384,81 @@ hla_carrier_index <- function(typing) {
   lapply(by_allele, function(s) sort(unique(s)))
 }
 
+#' Compare a donor's typed allele against a queried allele, field by field
+#'
+#' Typing arrives at whatever resolution the lab reported and is never
+#' zero-padded, so `HLA-A*02` and `HLA-A*02:01` are different STRINGS naming the
+#' same molecule family. Exact string matching therefore got both directions
+#' wrong, and both errors are false negatives that land people in the comparison
+#' group that must not hold them:
+#'   * a donor typed `A*02` looked like a NON-carrier of `A*02:01`, although
+#'     `A*02:01` is an `A*02` and that donor may well have it;
+#'   * a donor typed `A*02:01` looked like a NON-carrier of `A*02`, although it
+#'     certainly carries one.
+#'
+#' Fields are compared as whole tokens, never as text prefixes, so `A*2` never
+#' matches `A*24` and the locus must agree first.
+#'
+#' @param donor_allele One canonical allele from a donor's typing.
+#' @param query_allele The canonical allele being asked about.
+#' @return "carrier" when the donor's allele IS the query or refines it;
+#'   "ambiguous" when the donor's typing is too coarse to decide either way;
+#'   "no" when they disagree at a field both report.
+#' @keywords internal
+hla_allele_compare <- function(donor_allele, query_allele) {
+  if (
+    length(donor_allele) != 1L ||
+      length(query_allele) != 1L ||
+      is.na(donor_allele) ||
+      is.na(query_allele)
+  ) {
+    return("no")
+  }
+  if (
+    !identical(hla_allele_locus(donor_allele), hla_allele_locus(query_allele))
+  ) {
+    return("no")
+  }
+  fields <- function(x) {
+    strsplit(sub("^[^*]*\\*", "", x), ":", fixed = TRUE)[[1]]
+  }
+  d <- fields(donor_allele)
+  q <- fields(query_allele)
+  n <- min(length(d), length(q))
+  if (n == 0L) {
+    return("no")
+  }
+  if (!identical(d[seq_len(n)], q[seq_len(n)])) {
+    return("no")
+  }
+  if (length(d) >= length(q)) "carrier" else "ambiguous"
+}
+
+#' Samples that definitely carry an allele, resolution-aware
+#'
+#' Unlike [hla_carrier_index()], which keys on the exact allele string, this
+#' resolves typing recorded at a finer resolution than the query (a donor typed
+#' `A*02:01` does carry `A*02`). Donors whose typing is too coarse to decide are
+#' NOT returned: they are unknown, not carriers.
+#'
+#' @param typing Canonical HLA typing table.
+#' @param allele Canonical allele.
+#' @return Character vector of sample names.
+#' @keywords internal
+hla_carriers_of <- function(typing, allele) {
+  allele <- hla_normalize_allele(allele)
+  if (!hla_is_typing_table(typing) || nrow(typing) == 0 || is.na(allele)) {
+    return(character(0))
+  }
+  hit <- vapply(
+    as.character(typing$allele),
+    function(a) identical(hla_allele_compare(a, allele), "carrier"),
+    logical(1),
+    USE.NAMES = FALSE
+  )
+  sort(unique(as.character(typing$sample[hit])))
+}
+
 ## ---- Lineage-derived MHC context -------------------------------------- ##
 
 #' Map a cell-type label to a lineage-derived MHC class context
