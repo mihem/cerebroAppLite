@@ -131,14 +131,36 @@ hla_color_meta_cols <- reactive({
   c(ordered, setdiff(cols, ordered))
 })
 
-## ---- Parsed segments for the active chain ----------------------------- ##
+## ---- Cell-type column used for lineage-derived MHC context ------------- ##
+## Prefer a finer lineage column (cell_type_fine) when present, since a coarse
+## "T cells" label cannot separate CD4/CD8 and collapses to Unknown context.
+hla_celltype_col <- reactive({
+  cols <- hla_color_meta_cols()
+  if ("cell_type_fine" %in% cols) {
+    "cell_type_fine"
+  } else if ("cell_type" %in% cols) {
+    "cell_type"
+  } else {
+    NA_character_
+  }
+})
+
+## ---- Parsed segments for the active chain (+ per-cell MHC context) ----- ##
 hla_segments <- reactive({
   data <- hla_ir_annotated()
   chain <- hla_active_chain()
   if (is.null(data)) {
     return(NULL)
   }
-  hla_parse_ir_segments(data, chain)
+  seg <- hla_parse_ir_segments(data, chain)
+  if (is.null(seg) || nrow(seg) == 0) {
+    return(seg)
+  }
+  ct_col <- hla_celltype_col()
+  if (!is.na(ct_col) && ct_col %in% colnames(seg)) {
+    seg$mhc_context <- hla_lineage_context(seg[[ct_col]])
+  }
+  seg
 })
 
 ## ---- Metadata columns to carry onto nodes (for tooltip / colouring) ---- ##
@@ -162,12 +184,14 @@ hla_motif_graph <- reactive({
   if (is.null(seg) || nrow(seg) == 0) {
     return(NULL)
   }
+  ctx_col <- if ("mhc_context" %in% colnames(seg)) "mhc_context" else NULL
   hla_build_motif_graph(
     seg,
     by_v = isTRUE(hla_param("hla_by_v", FALSE)),
     min_nodes = as.integer(hla_param("hla_min_nodes", 2L)),
     show_isolated = isTRUE(hla_param("hla_show_isolated", FALSE)),
-    meta_cols = hla_node_meta_cols()
+    meta_cols = hla_node_meta_cols(),
+    context_col = ctx_col
   )
 }) %>%
   hla_bindCache(

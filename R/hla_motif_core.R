@@ -295,9 +295,17 @@ hla_build_motif_groups <- function(df, by_v = FALSE) {
 #'
 #' @param seg Output of [hla_parse_ir_segments()].
 #' @param meta_cols Character vector of metadata columns to summarise per node.
+#' @param context_col Optional name of a per-cell MHC-context column (values
+#'   "Class I" / "Class II" / "Unknown"). When given, the node gets a
+#'   [hla_context_summary()] value (single class, "Mixed", or "Unknown") instead
+#'   of a plain mode, plus the usual `_dist` string.
 #' @return A per-CDR3 data.frame, or NULL when `seg` is empty.
 #' @keywords internal
-hla_aggregate_cdr3_nodes <- function(seg, meta_cols = character(0)) {
+hla_aggregate_cdr3_nodes <- function(
+  seg,
+  meta_cols = character(0),
+  context_col = NULL
+) {
   if (is.null(seg) || nrow(seg) == 0) {
     return(NULL)
   }
@@ -339,6 +347,12 @@ hla_aggregate_cdr3_nodes <- function(seg, meta_cols = character(0)) {
         row[[mc]] <- mode_val(d[[mc]])
         row[[paste0(mc, "_dist")]] <- dist_str(d[[mc]])
       }
+      if (!is.null(context_col) && context_col %in% colnames(d)) {
+        row[[context_col]] <- hla_context_summary(
+          as.character(d[[context_col]])
+        )
+        row[[paste0(context_col, "_dist")]] <- dist_str(d[[context_col]])
+      }
       row
     })
   )
@@ -371,6 +385,8 @@ hla_motif_graph_ok <- function(g) {
 #' @param min_nodes Keep connected components of size >= `min_nodes`. Default 2.
 #' @param show_isolated When TRUE, also keep isolated (degree-0) CDR3s as points.
 #' @param meta_cols Metadata columns to carry as node distributions.
+#' @param context_col Optional per-cell MHC-context column; the node gets a
+#'   [hla_context_summary()] value (single class / "Mixed" / "Unknown").
 #' @return An igraph object (with a per-node `cluster` attribute and a
 #'   `total_cells` graph attribute) or NULL. Attaches attr "guard" with a
 #'   message when a size guard tripped (graph is NULL in that case).
@@ -380,7 +396,8 @@ hla_build_motif_graph <- function(
   by_v = FALSE,
   min_nodes = 2L,
   show_isolated = FALSE,
-  meta_cols = character(0)
+  meta_cols = character(0),
+  context_col = NULL
 ) {
   # A guard trip returns NA (not NULL) carrying a message attribute, because an
   # attribute cannot be set on NULL. Callers treat is.null() OR a "guard" attr
@@ -393,7 +410,11 @@ hla_build_motif_graph <- function(
   if (is.null(seg) || nrow(seg) == 0) {
     return(NULL)
   }
-  agg <- hla_aggregate_cdr3_nodes(seg, meta_cols = meta_cols)
+  agg <- hla_aggregate_cdr3_nodes(
+    seg,
+    meta_cols = meta_cols,
+    context_col = context_col
+  )
   if (is.null(agg) || nrow(agg) == 0) {
     return(NULL)
   }

@@ -24,6 +24,8 @@ if ("cerebroAppLite" %in% loadedNamespaces()) {
     "hla_build_motif_graph",
     "hla_motif_graph_ok",
     "HLA_MOTIF_MAX_RENDER",
+    "hla_lineage_context",
+    "hla_context_summary",
     "hla_normalize_typing",
     "hla_normalize_allele",
     "hla_allele_resolution",
@@ -43,7 +45,10 @@ if ("cerebroAppLite" %in% loadedNamespaces()) {
       error = function(e) NULL
     )
     if (!is.null(.hla_obj)) {
-      assign(.hla_fn, .hla_obj)
+      # Bind into the global environment so every module reactive resolves the
+      # name regardless of source() scoping nuances. These are stateless pure
+      # functions / constants, so a global binding is safe and side-effect free.
+      assign(.hla_fn, .hla_obj, envir = globalenv())
     }
   }
   rm(.hla_fn, .hla_obj)

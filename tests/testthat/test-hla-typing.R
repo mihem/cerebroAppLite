@@ -121,6 +121,37 @@ test_that("coverage-by-sample summarises loci and allele counts", {
   expect_true(grepl("HLA-B", cov$loci))
 })
 
+## ---- lineage-derived MHC context -------------------------------------- ##
+
+test_that("lineage context maps CD8 -> Class I, CD4/Treg -> Class II", {
+  expect_equal(hla_lineage_context("CD8 T"), "Class I")
+  expect_equal(hla_lineage_context("CD8+ T cells"), "Class I")
+  expect_equal(hla_lineage_context("CD4 T"), "Class II")
+  expect_equal(hla_lineage_context("Treg"), "Class II")
+  expect_equal(hla_lineage_context("regulatory (Treg)"), "Class II")
+})
+
+test_that("coarse or non-T labels map to Unknown, never guessed", {
+  expect_equal(hla_lineage_context("T cells"), "Unknown")
+  expect_equal(hla_lineage_context("B cells"), "Unknown")
+  expect_equal(hla_lineage_context("Monocytes"), "Unknown")
+  expect_equal(hla_lineage_context("T (unassigned)"), "Unknown")
+})
+
+test_that("lineage context is vectorised", {
+  expect_equal(
+    hla_lineage_context(c("CD8 T", "CD4 T", "T cells")),
+    c("Class I", "Class II", "Unknown")
+  )
+})
+
+test_that("context summary collapses per-cell contexts to a node label", {
+  expect_equal(hla_context_summary(c("Class I", "Class I")), "Class I")
+  expect_equal(hla_context_summary(c("Class II", "Unknown")), "Class II")
+  expect_equal(hla_context_summary(c("Class I", "Class II")), "Mixed")
+  expect_equal(hla_context_summary(c("Unknown", "Unknown")), "Unknown")
+})
+
 ## ---- empty input ------------------------------------------------------ ##
 
 test_that("empty input yields an empty canonical table", {

@@ -5,10 +5,16 @@
 ## ---- Left-column parameters ------------------------------------------- ##
 output$hla_parameters_ui <- renderUI({
   chains <- hla_tcr_chains()
+  meta_cols <- hla_color_meta_cols()
   color_choices <- c(
     "Motif cluster" = "",
-    stats::setNames(hla_color_meta_cols(), hla_color_meta_cols())
+    stats::setNames(meta_cols, meta_cols)
   )
+  # "MHC context" is a derived node attribute (CD8->Class I / CD4->Class II /
+  # Unknown), offered only when a cell-type column exists to derive it from.
+  if (!is.na(hla_celltype_col())) {
+    color_choices <- c(color_choices, "MHC context" = "mhc_context")
+  }
   tagList(
     if (length(chains) > 1) {
       selectInput(

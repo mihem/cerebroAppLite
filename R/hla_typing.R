@@ -367,6 +367,53 @@ hla_carrier_index <- function(typing) {
   lapply(by_allele, function(s) sort(unique(s)))
 }
 
+## ---- Lineage-derived MHC context -------------------------------------- ##
+
+#' Map a cell-type label to a lineage-derived MHC class context
+#'
+#' CD8 lineage -> "Class I", CD4 / Treg -> "Class II", everything else ->
+#' "Unknown" (never guessed). This is explicitly a lineage-derived CONTEXT, not
+#' a confirmed restriction; a coarse "T cells" label yields "Unknown".
+#'
+#' @param cell_type A character vector of cell-type labels.
+#' @return A character vector of "Class I" / "Class II" / "Unknown".
+#' @keywords internal
+hla_lineage_context <- function(cell_type) {
+  x <- as.character(cell_type)
+  out <- rep("Unknown", length(x))
+  out[grepl("(^|[^A-Za-z])CD8", x, ignore.case = TRUE)] <- "Class I"
+  # CD4 or Treg -> Class II; checked after CD8 so a rare "CD4 CD8" label would
+  # already be Class I (double-positive is not a conventional restriction).
+  is_ii <- grepl("(^|[^A-Za-z])CD4", x, ignore.case = TRUE) |
+    grepl("treg", x, ignore.case = TRUE)
+  out[is_ii & out == "Unknown"] <- "Class II"
+  out
+}
+
+#' Summarise a distribution of MHC-context labels to one node summary
+#'
+#' A CDR3 node carries cells of possibly mixed lineage. Collapse the per-cell
+#' contexts to a single node summary: a single non-Unknown class stays that
+#' class; both Class I and Class II present -> "Mixed"; only Unknown -> "Unknown".
+#'
+#' @param contexts A character vector of per-cell context labels.
+#' @return One of "Class I" / "Class II" / "Mixed" / "Unknown".
+#' @keywords internal
+hla_context_summary <- function(contexts) {
+  has_i <- any(contexts == "Class I")
+  has_ii <- any(contexts == "Class II")
+  if (has_i && has_ii) {
+    return("Mixed")
+  }
+  if (has_i) {
+    return("Class I")
+  }
+  if (has_ii) {
+    return("Class II")
+  }
+  "Unknown"
+}
+
 #' Per-sample allele coverage summary (for the Data & QC tab)
 #'
 #' @param typing A canonical long table.
