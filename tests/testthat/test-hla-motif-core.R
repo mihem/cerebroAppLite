@@ -45,6 +45,20 @@ test_that("hla_detect_chains handles empty / NULL input", {
   expect_equal(hla_detect_chains(list()), character(0))
 })
 
+test_that("hla_detect_chains scans beyond the first three samples", {
+  make_chain <- function(gene) {
+    data.frame(CTgene = gene, stringsAsFactors = FALSE)
+  }
+  data <- list(
+    s1 = make_chain("IGHV1.IGHJ1"),
+    s2 = make_chain("IGHV1.IGHJ1"),
+    s3 = make_chain("IGHV1.IGHJ1"),
+    s4 = make_chain("TRBV1.TRBJ1")
+  )
+
+  expect_true("TRB" %in% hla_detect_chains(data))
+})
+
 ## ---- hla_make_consensus / variable_aa --------------------------------- ##
 
 test_that("consensus marks differing positions with x", {
@@ -145,6 +159,31 @@ test_that("split-by-V does not connect same CDR3 across different V genes", {
   g <- hla_build_motif_graph(seg, by_v = TRUE, min_nodes = 2L)
   # Different V genes, so the two are in separate bins and never connect.
   expect_null(g)
+})
+
+test_that("split-by-V preserves the same CDR3 in multiple V bins", {
+  df <- data.frame(
+    barcode = letters[1:4],
+    CTgene = c(
+      "TRBV1.TRBJ2",
+      "TRBV9.TRBJ2",
+      "TRBV1.TRBJ2",
+      "TRBV9.TRBJ2"
+    ),
+    CTaa = c("CASSL", "CASSL", "CASSF", "CASST"),
+    sample = "s1",
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+
+  g <- hla_build_motif_graph(seg, by_v = TRUE, min_nodes = 2L)
+
+  expect_equal(igraph::vcount(g), 4L)
+  expect_equal(igraph::ecount(g), 2L)
+  expect_setequal(
+    paste(igraph::V(g)$v_gene, igraph::V(g)$cdr3, sep = "::"),
+    c("TRBV1::CASSL", "TRBV1::CASSF", "TRBV9::CASSL", "TRBV9::CASST")
+  )
 })
 
 ## ---- clone_count aggregation ------------------------------------------ ##

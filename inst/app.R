@@ -26,11 +26,11 @@ Cerebro.options <<- list(
   ## tabs (dynamically inserted by insertConditionalTab).
   "crb_file_to_load" = c(
     "PBMC - Full (T+B)" = "extdata/v1.4/demo_full_tcr_bcr.crb",
-    ## Same real PBMC expression + TCR as above, enriched for the HLA & TCR
-    ## Motifs page: a finer CD4/CD8/Treg lineage derived from the object's own
-    ## marker expression, plus a SYNTHETIC per-sample HLA typing table (flagged
-    ## source_type = "synthetic"). Rebuild with data-raw/build_hla_tcr_demo.R.
-    "PBMC - HLA & TCR (synthetic HLA)" = "extdata/v1.4/demo_hla_tcr.crb",
+    ## Real expression and real receptor sequences, but the TCR-to-cell linkage
+    ## is synthetic (lineage-constrained random assignment); HLA is synthetic too.
+    ## This data set exercises software flow only, not biological association.
+    ## Rebuild with data-raw/build_hla_tcr_demo.R.
+    "PBMC - HLA & TCR (synthetic TCR linkage + HLA)" = "extdata/v1.4/demo_hla_tcr.crb",
     ## REAL public spatial data, one per technology (down-sampled). The bracketed
     ## label states the platform. All four flow through the same platform-
     ## agnostic .getSpatialData extraction, spanning spot / bead / in-situ-imaging

@@ -121,6 +121,7 @@ output$hla_data_qc_ui <- renderUI({
       column(
         width = 6,
         tags$h4("Coverage"),
+        uiOutput("hla_active_source_ui"),
         tags$p(
           class = "text-muted",
           style = "font-size: 12px;",
@@ -131,8 +132,37 @@ output$hla_data_qc_ui <- renderUI({
       )
     ),
     tags$hr(),
+    fluidRow(
+      column(
+        width = 7,
+        tags$h4("Normalized active typing preview"),
+        DT::dataTableOutput("hla_normalized_preview"),
+        downloadButton("hla_download_normalized", "Download normalized CSV")
+      ),
+      column(
+        width = 5,
+        tags$h4("Sample → analysis-unit mapping"),
+        DT::dataTableOutput("hla_donor_mapping_preview")
+      )
+    ),
+    tags$hr(),
     tags$h4("Quality control"),
     uiOutput("hla_qc_ui")
+  )
+})
+
+output$hla_active_source_ui <- renderUI({
+  session_on <- !is.null(hla_session_typing()) &&
+    is.data.frame(hla_session_typing()) &&
+    nrow(hla_session_typing()) > 0
+  t <- hla_active_typing()
+  if (!is.data.frame(t) || nrow(t) == 0) {
+    return(tags$p(class = "text-muted", "Active HLA source: none"))
+  }
+  tags$p(
+    tags$b("Active HLA source: "),
+    if (session_on) "session override" else "stored .crb",
+    sprintf(" (%s)", paste(unique(t$source_type), collapse = ", "))
   )
 })
 
@@ -147,6 +177,32 @@ output$hla_coverage_table <- DT::renderDataTable({
     cov,
     rownames = FALSE,
     colnames = c("Sample", "# alleles", "Loci"),
+    options = list(pageLength = 10, dom = "t")
+  )
+})
+
+output$hla_normalized_preview <- DT::renderDataTable({
+  t <- hla_active_typing()
+  if (!hla_has_typing()) {
+    return(NULL)
+  }
+  DT::datatable(
+    t,
+    rownames = FALSE,
+    options = list(pageLength = 8, scrollX = TRUE, dom = "tip")
+  )
+})
+
+output$hla_donor_mapping_preview <- DT::renderDataTable({
+  if (!hla_has_typing()) {
+    return(NULL)
+  }
+  samples <- names(getImmuneRepertoire())
+  map <- hla_analysis_unit_map(hla_active_typing(), samples)
+  DT::datatable(
+    map,
+    rownames = FALSE,
+    colnames = c("IR sample", "Analysis unit", "Unit type"),
     options = list(pageLength = 10, dom = "t")
   )
 })
@@ -225,5 +281,12 @@ output$hla_download_template <- downloadHandler(
       stringsAsFactors = FALSE
     )
     utils::write.csv(tmpl, file, row.names = FALSE)
+  }
+)
+
+output$hla_download_normalized <- downloadHandler(
+  filename = function() "hla_typing_normalized.csv",
+  content = function(file) {
+    utils::write.csv(hla_active_typing(), file, row.names = FALSE, na = "")
   }
 )

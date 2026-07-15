@@ -37,6 +37,7 @@ Imports:
   glue (>= 1.4.0),
   GSVA (>= 1.30.0),
   httr (>= 1.4.0),
+  htmlwidgets,
   igraph,
   later,
   Matrix (>= 1.2),

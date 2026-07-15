@@ -199,7 +199,7 @@ Built by `data-raw/build_ir_demos.R` (see [`immune_repertoire.md`](immune_repert
     "$BASE/vdj_v1_hs_pbmc3_b_filtered_contig_annotations.csv"
   ```
 - **object type**: `Cerebro_v1.3` cell subset of `example.crb` (T + B + Mono, 1,476 cells)
-- **sampling**: `set.seed()`-pinned cell subset; TCR clonotypes assigned only to T cells, BCR only to B cells.
+- **sampling**: `set.seed()`-pinned cell subset. Receptor sequences are real 10x sequences, but `assign_ir()` samples them with replacement and reassigns barcodes within coarse lineages. Therefore this is a **synthetic receptor-to-cell linkage**, not paired GEX+VDJ observations; TCRs are assigned only to T cells and BCRs only to B cells.
 - **cell-type field**: existing `cell_type` from `example.crb`
 - **embedded image**: none (n/a for immune repertoire)
 - **license**: 10x Genomics public dataset terms
@@ -211,15 +211,15 @@ Built by `data-raw/build_ir_demos.R` (see [`immune_repertoire.md`](immune_repert
 ### demo_hla_tcr.crb
 - **type**: immune_repertoire
 - **technology**: 10x Chromium 5' V(D)J (scRNA-seq + TCR/BCR), re-annotated for HLA context
-- **dropdown label**: `PBMC - HLA & TCR (synthetic HLA)`
+- **dropdown label**: `PBMC - HLA & TCR (synthetic TCR linkage + HLA)`
 - **organism / tissue**: human (hg) / PBMC, healthy donor
-- **source**: derived entirely from `demo_full_tcr_bcr.crb` (itself the 10x public `vdj_v1_hs_pbmc3`); no new download. Real expression + real TCR are carried over unchanged.
+- **source**: derived entirely from `demo_full_tcr_bcr.crb`; no new download. Expression values and receptor sequences come from real public data, but cell↔receptor and sample↔receptor assignments are synthetic because `build_ir_demos.R::assign_ir()` reassigns sampled clonotypes to expression barcodes.
 - **acquire**: none — built from the shipped `demo_full_tcr_bcr.crb`.
 - **object type**: `Cerebro_v1.3` (rebuilt via the current generator so the `hla_typing` slot + methods are present).
-- **sampling**: same 1,476 cells as `demo_full_tcr_bcr.crb`. Two additions: (1) `cell_type_fine` — a finer T-cell lineage (**CD8 T / CD4 T / Treg / T (unassigned)**) derived from the object's OWN marker expression (CD8A/CD8B vs CD4/IL7R vs FOXP3); B cells / Monocytes unchanged. (2) a **SYNTHETIC** per-sample HLA typing table (HLA-A/B/C/DRB1, two alleles each) drawn from common European allele frequencies, `set.seed(42)`.
+- **sampling**: same 1,476 expression cells as `demo_full_tcr_bcr.crb`, with **synthetic receptor-to-cell linkage**. Two additions: (1) `cell_type_fine` — an explicitly heuristic T-cell label (**CD8 T / CD4 T / Treg / T (unassigned)**) derived from CD8A/CD8B vs CD4/IL7R vs FOXP3 expression; it is not a validated annotation. (2) a **SYNTHETIC** per-sample HLA typing table (HLA-A/B/C/DRB1, two alleles each), `set.seed(42)`.
 - **cell-type field**: `cell_type_fine` (fine lineage) — the coarse `cell_type` is also kept.
 - **embedded image**: none (n/a for immune repertoire)
-- **HLA typing**: **synthetic**, stored with `source_type = "synthetic"` in the `hla_typing` slot. It exists only to exercise the HLA & TCR Motifs workflow; it is **not a real genotype** and the app flags it as synthetic. Real donor HLA replaces it via the same `addHLATyping()` path.
+- **HLA typing**: **synthetic**, stored with `source_type = "synthetic"` in the `hla_typing` slot. Together with the synthetic receptor linkage, it exists only to exercise the HLA & TCR Motifs workflow; it is not evidence of a biological TCR–HLA association. Real paired GEX+VDJ and donor HLA are required for that use.
 - **license**: 10x Genomics public dataset terms (expression/TCR); synthetic HLA has no external source.
 - **build**: `data-raw/build_hla_tcr_demo.R`
 - **output**: `inst/extdata/v1.4/demo_hla_tcr.crb` (~1.0 MB)

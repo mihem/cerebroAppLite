@@ -4,7 +4,12 @@
 \alias{hla_aggregate_cdr3_nodes}
 \title{Aggregate parsed segments into unique-CDR3 nodes carrying distributions}
 \usage{
-hla_aggregate_cdr3_nodes(seg, meta_cols = character(0), context_col = NULL)
+hla_aggregate_cdr3_nodes(
+  seg,
+  meta_cols = character(0),
+  context_col = NULL,
+  by_v = FALSE
+)
 }
 \arguments{
 \item{seg}{Output of [hla_parse_ir_segments()].}
@@ -15,13 +20,16 @@ hla_aggregate_cdr3_nodes(seg, meta_cols = character(0), context_col = NULL)
 "Class I" / "Class II" / "Unknown"). When given, the node gets a
 [hla_context_summary()] value (single class, "Mixed", or "Unknown") instead
 of a plain mode, plus the usual `_dist` string.}
+
+\item{by_v}{When TRUE, aggregate with `(v_gene, cdr3)` as the node key.}
 }
 \value{
-A per-CDR3 data.frame, or NULL when `seg` is empty.
+A per-node data.frame, or NULL when `seg` is empty.
 }
 \description{
-Node key = unique CDR3 amino-acid string. `clone_count` = number of cells
-carrying that CDR3. Categorical metadata columns are summarised as their
+Node key = unique CDR3 amino-acid string, or `(V gene, CDR3)` when `by_v` is
+TRUE. `clone_count` = number of cells carrying that node key. Categorical
+metadata columns are summarised as their
 most-common value (`_mode`) plus a compact "N types: A (5), B (2)"
 distribution string (`_dist`) so the tooltip can show provenance without
 collapsing it to a single label.

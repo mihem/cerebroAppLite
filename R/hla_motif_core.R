@@ -43,7 +43,7 @@ HLA_MOTIF_MAX_RENDER <- 5000L # rendered nodes before physics is disabled
 
 #' Detect receptor chains present in an immune-repertoire list
 #'
-#' Scans the `CTgene` column of the first few samples for chain tokens.
+#' Scans the `CTgene` column of all samples for chain tokens.
 #'
 #' @param data Named list of scRepertoire-style data.frames (one per sample).
 #' @return Character vector of detected chains, subset of TRA/TRB/TRG/TRD/
@@ -53,8 +53,7 @@ hla_detect_chains <- function(data) {
   if (is.null(data) || !is.list(data) || length(data) == 0) {
     return(character(0))
   }
-  sample_dfs <- data[seq_len(min(length(data), 3))]
-  all_ct <- unlist(lapply(sample_dfs, function(df) {
+  all_ct <- unlist(lapply(data, function(df) {
     if ("CTgene" %in% names(df)) as.character(df$CTgene) else character(0)
   }))
   chains <- c(HLA_TCR_CHAINS, HLA_BCR_CHAINS)
@@ -213,6 +212,7 @@ hla_motif_variable_aa <- function(seq, cons) {
 #' @keywords internal
 hla_process_length_group <- function(df) {
   seqs <- df$cdr3
+  node_ids <- if ("node_id" %in% colnames(df)) df$node_id else seqs
   n <- length(seqs)
 
   # Single distance measure (Hamming); edge and adjacency use the SAME
@@ -254,8 +254,8 @@ hla_process_length_group <- function(df) {
     idx <- which(dist_mat == 1 & upper.tri(dist_mat), arr.ind = TRUE)
     if (nrow(idx) > 0) {
       edges <- data.frame(
-        from = seqs[idx[, 1]],
-        to = seqs[idx[, 2]],
+        from = node_ids[idx[, 1]],
+        to = node_ids[idx[, 2]],
         stringsAsFactors = FALSE
       )
     }
@@ -299,8 +299,9 @@ hla_build_motif_groups <- function(df, by_v = FALSE) {
 
 #' Aggregate parsed segments into unique-CDR3 nodes carrying distributions
 #'
-#' Node key = unique CDR3 amino-acid string. `clone_count` = number of cells
-#' carrying that CDR3. Categorical metadata columns are summarised as their
+#' Node key = unique CDR3 amino-acid string, or `(V gene, CDR3)` when `by_v` is
+#' TRUE. `clone_count` = number of cells carrying that node key. Categorical
+#' metadata columns are summarised as their
 #' most-common value (`_mode`) plus a compact "N types: A (5), B (2)"
 #' distribution string (`_dist`) so the tooltip can show provenance without
 #' collapsing it to a single label.
@@ -311,12 +312,14 @@ hla_build_motif_groups <- function(df, by_v = FALSE) {
 #'   "Class I" / "Class II" / "Unknown"). When given, the node gets a
 #'   [hla_context_summary()] value (single class, "Mixed", or "Unknown") instead
 #'   of a plain mode, plus the usual `_dist` string.
-#' @return A per-CDR3 data.frame, or NULL when `seg` is empty.
+#' @param by_v When TRUE, aggregate with `(v_gene, cdr3)` as the node key.
+#' @return A per-node data.frame, or NULL when `seg` is empty.
 #' @keywords internal
 hla_aggregate_cdr3_nodes <- function(
   seg,
   meta_cols = character(0),
-  context_col = NULL
+  context_col = NULL,
+  by_v = FALSE
 ) {
   if (is.null(seg) || nrow(seg) == 0) {
     return(NULL)
@@ -343,10 +346,20 @@ hla_aggregate_cdr3_nodes <- function(
       paste(parts, collapse = ", ")
     )
   }
+  split_key <- if (isTRUE(by_v)) {
+    interaction(seg$v_gene, seg$cdr3, drop = TRUE, lex.order = TRUE)
+  } else {
+    seg$cdr3
+  }
   agg <- do.call(
     rbind,
-    lapply(split(seg, seg$cdr3), function(d) {
+    lapply(split(seg, split_key, drop = TRUE), function(d) {
       row <- data.frame(
+        node_id = if (isTRUE(by_v)) {
+          paste(d$v_gene[1], d$cdr3[1], sep = "::")
+        } else {
+          d$cdr3[1]
+        },
         cdr3 = d$cdr3[1],
         v_gene = mode_val(d$v_gene),
         j_gene = mode_val(d$j_gene),
@@ -425,7 +438,8 @@ hla_build_motif_graph <- function(
   agg <- hla_aggregate_cdr3_nodes(
     seg,
     meta_cols = meta_cols,
-    context_col = context_col
+    context_col = context_col,
+    by_v = by_v
   )
   if (is.null(agg) || nrow(agg) == 0) {
     return(NULL)
@@ -463,7 +477,7 @@ hla_build_motif_graph <- function(
   }
 
   vertices <- res$motif_df
-  vertices$name <- vertices$cdr3
+  vertices$name <- vertices$node_id
   vertices <- vertices[, c("name", setdiff(colnames(vertices), "name"))]
   edge_df <- if (has_edges) {
     edges[, c("from", "to")]

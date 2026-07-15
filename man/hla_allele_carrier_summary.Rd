@@ -2,7 +2,7 @@
 % Please edit documentation in R/hla_typing.R
 \name{hla_allele_carrier_summary}
 \alias{hla_allele_carrier_summary}
-\title{Descriptive per-allele carrier summary over samples}
+\title{Descriptive per-allele carrier summary over analysis units}
 \usage{
 hla_allele_carrier_summary(typing, samples)
 }
@@ -13,13 +13,14 @@ hla_allele_carrier_summary(typing, samples)
 }
 \value{
 data.frame(allele, locus, mhc_class, n_carrier, n_noncarrier,
-  n_untyped, carriers) ordered by descending carrier count, or an empty frame.
+  n_untyped, carriers, analysis_unit) ordered by descending carrier count,
+  or an empty frame. Complete donor mappings are collapsed to donor; otherwise
+  the function reports sample-level counts.
 }
 \description{
-For each allele in the typing table, count how many of the given samples
-carry it vs. do not, plus samples with no typing at all (untyped). This is a
-strictly DESCRIPTIVE overlap; it performs no enrichment test and reports no
-p-value. Association testing needs donor-level statistics and a pre-specified
-analysis plan (see the design doc), which the MVP deliberately omits.
+For each allele in the typing table, count carriers, locus-typed non-carriers
+and units without typing at that locus. Complete donor mappings are collapsed
+to donor; otherwise the units remain samples. This is strictly descriptive:
+it performs no enrichment test and reports no p-value.
 }
 \keyword{internal}

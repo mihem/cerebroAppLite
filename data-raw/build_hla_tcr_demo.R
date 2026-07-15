@@ -3,14 +3,15 @@
 # Build the HLA & TCR Motifs demo (.crb)
 # ============================================================================
 # Produces `inst/extdata/v1.4/demo_hla_tcr.crb`: a showcase dataset for the
-# "HLA & TCR Motifs" page. It layers two things onto the existing, real
-# `demo_full_tcr_bcr.crb` (real 10x PBMC expression + real TCR/BCR clonotypes):
+# "HLA & TCR Motifs" page. The base object contains real expression values and
+# real receptor sequences, but build_ir_demos.R assigned those receptors to
+# expression cells synthetically. This is NOT paired GEX+VDJ evidence.
 #
 #   1. `cell_type_fine` — a FINER T-cell lineage (CD8 T / CD4 T / Treg) derived
 #      from the object's OWN real marker-gene expression (CD8A/CD8B vs CD4/IL7R
-#      vs FOXP3). This is data-driven, not fabricated: the base object only had
-#      a coarse "T cells" label, which cannot exercise the CD8->Class I /
-#      CD4->Class II lineage context. B cells / Monocytes keep their labels.
+#      vs FOXP3). This is an explicitly heuristic demo annotation, not a
+#      validated cell-type call. The base object only had a coarse "T cells"
+#      label; B cells / Monocytes keep their labels.
 #
 #   2. `hla_typing` — a SYNTHETIC per-sample HLA typing table, built from real
 #      common European HLA allele frequencies, attached with
@@ -19,8 +20,8 @@
 #      WITHOUT claiming a real genotype. Real donor HLA would replace it via the
 #      same addHLATyping() path.
 #
-# Everything else (expression, projections, IR, marker genes) is carried over
-# unchanged. See data-raw/DATASETS.md for the registry entry.
+# Expression values, projections and receptor sequences are carried over, but
+# their receptor-to-cell linkage remains synthetic. See DATASETS.md.
 #
 # Run from the package root:
 #   Rscript data-raw/build_hla_tcr_demo.R
@@ -143,6 +144,13 @@ crb$addHLATyping(
   typing_method = "synthetic (European allele frequencies)",
   source_reference = "data-raw/build_hla_tcr_demo.R"
 )
+
+if (is.list(crb$experiment)) {
+  crb$experiment$hla_tcr_demo_scope <- paste(
+    "Software fixture: real expression and receptor sequences;",
+    "synthetic receptor-to-cell linkage; heuristic lineage labels; synthetic HLA"
+  )
+}
 
 cat("\nHLA typing (synthetic):\n")
 print(crb$getHLATyping()[, c(

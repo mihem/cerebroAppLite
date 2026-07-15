@@ -82,8 +82,9 @@ hla_normalize_allele <- function(x, locus = NULL) {
     fields <- x
   }
   # Field portion must look like colon-separated numeric fields, optionally with
-  # a trailing expression suffix letter (N/L/S/C/A/Q). Resolution is preserved.
-  if (!grepl("^[0-9]{1,3}(:[0-9]{1,3}){0,3}[NLSCAQ]?$", fields)) {
+  # a trailing expression suffix letter (N/L/S/C/A/Q) or official ambiguity
+  # group suffix (G/P). Resolution is preserved.
+  if (!grepl("^[0-9]{1,3}(:[0-9]{1,3}){0,3}[NLSCAQGP]?$", fields)) {
     return(NA_character_)
   }
   if (!grepl("^[A-Z0-9]+$", loc)) {
@@ -99,7 +100,7 @@ hla_allele_resolution <- function(allele) {
     return(NA_character_)
   }
   fields <- sub("^HLA-[A-Z0-9]+\\*", "", allele)
-  fields <- sub("[NLSCAQ]$", "", fields)
+  fields <- sub("[NLSCAQGP]$", "", fields)
   n <- length(strsplit(fields, ":", fixed = TRUE)[[1]])
   paste0(n, "-field")
 }
@@ -152,6 +153,8 @@ hla_locus_class <- function(locus) {
     stop("wide HLA table needs a 'sample' column", call. = FALSE)
   }
   sample_col <- sample_col[1]
+  donor_col <- intersect(c("donor_id", "donor"), colnames(df))
+  donor_col <- if (length(donor_col) > 0) donor_col[1] else NULL
   hla_cols <- grep("^HLA-", colnames(df), value = TRUE, ignore.case = TRUE)
   if (length(hla_cols) == 0) {
     stop("wide HLA table needs HLA-* columns", call. = FALSE)
@@ -162,6 +165,11 @@ hla_locus_class <- function(locus) {
       locus <- sub("_[12]$", "", col) # HLA-A_1 -> HLA-A
       data.frame(
         sample = as.character(df[[sample_col]]),
+        donor_id = if (is.null(donor_col)) {
+          NA_character_
+        } else {
+          as.character(df[[donor_col]])
+        },
         locus_hint = locus,
         allele_raw = as.character(df[[col]]),
         stringsAsFactors = FALSE
@@ -230,6 +238,11 @@ hla_normalize_typing <- function(
       # already long-ish
       long <- data.frame(
         sample = as.character(x$sample),
+        donor_id = if ("donor_id" %in% colnames(x)) {
+          as.character(x$donor_id)
+        } else {
+          NA_character_
+        },
         locus_hint = if ("locus" %in% colnames(x)) {
           as.character(x$locus)
         } else {
@@ -252,6 +265,9 @@ hla_normalize_typing <- function(
     out <- .hla_empty_long()
     attr(out, "qc") <- qc
     return(out)
+  }
+  if (!("donor_id" %in% colnames(long))) {
+    long$donor_id <- NA_character_
   }
 
   # Canonicalise each allele; locus comes from the token or the hint.
@@ -278,6 +294,7 @@ hla_normalize_typing <- function(
   }
   df <- data.frame(
     sample = long$sample[keep],
+    donor_id = long$donor_id[keep],
     allele = canon[keep],
     stringsAsFactors = FALSE
   )
@@ -304,7 +321,7 @@ hla_normalize_typing <- function(
 
   out <- data.frame(
     sample = df$sample,
-    donor_id = NA_character_,
+    donor_id = df$donor_id,
     locus = df$locus,
     copy = df$copy,
     allele = df$allele,
@@ -416,18 +433,19 @@ hla_context_summary <- function(contexts) {
 
 ## ---- Descriptive HLA carrier summaries (NO inferential statistics) ----- ##
 
-#' Descriptive per-allele carrier summary over samples
+#' Descriptive per-allele carrier summary over analysis units
 #'
-#' For each allele in the typing table, count how many of the given samples
-#' carry it vs. do not, plus samples with no typing at all (untyped). This is a
-#' strictly DESCRIPTIVE overlap; it performs no enrichment test and reports no
-#' p-value. Association testing needs donor-level statistics and a pre-specified
-#' analysis plan (see the design doc), which the MVP deliberately omits.
+#' For each allele in the typing table, count carriers, locus-typed non-carriers
+#' and units without typing at that locus. Complete donor mappings are collapsed
+#' to donor; otherwise the units remain samples. This is strictly descriptive:
+#' it performs no enrichment test and reports no p-value.
 #'
 #' @param typing A canonical long table.
 #' @param samples Character vector of samples to consider (e.g. the IR samples).
 #' @return data.frame(allele, locus, mhc_class, n_carrier, n_noncarrier,
-#'   n_untyped, carriers) ordered by descending carrier count, or an empty frame.
+#'   n_untyped, carriers, analysis_unit) ordered by descending carrier count,
+#'   or an empty frame. Complete donor mappings are collapsed to donor; otherwise
+#'   the function reports sample-level counts.
 #' @keywords internal
 hla_allele_carrier_summary <- function(typing, samples) {
   if (
@@ -441,22 +459,43 @@ hla_allele_carrier_summary <- function(typing, samples) {
       n_noncarrier = integer(0),
       n_untyped = integer(0),
       carriers = character(0),
+      analysis_unit = character(0),
       stringsAsFactors = FALSE
     ))
   }
-  typed_samples <- unique(typing$sample)
-  ci <- hla_carrier_index(typing)
-  alleles <- names(ci)
+  samples <- unique(as.character(samples))
+  in_scope <- typing[typing$sample %in% samples, , drop = FALSE]
+  donor_by_sample <- vapply(
+    samples,
+    function(s) {
+      donors <- unique(in_scope$donor_id[
+        in_scope$sample == s &
+          !is.na(in_scope$donor_id) &
+          nzchar(in_scope$donor_id)
+      ])
+      if (length(donors) == 1) donors else NA_character_
+    },
+    character(1)
+  )
+  use_donor <- length(samples) > 0 && all(!is.na(donor_by_sample))
+  sample_to_unit <- if (use_donor) {
+    donor_by_sample
+  } else {
+    stats::setNames(samples, samples)
+  }
+  analysis_unit <- if (use_donor) "donor" else "sample"
+  all_units <- unique(unname(sample_to_unit))
+  alleles <- sort(unique(in_scope$allele))
   out <- do.call(
     rbind,
     lapply(alleles, function(a) {
-      carriers <- intersect(ci[[a]], samples)
-      # non-carriers are typed samples in `samples` that lack the allele;
-      # untyped samples are excluded from carrier/non-carrier (counted apart).
-      typed_in_scope <- intersect(typed_samples, samples)
-      noncarriers <- setdiff(typed_in_scope, carriers)
-      untyped <- setdiff(samples, typed_samples)
       locus <- hla_allele_locus(a)
+      locus_rows <- in_scope[in_scope$locus == locus, , drop = FALSE]
+      typed_units <- unique(unname(sample_to_unit[locus_rows$sample]))
+      carrier_rows <- locus_rows[locus_rows$allele == a, , drop = FALSE]
+      carriers <- unique(unname(sample_to_unit[carrier_rows$sample]))
+      noncarriers <- setdiff(typed_units, carriers)
+      untyped <- setdiff(all_units, typed_units)
       data.frame(
         allele = a,
         locus = locus,
@@ -465,6 +504,7 @@ hla_allele_carrier_summary <- function(typing, samples) {
         n_noncarrier = length(noncarriers),
         n_untyped = length(untyped),
         carriers = paste(sort(carriers), collapse = ", "),
+        analysis_unit = analysis_unit,
         stringsAsFactors = FALSE
       )
     })

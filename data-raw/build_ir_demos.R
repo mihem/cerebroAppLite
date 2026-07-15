@@ -194,9 +194,10 @@ subset_cerebro <- function(keep_barcodes, experiment_name) {
   new
 }
 
-## Assign clonotypes from `pool` only to cells whose cell_type matches
-## `lineage_regex`, sampling with replacement. Returns a data.frame with the
-## five IR columns the Shiny app expects.
+## Assign real receptor sequences from `pool` only to cells whose cell_type
+## matches `lineage_regex`, sampling with replacement. This deliberately creates
+## a SYNTHETIC RECEPTOR-TO-CELL LINKAGE: the output is a UI fixture, not paired
+## GEX+VDJ evidence. Returns the five IR columns the Shiny app expects.
 assign_ir <- function(meta, pool, lineage_regex, seed = 42) {
   set.seed(seed)
   lineage_cells <- meta$cell_barcode[

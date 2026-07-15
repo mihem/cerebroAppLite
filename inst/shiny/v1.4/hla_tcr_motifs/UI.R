@@ -63,6 +63,7 @@ tab_hla_tcr_motifs <- tabItem(
                 height = "640px"
               )
             ),
+            uiOutput("hla_node_details"),
             uiOutput("hla_motif_note")
           ),
           tabPanel(

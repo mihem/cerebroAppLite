@@ -14,6 +14,6 @@ Character vector of detected chains, subset of TRA/TRB/TRG/TRD/
   IGH/IGK/IGL, in that canonical order.
 }
 \description{
-Scans the `CTgene` column of the first few samples for chain tokens.
+Scans the `CTgene` column of all samples for chain tokens.
 }
 \keyword{internal}

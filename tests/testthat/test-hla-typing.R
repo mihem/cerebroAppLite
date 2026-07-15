@@ -30,6 +30,16 @@ test_that("expression suffix is accepted", {
   expect_equal(hla_normalize_allele("HLA-A*02:01N"), "HLA-A*02:01N")
 })
 
+test_that("official G and P group suffixes are preserved", {
+  expect_equal(
+    hla_normalize_allele("HLA-A*02:01:01G"),
+    "HLA-A*02:01:01G"
+  )
+  expect_equal(hla_normalize_allele("HLA-A*02:01P"), "HLA-A*02:01P")
+  expect_equal(hla_allele_resolution("HLA-A*02:01:01G"), "3-field")
+  expect_equal(hla_allele_resolution("HLA-A*02:01P"), "2-field")
+})
+
 test_that("garbage alleles are rejected", {
   expect_true(is.na(hla_normalize_allele("banana")))
   expect_true(is.na(hla_normalize_allele("A*")))
@@ -77,6 +87,20 @@ test_that("wide table normalizes to canonical long table", {
   expect_equal(sum(t$sample == "s2"), 2L)
   expect_true("HLA-A*02:01" %in% t$allele)
   expect_false(any(grepl("NNNN", t$allele)))
+})
+
+test_that("wide table preserves donor mapping", {
+  wide <- data.frame(
+    sample = c("s1", "s2"),
+    donor_id = c("d1", "d2"),
+    `HLA-A_1` = c("02:01", "01:01"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+
+  t <- hla_normalize_typing(wide, source_type = "genotyped")
+
+  expect_equal(t$donor_id[match(c("s1", "s2"), t$sample)], c("d1", "d2"))
 })
 
 ## ---- provenance safety ------------------------------------------------ ##
@@ -169,6 +193,45 @@ test_that("carrier summary counts carriers / non-carriers / untyped", {
   expect_equal(a2$n_untyped, 1L) # s4
   expect_equal(a2$mhc_class, "Class I")
   expect_true(grepl("s1", a2$carriers) && grepl("s2", a2$carriers))
+})
+
+test_that("carrier summary uses locus-specific typing denominators", {
+  t <- hla_normalize_typing(
+    list(
+      s1 = c("HLA-A*02:01", "HLA-B*08:01"),
+      s2 = "HLA-A*01:01"
+    ),
+    source_type = "genotyped"
+  )
+
+  summ <- hla_allele_carrier_summary(t, samples = c("s1", "s2"))
+  b8 <- summ[summ$allele == "HLA-B*08:01", ]
+
+  expect_equal(b8$n_carrier, 1L)
+  expect_equal(b8$n_noncarrier, 0L)
+  expect_equal(b8$n_untyped, 1L)
+})
+
+test_that("carrier summary collapses repeated samples to donor when complete", {
+  t <- hla_normalize_typing(
+    data.frame(
+      sample = c("s1", "s2", "s3"),
+      donor_id = c("d1", "d1", "d2"),
+      locus = "HLA-A",
+      allele = c("HLA-A*02:01", "HLA-A*02:01", "HLA-A*01:01"),
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+
+  summ <- hla_allele_carrier_summary(t, samples = c("s1", "s2", "s3"))
+  a2 <- summ[summ$allele == "HLA-A*02:01", ]
+
+  expect_equal(a2$analysis_unit, "donor")
+  expect_equal(a2$n_carrier, 1L)
+  expect_equal(a2$n_noncarrier, 1L)
+  expect_equal(a2$n_untyped, 0L)
+  expect_equal(a2$carriers, "d1")
 })
 
 test_that("carrier summary is ordered by descending carrier count", {

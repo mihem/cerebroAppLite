@@ -11,18 +11,7 @@
 HLA_MOTIF_MAX_LEGEND_CLUSTERS <- 12
 
 ## Categorical palette shared by nodes and the legend (plotly/D3-ish).
-HLA_MOTIF_PALETTE <- c(
-  "#636EFA",
-  "#EF553B",
-  "#00CC96",
-  "#AB63FA",
-  "#FFA15A",
-  "#19D3F3",
-  "#FF6692",
-  "#B6E880",
-  "#FF97FF",
-  "#FECB52"
-)
+HLA_MOTIF_MAX_PHYSICS <- 1000L
 
 ## ---- HTML-escape helper ----------------------------------------------- ##
 hla_esc <- function(x) {
@@ -53,7 +42,10 @@ hla_build_motif_visnet <- function(graph, color_by = NULL, chain = NULL) {
     "cluster"
   }
 
-  cdr3 <- get_attr("name")
+  cdr3 <- get_attr("cdr3")
+  if (all(is.na(cdr3))) {
+    cdr3 <- get_attr("name")
+  }
   clone_count <- get_attr("clone_count")
   v_gene <- get_attr("v_gene")
   j_gene <- get_attr("j_gene")
@@ -69,11 +61,7 @@ hla_build_motif_visnet <- function(graph, color_by = NULL, chain = NULL) {
     unique(group_raw[!is.na(group_raw)])
   }
   levels_ord <- levels_ord[!is.na(levels_ord)]
-  pal <- HLA_MOTIF_PALETTE
-  level_colors <- stats::setNames(
-    pal[((seq_along(levels_ord) - 1) %% length(pal)) + 1],
-    levels_ord
-  )
+  level_colors <- hla_distinct_colors(levels_ord)
   node_color <- unname(level_colors[group_raw])
   node_color[is.na(node_color)] <- "grey70"
 
@@ -204,6 +192,9 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
   if (!hla_motif_graph_ok(g)) {
     return(NULL)
   }
+  if (igraph::vcount(g) > HLA_MOTIF_MAX_RENDER) {
+    return(NULL)
+  }
   color_by <- hla_param("hla_color_by", "")
   vn <- hla_build_motif_visnet(g, color_by = color_by, hla_active_chain())
   if (is.null(vn)) {
@@ -212,7 +203,7 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
 
   # Physics is disabled above the render-size guard, so large graphs settle
   # instantly instead of freezing the browser.
-  use_physics <- vn$n_render <= HLA_MOTIF_MAX_RENDER
+  use_physics <- vn$n_render <= HLA_MOTIF_MAX_PHYSICS
 
   net <- visNetwork::visNetwork(
     vn$nodes,
@@ -235,6 +226,15 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
     tooltipDelay = 100,
     navigationButtons = TRUE
   )
+  net <- visNetwork::visEvents(
+    net,
+    selectNode = htmlwidgets::JS(
+      "function(p) { Shiny.setInputValue('hla_selected_node_id', p.nodes[0], {priority: 'event'}); }"
+    ),
+    deselectNode = htmlwidgets::JS(
+      "function() { Shiny.setInputValue('hla_selected_node_id', null, {priority: 'event'}); }"
+    )
+  )
   if (!is.null(vn$legend)) {
     net <- visNetwork::visLegend(
       net,
@@ -246,6 +246,54 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
     )
   }
   net
+})
+
+## ---- Stable details for the selected node ----------------------------- ##
+output$hla_node_details <- renderUI({
+  g <- hla_motif_graph()
+  selected <- suppressWarnings(as.integer(input$hla_selected_node_id))
+  if (
+    !hla_motif_graph_ok(g) ||
+      length(selected) != 1 ||
+      is.na(selected) ||
+      selected < 1 ||
+      selected > igraph::vcount(g)
+  ) {
+    return(tags$p(
+      class = "text-muted",
+      style = "font-size: 12px; margin-top: 8px;",
+      "Select a node to keep its full CDR3 and evidence details visible."
+    ))
+  }
+  v <- igraph::V(g)[selected]
+  value <- function(name) {
+    x <- igraph::vertex_attr(g, name, index = v)
+    if (length(x) == 0 || is.na(x) || !nzchar(as.character(x))) {
+      "—"
+    } else {
+      as.character(x)
+    }
+  }
+  tags$div(
+    class = "well well-sm",
+    style = "margin-top: 8px; margin-bottom: 4px; font-size: 12px;",
+    tags$b(value("cdr3")),
+    tags$span(sprintf(" · V/J: %s / %s", value("v_gene"), value("j_gene"))),
+    tags$br(),
+    tags$span(sprintf(
+      "Motif: %s · consensus: %s · diameter: %s · cells: %s",
+      value("motif_group"),
+      value("motif_consensus"),
+      value("motif_diameter"),
+      value("clone_count")
+    )),
+    if (value("cell_type_dist") != "—") {
+      tagList(tags$br(), value("cell_type_dist"))
+    },
+    if (value("mhc_context_dist") != "—") {
+      tagList(tags$br(), value("mhc_context_dist"))
+    }
+  )
 })
 
 ## ---- Note under the network (guard messages / empty state) ------------- ##
@@ -270,6 +318,16 @@ output$hla_motif_note <- renderUI({
   guard <- attr(g, "guard")
   if (!is.null(guard)) {
     return(tags$p(class = "text-danger", guard))
+  }
+  if (hla_motif_graph_ok(g) && igraph::vcount(g) > HLA_MOTIF_MAX_RENDER) {
+    return(tags$p(
+      class = "text-danger",
+      sprintf(
+        "The filtered graph has %s nodes; interactive rendering is capped at %s. Increase motif size or filter the repertoire.",
+        format(igraph::vcount(g), big.mark = ","),
+        format(HLA_MOTIF_MAX_RENDER, big.mark = ",")
+      )
+    ))
   }
   if (!hla_motif_graph_ok(g)) {
     return(tags$p(
