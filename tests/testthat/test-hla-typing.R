@@ -152,6 +152,38 @@ test_that("context summary collapses per-cell contexts to a node label", {
   expect_equal(hla_context_summary(c("Unknown", "Unknown")), "Unknown")
 })
 
+## ---- descriptive carrier summary -------------------------------------- ##
+
+test_that("carrier summary counts carriers / non-carriers / untyped", {
+  x <- list(
+    s1 = c("HLA-A*02:01", "HLA-B*08:01"),
+    s2 = c("HLA-A*02:01"),
+    s3 = c("HLA-A*01:01")
+  )
+  t <- hla_normalize_typing(x, source_type = "genotyped")
+  # scope includes a 4th sample (s4) with no typing -> untyped
+  summ <- hla_allele_carrier_summary(t, samples = c("s1", "s2", "s3", "s4"))
+  a2 <- summ[summ$allele == "HLA-A*02:01", ]
+  expect_equal(a2$n_carrier, 2L) # s1, s2
+  expect_equal(a2$n_noncarrier, 1L) # s3 (typed, lacks it)
+  expect_equal(a2$n_untyped, 1L) # s4
+  expect_equal(a2$mhc_class, "Class I")
+  expect_true(grepl("s1", a2$carriers) && grepl("s2", a2$carriers))
+})
+
+test_that("carrier summary is ordered by descending carrier count", {
+  x <- list(s1 = "HLA-A*02:01", s2 = "HLA-A*02:01", s3 = "HLA-A*01:01")
+  t <- hla_normalize_typing(x, source_type = "genotyped")
+  summ <- hla_allele_carrier_summary(t, samples = c("s1", "s2", "s3"))
+  expect_equal(summ$allele[1], "HLA-A*02:01") # 2 carriers first
+})
+
+test_that("carrier summary is empty on empty typing", {
+  t <- hla_normalize_typing(list(), source_type = "genotyped")
+  summ <- hla_allele_carrier_summary(t, samples = c("s1"))
+  expect_equal(nrow(summ), 0L)
+})
+
 ## ---- empty input ------------------------------------------------------ ##
 
 test_that("empty input yields an empty canonical table", {

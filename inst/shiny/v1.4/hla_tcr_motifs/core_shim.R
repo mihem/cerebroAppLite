@@ -13,9 +13,12 @@
 ## documented API — NOT the ::: operator that the project bans in runtime code.
 ##----------------------------------------------------------------------------##
 
-## Only bind when the namespace is loaded (the normal app path). Under
-## devtools::load_all the functions are already in scope, so this is a no-op.
-if ("cerebroAppLite" %in% loadedNamespaces()) {
+## Ensure the namespace is loaded, then bind. requireNamespace() loads (not
+## attaches) the installed package if it is not already loaded; this matters
+## because the module server can initialise BEFORE the first .crb (which would
+## otherwise trigger the load) is deserialized. Under devtools::load_all the
+## functions are already in scope and getFromNamespace still resolves them.
+if (requireNamespace("cerebroAppLite", quietly = TRUE)) {
   for (.hla_fn in c(
     "hla_detect_chains",
     "hla_parse_ir_segments",
@@ -33,6 +36,7 @@ if ("cerebroAppLite" %in% loadedNamespaces()) {
     "hla_locus_class",
     "hla_is_typing_table",
     "hla_carrier_index",
+    "hla_allele_carrier_summary",
     "hla_coverage_by_sample",
     "HLA_TYPING_COLUMNS",
     "HLA_SOURCE_TYPES",

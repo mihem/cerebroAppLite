@@ -414,6 +414,66 @@ hla_context_summary <- function(contexts) {
   "Unknown"
 }
 
+## ---- Descriptive HLA carrier summaries (NO inferential statistics) ----- ##
+
+#' Descriptive per-allele carrier summary over samples
+#'
+#' For each allele in the typing table, count how many of the given samples
+#' carry it vs. do not, plus samples with no typing at all (untyped). This is a
+#' strictly DESCRIPTIVE overlap; it performs no enrichment test and reports no
+#' p-value. Association testing needs donor-level statistics and a pre-specified
+#' analysis plan (see the design doc), which the MVP deliberately omits.
+#'
+#' @param typing A canonical long table.
+#' @param samples Character vector of samples to consider (e.g. the IR samples).
+#' @return data.frame(allele, locus, mhc_class, n_carrier, n_noncarrier,
+#'   n_untyped, carriers) ordered by descending carrier count, or an empty frame.
+#' @keywords internal
+hla_allele_carrier_summary <- function(typing, samples) {
+  if (
+    !hla_is_typing_table(typing) || nrow(typing) == 0 || length(samples) == 0
+  ) {
+    return(data.frame(
+      allele = character(0),
+      locus = character(0),
+      mhc_class = character(0),
+      n_carrier = integer(0),
+      n_noncarrier = integer(0),
+      n_untyped = integer(0),
+      carriers = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+  typed_samples <- unique(typing$sample)
+  ci <- hla_carrier_index(typing)
+  alleles <- names(ci)
+  out <- do.call(
+    rbind,
+    lapply(alleles, function(a) {
+      carriers <- intersect(ci[[a]], samples)
+      # non-carriers are typed samples in `samples` that lack the allele;
+      # untyped samples are excluded from carrier/non-carrier (counted apart).
+      typed_in_scope <- intersect(typed_samples, samples)
+      noncarriers <- setdiff(typed_in_scope, carriers)
+      untyped <- setdiff(samples, typed_samples)
+      locus <- hla_allele_locus(a)
+      data.frame(
+        allele = a,
+        locus = locus,
+        mhc_class = hla_locus_class(locus),
+        n_carrier = length(carriers),
+        n_noncarrier = length(noncarriers),
+        n_untyped = length(untyped),
+        carriers = paste(sort(carriers), collapse = ", "),
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+  out <- out[order(-out$n_carrier, out$allele), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
 #' Per-sample allele coverage summary (for the Data & QC tab)
 #'
 #' @param typing A canonical long table.
