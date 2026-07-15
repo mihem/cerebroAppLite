@@ -371,6 +371,18 @@ hla_aggregate_cdr3_nodes <- function(
         v_gene_dist = dist_str(d$v_gene),
         j_gene_dist = dist_str(d$j_gene),
         clone_count = nrow(d),
+        # Machine-readable set of the samples this node was seen in, so a
+        # renderer can derive per-node HLA carrier status for ANY allele without
+        # rebuilding the graph. Kept allele-independent on purpose: the graph is
+        # cached on its build parameters, and colouring must never invalidate it.
+        samples_all = if ("sample" %in% colnames(d)) {
+          paste(
+            sort(unique(as.character(d$sample[!is.na(d$sample)]))),
+            collapse = ","
+          )
+        } else {
+          NA_character_
+        },
         stringsAsFactors = FALSE
       )
       for (mc in meta_cols) {

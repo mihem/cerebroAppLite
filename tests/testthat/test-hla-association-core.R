@@ -106,6 +106,51 @@ test_that("feature overlap can freeze V-specific members", {
   expect_equal(overlap$cell_fraction, 0.5)
 })
 
+## ---- per-node carrier status (render-time colouring) ------------------- ##
+
+test_that("node carrier status summarises the node's samples for one allele", {
+  typing <- make_overlap_typing()
+  samples <- c("s1", "s2", "s3", "s4")
+  # d1 (s1,s2) carries A*02:01; d2 (s3) is locus-typed non-carrier;
+  # d3 (s4) has only HLA-B typing -> untyped at the HLA-A locus.
+  status <- hla_node_carrier_status(
+    samples_all = c("s1", "s1,s2", "s3", "s1,s3", "s4", "s3,s4"),
+    typing = typing,
+    samples = samples,
+    allele = "HLA-A*02:01"
+  )
+  expect_equal(status[1], "Carrier") # s1 only
+  expect_equal(status[2], "Carrier") # s1+s2, both the same donor d1
+  expect_equal(status[3], "Non-carrier") # s3 typed at HLA-A, lacks the allele
+  expect_equal(status[4], "Mixed") # carrier + non-carrier
+  expect_equal(status[5], "Untyped") # s4 has no HLA-A typing
+  # untyped alongside a non-carrier must not invent a carrier class
+  expect_equal(status[6], "Non-carrier")
+})
+
+test_that("node carrier status is Untyped without usable typing", {
+  empty <- hla_normalize_typing(list(), source_type = "unknown")
+  status <- hla_node_carrier_status(
+    samples_all = c("s1", "s2"),
+    typing = empty,
+    samples = c("s1", "s2"),
+    allele = "HLA-A*02:01"
+  )
+  expect_equal(status, c("Untyped", "Untyped"))
+})
+
+test_that("node carrier status handles empty and NA sample sets", {
+  typing <- make_overlap_typing()
+  expect_equal(
+    hla_node_carrier_status(character(0), typing, "s1", "HLA-A*02:01"),
+    character(0)
+  )
+  expect_equal(
+    hla_node_carrier_status(NA_character_, typing, "s1", "HLA-A*02:01"),
+    "Untyped"
+  )
+})
+
 test_that("unit by allele matrix distinguishes non-carrier from locus-untyped", {
   mat <- hla_unit_allele_matrix(
     make_overlap_typing(),

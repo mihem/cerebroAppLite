@@ -83,6 +83,81 @@ hla_allele_status_by_unit <- function(typing, samples, allele) {
   units
 }
 
+#' Per-node HLA carrier status for one allele (render-time, cache-safe)
+#'
+#' Maps each motif node to the carrier status of the samples it was observed in,
+#' for ONE allele. Deliberately a render-time helper: it takes the node's sample
+#' set (`samples_all`, an allele-independent node attribute) rather than being
+#' baked into the graph, so switching allele re-colours without rebuilding the
+#' Hamming graph.
+#'
+#' A node aggregates cells from possibly several samples, so the status is a
+#' summary of those samples' statuses:
+#'   - "Carrier"      every sample carrying this node carries the allele;
+#'   - "Non-carrier"  every such sample was locus-typed and lacks the allele;
+#'   - "Mixed"        both carriers and non-carriers carry this node;
+#'   - "Untyped"      no carrying sample has typing at the allele's locus.
+#' A node seen in untyped samples plus carriers is "Mixed" only when a
+#' non-carrier is also present; untyped alone never invents a class.
+#'
+#' This is candidate co-occurrence, NOT restriction: a carrier's TCR is not
+#' thereby restricted by that allele.
+#'
+#' @param samples_all Character vector, one entry per node: a comma-separated
+#'   sorted sample list (the `samples_all` node attribute).
+#' @param typing Canonical HLA typing table.
+#' @param samples In-scope immune-repertoire sample names.
+#' @param allele Canonical or normalizable HLA allele.
+#' @return Character vector, one status per node.
+#' @keywords internal
+hla_node_carrier_status <- function(samples_all, typing, samples, allele) {
+  n <- length(samples_all)
+  if (n == 0) {
+    return(character(0))
+  }
+  status <- tryCatch(
+    hla_allele_status_by_unit(typing, samples, allele),
+    error = function(e) NULL
+  )
+  if (is.null(status) || nrow(status) == 0) {
+    return(rep("Untyped", n))
+  }
+  # Samples map to analysis units (donor when donor mapping is complete), so
+  # resolve each node's samples through the same unit map the tables use.
+  unit_map <- hla_analysis_unit_map(typing, samples)
+  sample_to_unit <- stats::setNames(unit_map$analysis_unit, unit_map$sample)
+  unit_status <- stats::setNames(status$hla_status, status$analysis_unit)
+
+  vapply(
+    samples_all,
+    function(s) {
+      if (is.na(s) || !nzchar(s)) {
+        return("Untyped")
+      }
+      smp <- strsplit(s, ",", fixed = TRUE)[[1]]
+      st <- unname(unit_status[unname(sample_to_unit[smp])])
+      st <- st[!is.na(st)]
+      if (length(st) == 0) {
+        return("Untyped")
+      }
+      has_c <- any(st == "carrier")
+      has_n <- any(st == "non-carrier")
+      if (has_c && has_n) {
+        return("Mixed")
+      }
+      if (has_c) {
+        return("Carrier")
+      }
+      if (has_n) {
+        return("Non-carrier")
+      }
+      "Untyped"
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+}
+
 #' Descriptive overlap of one HLA allele with a frozen TCR feature
 #'
 #' A feature is supplied as its member CDR3 strings (one node or all nodes in a

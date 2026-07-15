@@ -13,6 +13,19 @@ HLA_MOTIF_MAX_LEGEND_CLUSTERS <- 12
 ## Categorical palette shared by nodes and the legend (plotly/D3-ish).
 HLA_MOTIF_MAX_PHYSICS <- 1000L
 
+## Carrier-status colouring is a fixed scale, not an arbitrary categorical one:
+## the four states always mean the same thing, so they keep the same order and
+## hue across alleles and data sets. Carrier/non-carrier are the contrast the eye
+## is meant to make; Mixed sits between them; Untyped is deliberately neutral
+## grey so absence of evidence never reads as a finding.
+HLA_CARRIER_LEVELS <- c("Carrier", "Non-carrier", "Mixed", "Untyped")
+HLA_CARRIER_COLORS <- c(
+  "Carrier" = "#d6432f",
+  "Non-carrier" = "#3b6fb6",
+  "Mixed" = "#b07aa1",
+  "Untyped" = "#b8bcc4"
+)
+
 ## ---- HTML-escape helper ----------------------------------------------- ##
 hla_esc <- function(x) {
   x <- as.character(x)
@@ -26,13 +39,33 @@ hla_esc <- function(x) {
 ## motif cluster by default. Tooltip shows CDR3, clone size + fraction, motif
 ## cluster + consensus + DIAMETER (so a transitive component is never implied to
 ## be all-pairs <= 1), V/J, and the active colour column's distribution.
-hla_build_motif_visnet <- function(graph, color_by = NULL, chain = NULL) {
+## `carrier_status` is an optional per-node vector computed at RENDER time (see
+## hla_node_carrier_status): the HLA allele is a display choice, so it must never
+## enter the cached graph. When supplied it becomes the colour attribute.
+## `unit_noun` names what a node's size counts ("cell" for single-cell data,
+## "analysis unit" for bulk), so the tooltip never claims cells that do not exist.
+hla_build_motif_visnet <- function(
+  graph,
+  color_by = NULL,
+  chain = NULL,
+  carrier_status = NULL,
+  carrier_allele = NULL,
+  unit_noun = "cell"
+) {
   if (!hla_motif_graph_ok(graph)) {
     return(NULL)
   }
   va <- igraph::vertex_attr(graph)
   n <- igraph::vcount(graph)
   get_attr <- function(nm) if (nm %in% names(va)) va[[nm]] else rep(NA, n)
+
+  # Carrier status is not a graph attribute; splice it in for this render only.
+  use_carrier <- identical(color_by, "hla_carrier") &&
+    !is.null(carrier_status) &&
+    length(carrier_status) == n
+  if (use_carrier) {
+    va[["hla_carrier"]] <- carrier_status
+  }
 
   color_col <- if (
     !is.null(color_by) && nzchar(color_by) && color_by %in% names(va)
@@ -57,11 +90,19 @@ hla_build_motif_visnet <- function(graph, color_by = NULL, chain = NULL) {
   group_raw <- as.character(get_attr(color_col))
   levels_ord <- if (color_col == "cluster") {
     as.character(sort(unique(suppressWarnings(as.numeric(group_raw)))))
+  } else if (use_carrier) {
+    # Fixed, meaningful order — the reader compares carrier against non-carrier,
+    # so those must not swap places or change hue between alleles.
+    intersect(HLA_CARRIER_LEVELS, unique(group_raw))
   } else {
     unique(group_raw[!is.na(group_raw)])
   }
   levels_ord <- levels_ord[!is.na(levels_ord)]
-  level_colors <- hla_distinct_colors(levels_ord)
+  level_colors <- if (use_carrier) {
+    HLA_CARRIER_COLORS[levels_ord]
+  } else {
+    hla_distinct_colors(levels_ord)
+  }
   node_color <- unname(level_colors[group_raw])
   node_color[is.na(node_color)] <- "grey70"
 
@@ -112,8 +153,23 @@ hla_build_motif_visnet <- function(graph, color_by = NULL, chain = NULL) {
         if (nzchar(node_label[i])) {
           sprintf("Variable residue: %s", hla_esc(node_label[i]))
         },
-        sprintf("Clone size: %s%s", hla_esc(clone_count[i]), frac),
+        # Name the unit for what it actually is. On bulk data there are no
+        # cells, so calling this a clone size would invent a measurement.
+        sprintf(
+          "%s: %s%s",
+          if (identical(unit_noun, "cell")) "Clone size" else "Analysis units",
+          hla_esc(clone_count[i]),
+          frac
+        ),
         sprintf("Neighbours: %s", hla_esc(deg[i])),
+        if (use_carrier) {
+          sprintf(
+            "%s: <b>%s</b>%s",
+            hla_esc(carrier_allele %||% "HLA carrier status"),
+            hla_esc(group_raw[i]),
+            " (candidate co-occurrence, not restriction)"
+          )
+        },
         if (!is.na(cell_dist[i])) hla_esc(cell_dist[i]),
         if (!is.na(color_dist[i])) {
           sprintf("%s: %s", hla_esc(color_col), hla_esc(color_dist[i]))
@@ -175,7 +231,14 @@ hla_build_motif_visnet <- function(graph, color_by = NULL, chain = NULL) {
     nodes = nodes,
     edges = edges,
     legend = legend,
-    legend_title = if (color_col == "cluster") "Motif cluster" else color_col,
+    legend_title = if (color_col == "cluster") {
+      "Motif cluster"
+    } else if (use_carrier) {
+      # Name the allele being shown, not the internal column.
+      carrier_allele %||% "HLA carrier status"
+    } else {
+      color_col
+    },
     subtitle = subtitle,
     n_render = n
   )
@@ -196,7 +259,28 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
     return(NULL)
   }
   color_by <- hla_param("hla_color_by", "")
-  vn <- hla_build_motif_visnet(g, color_by = color_by, hla_active_chain())
+  # Carrier status is derived HERE, from the cached graph's allele-independent
+  # `samples_all` attribute, so switching allele re-colours without recomputing
+  # a single Hamming distance.
+  allele <- hla_color_allele()
+  carrier <- if (identical(color_by, "hla_carrier") && !is.null(allele)) {
+    hla_node_carrier_status(
+      samples_all = igraph::vertex_attr(g, "samples_all"),
+      typing = hla_active_typing(),
+      samples = names(getImmuneRepertoire()),
+      allele = allele
+    )
+  } else {
+    NULL
+  }
+  vn <- hla_build_motif_visnet(
+    g,
+    color_by = color_by,
+    chain = hla_active_chain(),
+    carrier_status = carrier,
+    carrier_allele = allele,
+    unit_noun = hla_unit_noun()
+  )
   if (is.null(vn)) {
     return(NULL)
   }
@@ -342,11 +426,14 @@ output$hla_motif_note <- renderUI({
   tags$p(
     class = "text-muted",
     style = "font-size: 12px; margin-top: 8px;",
-    paste(
-      "Nodes = unique CDR3; an edge joins two equal-length CDR3 at Hamming",
-      "distance 1. A motif is a Hamming-1 connected component (membership can",
-      "be transitive; the tooltip reports the component diameter). Node size",
-      "= number of cells carrying that CDR3."
+    sprintf(
+      paste(
+        "Nodes = unique CDR3; an edge joins two equal-length CDR3 at Hamming",
+        "distance 1. A motif is a Hamming-1 connected component (membership can",
+        "be transitive; the tooltip reports the component diameter). Node size",
+        "= number of %ss carrying that CDR3."
+      ),
+      hla_unit_noun()
     )
   )
 })

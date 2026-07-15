@@ -79,6 +79,7 @@ if (.hla_has_source_tree) {
     "hla_is_typing_table",
     "hla_carrier_index",
     "hla_allele_carrier_summary",
+    "hla_node_carrier_status",
     "hla_analysis_unit_map",
     "hla_allele_status_by_unit",
     "hla_descriptive_feature_overlap",

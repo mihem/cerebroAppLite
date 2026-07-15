@@ -5,7 +5,7 @@
 ## ---- Left-column parameters ------------------------------------------- ##
 output$hla_parameters_ui <- renderUI({
   chains <- hla_tcr_chains()
-  meta_cols <- hla_color_meta_cols()
+  meta_cols <- hla_usable_color_cols()
   color_choices <- c(
     "Motif cluster" = "",
     stats::setNames(meta_cols, meta_cols)
@@ -14,6 +14,16 @@ output$hla_parameters_ui <- renderUI({
   # Unknown), offered only when a cell-type column exists to derive it from.
   if (!is.na(hla_celltype_col())) {
     color_choices <- c(color_choices, "MHC context" = "mhc_context")
+  }
+  # Carrier status of ONE allele is the colouring this page exists for: it is
+  # what connects the network to the HLA context. Offered only with typing, and
+  # deliberately named for what it shows (who carries the allele), never as if
+  # the allele restricted the TCR.
+  if (hla_has_typing()) {
+    color_choices <- c(
+      color_choices,
+      "HLA carrier status (pick allele below)" = "hla_carrier"
+    )
   }
   tagList(
     if (length(chains) > 1) {
@@ -35,12 +45,19 @@ output$hla_parameters_ui <- renderUI({
       choices = color_choices,
       selected = hla_param("hla_color_by", "")
     ),
+    # The allele whose carrier status colours the network. Only meaningful for
+    # the carrier colouring, so it is shown only then. Changing it re-colours
+    # from the cached graph; it never rebuilds the Hamming distance matrix.
+    conditionalPanel(
+      condition = "input.hla_color_by == 'hla_carrier'",
+      uiOutput("hla_color_allele_ui")
+    ),
     sliderInput(
       "hla_min_nodes",
       "Minimum motif size (nodes):",
       min = 2,
       max = 10,
-      value = as.integer(hla_param("hla_min_nodes", 2L)),
+      value = hla_default_min_nodes(),
       step = 1
     ),
     checkboxInput(
@@ -58,6 +75,24 @@ output$hla_parameters_ui <- renderUI({
       style = "font-size: 11px;",
       "Edges use Hamming distance 1 (fixed)."
     )
+  )
+})
+
+## ---- Allele picker for carrier colouring ------------------------------ ##
+## Labelled with the carrier split and ordered by informativeness, so the user
+## is not choosing blind out of a long alphabetical list: an allele that only
+## one sample carries cannot show a contrast, and an allele nobody lacks cannot
+## either. See hla_allele_choices() in data.R.
+output$hla_color_allele_ui <- renderUI({
+  choices <- hla_allele_choices()
+  if (length(choices) == 0) {
+    return(tags$p(class = "text-muted", "No HLA alleles available."))
+  }
+  selectInput(
+    "hla_color_allele",
+    "HLA allele to colour by:",
+    choices = choices,
+    selected = hla_param("hla_color_allele", unname(choices[1]))
   )
 })
 

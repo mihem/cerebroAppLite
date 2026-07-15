@@ -131,6 +131,115 @@ hla_color_meta_cols <- reactive({
   c(ordered, setdiff(cols, ordered))
 })
 
+## Colouring by a column with more distinct values than this is unreadable: the
+## legend is suppressed and every point gets a near-arbitrary hue, so the control
+## would promise a grouping it cannot show. Such columns are not offered.
+HLA_MAX_COLOR_LEVELS <- 24L
+
+## ---- Colour columns that can actually be read -------------------------- ##
+## hla_color_meta_cols() keeps any categorical column with > 1 level, but a
+## column with a level per sample (e.g. `sample` / `donor_id` in a 100-donor
+## cohort) yields ~100 hues and a suppressed legend: the control would offer a
+## grouping the plot cannot convey. Cap the cardinality for the colour picker
+## only; such columns remain available as node tooltips.
+hla_usable_color_cols <- reactive({
+  cols <- hla_color_meta_cols()
+  if (length(cols) == 0) {
+    return(character(0))
+  }
+  data <- hla_ir_annotated()
+  if (is.null(data)) {
+    return(cols)
+  }
+  n_levels <- vapply(
+    cols,
+    function(col) {
+      v <- unlist(lapply(data, function(df) {
+        if (col %in% colnames(df)) as.character(df[[col]]) else character(0)
+      }))
+      length(unique(v[!is.na(v) & nzchar(v)]))
+    },
+    integer(1)
+  )
+  cols[n_levels <= HLA_MAX_COLOR_LEVELS]
+})
+
+## ---- Default minimum motif size --------------------------------------- ##
+## A fixed default of 2 keeps every 2-node component, which on a real repertoire
+## means thousands of nodes in hundreds of tiny motifs: physics is disabled, the
+## layout collapses to a ring and the first thing the user sees is a hairball.
+## Scale the default to the data instead, so the first view is a readable set of
+## the larger motifs; the slider still exposes the full range down to 2.
+hla_default_min_nodes <- reactive({
+  seg <- hla_segments()
+  if (is.null(seg) || nrow(seg) == 0) {
+    return(2L)
+  }
+  n_cdr3 <- length(unique(seg$cdr3))
+  if (n_cdr3 > 2000) {
+    6L
+  } else if (n_cdr3 > 500) {
+    4L
+  } else {
+    2L
+  }
+})
+
+## ---- HLA alleles offered for carrier colouring ------------------------ ##
+## Labelled with the carrier / non-carrier split and ordered by how much
+## contrast they can show. An allele carried by everyone (or by nobody) in the
+## cohort colours the whole network one shade, so those sort last.
+hla_allele_choices <- reactive({
+  if (!hla_has_typing()) {
+    return(character(0))
+  }
+  typing <- hla_active_typing()
+  samples <- names(getImmuneRepertoire())
+  summ <- hla_allele_carrier_summary(typing, samples = samples)
+  if (is.null(summ) || nrow(summ) == 0) {
+    return(character(0))
+  }
+  # Informativeness = the size of the smaller of the two groups: that is the
+  # most donors a carrier/non-carrier contrast could ever rest on.
+  contrast <- pmin(summ$n_carrier, summ$n_noncarrier)
+  ord <- order(-contrast, -summ$n_carrier, summ$allele)
+  summ <- summ[ord, , drop = FALSE]
+  stats::setNames(
+    summ$allele,
+    sprintf(
+      "%s - %d carrier / %d non-carrier",
+      summ$allele,
+      summ$n_carrier,
+      summ$n_noncarrier
+    )
+  )
+})
+
+## ---- Allele currently colouring the network --------------------------- ##
+## Falls back to the most informative allele so the first carrier render is
+## meaningful before the picker has reported a value.
+hla_color_allele <- reactive({
+  choices <- hla_allele_choices()
+  if (length(choices) == 0) {
+    return(NULL)
+  }
+  a <- input$hla_color_allele
+  if (!is.null(a) && nzchar(a) && a %in% choices) {
+    return(a)
+  }
+  unname(choices[1])
+})
+
+## ---- What one row of the data actually is ----------------------------- ##
+## A .crb row is a cell for single-cell data, but the bulk cohort demo maps a
+## (donor, clonotype) pair onto a row. Detect it from the data rather than
+## trusting a label: with no genes measured there was no transcriptome, so the
+## rows cannot be cells. Used to name node size honestly in the tooltip.
+hla_unit_noun <- reactive({
+  n_genes <- tryCatch(nrow(data_set()$expression), error = function(e) NULL)
+  if (!is.null(n_genes) && n_genes == 0) "analysis unit" else "cell"
+})
+
 ## ---- Cell-type column used for lineage-derived MHC context ------------- ##
 ## Prefer a finer lineage column (cell_type_fine) when present, since a coarse
 ## "T cells" label cannot separate CD4/CD8 and collapses to Unknown context.
@@ -188,7 +297,7 @@ hla_motif_graph <- reactive({
   hla_build_motif_graph(
     seg,
     by_v = isTRUE(hla_param("hla_by_v", FALSE)),
-    min_nodes = as.integer(hla_param("hla_min_nodes", 2L)),
+    min_nodes = as.integer(hla_param("hla_min_nodes", hla_default_min_nodes())),
     show_isolated = isTRUE(hla_param("hla_show_isolated", FALSE)),
     meta_cols = hla_node_meta_cols(),
     context_col = ctx_col
@@ -197,7 +306,7 @@ hla_motif_graph <- reactive({
   hla_bindCache(
     hla_active_chain(),
     hla_param("hla_by_v", FALSE),
-    hla_param("hla_min_nodes", 2L),
+    hla_param("hla_min_nodes", hla_default_min_nodes()),
     hla_param("hla_show_isolated", FALSE),
     paste(hla_node_meta_cols(), collapse = ","),
     available_crb_files$selected

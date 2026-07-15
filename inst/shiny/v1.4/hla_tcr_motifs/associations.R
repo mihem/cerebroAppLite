@@ -52,15 +52,12 @@ output$hla_feature_selector_ui <- renderUI({
     }
     choices <- stats::setNames(catalog$node_id, labels)
   } else {
-    groups <- unique(catalog$motif_group)
-    labels <- vapply(
-      groups,
-      function(group) {
-        members <- catalog[catalog$motif_group == group, , drop = FALSE]
-        sprintf("%s (%d CDR3)", group, nrow(members))
-      },
-      character(1)
-    )
+    # Largest motif first. Motif ids are generated in length-bin order, so the
+    # natural order opens on an arbitrary two-CDR3 component; a bigger component
+    # is the more informative thing to land on and rests on more observations.
+    sizes <- table(catalog$motif_group)
+    groups <- names(sort(sizes, decreasing = TRUE))
+    labels <- sprintf("%s (%d CDR3)", groups, as.integer(sizes[groups]))
     choices <- stats::setNames(groups, labels)
   }
   selectInput("hla_feature_id", "Frozen feature:", choices = choices)
@@ -104,7 +101,9 @@ output$hla_associations_ui <- renderUI({
       )
     ))
   }
-  alleles <- sort(unique(hla_active_typing()$allele))
+  # Same labelling/order as the network's picker: an alphabetical list of every
+  # allele makes the user guess which ones can show a contrast at all.
+  alleles <- hla_allele_choices()
   tagList(
     tags$div(
       class = "alert alert-info",
