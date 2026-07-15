@@ -56,7 +56,12 @@ observeEvent(input$hla_status_info, {
         ),
         tags$li(
           tags$b("Association"),
-          " — a motif enriched among carriers of an allele across donors. Descriptive only in this version."
+          paste(
+            " — whether a motif is enriched among carriers of an allele is a",
+            "donor-level statistical question. This version does NOT answer it:",
+            "it computes no test and reports no p-value. What you see is the",
+            "observed overlap only."
+          )
         ),
         tags$li(
           tags$b("Validated restriction"),

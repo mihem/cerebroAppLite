@@ -395,6 +395,110 @@ output$hla_node_details <- renderUI({
   )
 })
 
+## ---- Export: tables + manifest ---------------------------------------- ##
+## A screenshot of the network is not a result. This writes what the page shows
+## as recomputable tables, plus a manifest carrying the parameters and every
+## caveat that applies — so numbers cannot leave the app stripped of the fact
+## that, say, the receptors were selected on the association being displayed.
+output$hla_export_analysis <- downloadHandler(
+  filename = function() {
+    sprintf(
+      "hla_tcr_motifs_%s_%s.zip",
+      gsub("[^A-Za-z0-9]+", "_", hla_active_chain()),
+      format(Sys.Date())
+    )
+  },
+  content = function(file) {
+    g <- hla_motif_graph()
+    tabs <- hla_graph_tables(g)
+    motifs <- hla_motif_summary(g)
+    typing <- hla_active_typing()
+    ir_samples <- names(getImmuneRepertoire())
+    unit_map <- tryCatch(
+      hla_analysis_unit_map(typing, ir_samples),
+      error = function(e) NULL
+    )
+    qc <- tryCatch(attr(typing, "qc"), error = function(e) NULL)
+
+    manifest <- hla_build_manifest(
+      dataset = tryCatch(
+        data_set()$experiment$experiment_name,
+        error = function(e) NA_character_
+      ),
+      chain = hla_active_chain(),
+      input_channel = if (
+        !is.null(hla_session_typing()) && nrow(hla_session_typing()) > 0
+      ) {
+        "session upload"
+      } else if (hla_has_typing()) {
+        "stored .crb"
+      } else {
+        "none"
+      },
+      hla_source_type = if (hla_has_typing()) {
+        paste(unique(typing$source_type), collapse = ", ")
+      } else {
+        NA_character_
+      },
+      unit_type = if (is.null(unit_map)) {
+        NA_character_
+      } else {
+        paste(unique(unit_map$unit_type), collapse = ", ")
+      },
+      observation_unit = hla_unit_noun(),
+      n_units = length(ir_samples),
+      n_nodes = nrow(tabs$nodes),
+      n_edges = nrow(tabs$edges),
+      n_motifs = nrow(motifs),
+      min_nodes = hla_param("hla_min_nodes", hla_default_min_nodes()),
+      split_by_v = isTRUE(hla_param("hla_by_v", hla_by_v_default())),
+      show_isolated = isTRUE(hla_param("hla_show_isolated", FALSE)),
+      allele = hla_color_allele() %||% NA_character_,
+      tcr_selection = tryCatch(
+        data_set()$technical_info$tcr_selection %||% NA_character_,
+        error = function(e) NA_character_
+      ),
+      qc_warnings = if (is.data.frame(qc) && nrow(qc) > 0) {
+        qc$issue
+      } else {
+        character(0)
+      },
+      app_version = as.character(utils::packageVersion("cerebroAppLite"))
+    )
+
+    tmp <- file.path(tempdir(), "hla_export")
+    unlink(tmp, recursive = TRUE)
+    dir.create(tmp, showWarnings = FALSE, recursive = TRUE)
+    utils::write.csv(
+      manifest,
+      file.path(tmp, "manifest.csv"),
+      row.names = FALSE
+    )
+    utils::write.csv(tabs$nodes, file.path(tmp, "nodes.csv"), row.names = FALSE)
+    utils::write.csv(tabs$edges, file.path(tmp, "edges.csv"), row.names = FALSE)
+    utils::write.csv(motifs, file.path(tmp, "motifs.csv"), row.names = FALSE)
+    if (hla_has_typing()) {
+      utils::write.csv(
+        typing,
+        file.path(tmp, "hla_typing.csv"),
+        row.names = FALSE
+      )
+    }
+    ov <- tryCatch(hla_overlap_table(), error = function(e) NULL)
+    if (is.data.frame(ov) && nrow(ov) > 0) {
+      utils::write.csv(
+        ov,
+        file.path(tmp, "allele_overlap.csv"),
+        row.names = FALSE
+      )
+    }
+    # utils::zip (base R) rather than the zip package: no new dependency. "-j"
+    # junks the temp directory path so the archive holds plain file names.
+    files <- list.files(tmp, full.names = TRUE)
+    utils::zip(zipfile = file, files = files, flags = "-j -q")
+  }
+)
+
 ## ---- Note under the network (guard messages / empty state) ------------- ##
 output$hla_motif_note <- renderUI({
   if (!hla_has_deps()) {

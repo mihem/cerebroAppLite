@@ -176,3 +176,70 @@ test_that("bulk demo HLA is real, and measures no genes", {
   expect_equal(nrow(crb$expression), 0L)
   expect_equal(ncol(crb$expression), nrow(crb$meta_data))
 })
+
+## ---- core_shim covers every core file and symbol ---------------------- ##
+## The shim has TWO paths: a repository launch sys.source()s a hardcoded file
+## list, while an installed launch pulls names from the namespace. A gap in
+## either one is invisible to unit tests (which load the whole package) and
+## only shows up as "could not find function" in a running app, on one launch
+## mode. Pin both.
+
+test_that("core_shim sources every R/hla_*.R core file", {
+  shim <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/core_shim.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  core_files <- basename(list.files(
+    testthat::test_path("../../R"),
+    pattern = "^hla_.*[.]R$"
+  ))
+  # Doc-only anchors carry no runtime symbols; everything else must be sourced.
+  core_files <- setdiff(core_files, character(0))
+  missing <- core_files[
+    !vapply(
+      core_files,
+      function(f) grepl(paste0('"', f, '"'), shim, fixed = TRUE),
+      logical(1)
+    )
+  ]
+  expect_equal(missing, character(0))
+})
+
+test_that("core_shim binds every package function the module calls", {
+  mod_dir <- hla_inst_file("shiny/v1.4/hla_tcr_motifs")
+  mod <- list.files(mod_dir, pattern = "[.]R$", full.names = TRUE)
+  src <- unlist(lapply(mod, readLines, warn = FALSE))
+  called <- unique(unlist(regmatches(
+    src,
+    gregexpr("hla_[a-zA-Z0-9_]+(?=[(])", src, perl = TRUE)
+  )))
+
+  pkg_files <- list.files(
+    testthat::test_path("../../R"),
+    pattern = "^hla_.*[.]R$",
+    full.names = TRUE
+  )
+  pkg <- unlist(lapply(pkg_files, readLines, warn = FALSE))
+  defined <- unique(sub(
+    "^([a-zA-Z0-9_.]+) <- function.*$",
+    "\\1",
+    grep("^hla_[a-zA-Z0-9_.]+ <- function", pkg, value = TRUE)
+  ))
+
+  shim <- paste(
+    readLines(file.path(mod_dir, "core_shim.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  need <- intersect(called, defined)
+  missing <- need[
+    !vapply(
+      need,
+      function(f) grepl(paste0('"', f, '"'), shim, fixed = TRUE),
+      logical(1)
+    )
+  ]
+  expect_equal(missing, character(0))
+})

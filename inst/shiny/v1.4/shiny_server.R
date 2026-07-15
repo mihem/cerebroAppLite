@@ -552,6 +552,24 @@ server <- function(input, output, session) {
     })
   }
 
+  ## A projection is not universal: a bulk repertoire data set measures no
+  ## embedding, so the tab would open blank. Every single-cell .crb has one.
+  insertConditionalTab(
+    "Projection",
+    "overview",
+    "home",
+    function() availableProjections()
+  )
+  ## Likewise genes: with none measured there is nothing to plot.
+  insertConditionalTab(
+    "Gene expression",
+    "geneExpression",
+    "signal",
+    function() {
+      n <- tryCatch(nrow(data_set()$expression), error = function(e) 0L)
+      isTRUE(n > 0)
+    }
+  )
   insertConditionalTab(
     "Marker genes",
     "markerGenes",

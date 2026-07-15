@@ -64,7 +64,14 @@ tab_hla_tcr_motifs <- tabItem(
               )
             ),
             uiOutput("hla_node_details"),
-            uiOutput("hla_motif_note")
+            uiOutput("hla_motif_note"),
+            # A picture cannot be recomputed or audited; the tables and their
+            # manifest can. See output$hla_export_analysis.
+            downloadButton(
+              "hla_export_analysis",
+              "Download analysis (tables + manifest)",
+              class = "btn-sm"
+            )
           ),
           tabPanel(
             "HLA Associations",

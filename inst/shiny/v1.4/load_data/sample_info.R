@@ -28,12 +28,15 @@ output[["load_data_sample_info_UI"]] <- renderUI({
 
 ##----------------------------------------------------------------------------##
 ## Value boxes that show:
-## - number of cells in data set
+## - number of observations (cells, unless the data set declares otherwise)
 ## - organism
 ## - date of export
 ##----------------------------------------------------------------------------##
 
-##number of cells
+##number of observations. Named from the data set's declared observation unit
+##(see getObservationUnit): a bulk repertoire data set's rows are analysis
+##units, not cells, and labelling them "Cells" would state a measurement that
+##was never made. Single-cell data — every existing .crb — still says "Cells".
 output[["load_data_number_of_cells"]] <- renderValueBox({
   valueBox(
     value = formatC(
@@ -42,7 +45,7 @@ output[["load_data_number_of_cells"]] <- renderValueBox({
       big.mark = ",",
       digits = 0
     ),
-    subtitle = "Cells",
+    subtitle = getObservationUnit()$title,
     color = "light-blue",
     icon = icon("list"),
   )

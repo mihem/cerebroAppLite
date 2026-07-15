@@ -303,6 +303,10 @@ crb$technical_info <- list(
     "Bulk TCR-beta immunosequencing; no transcriptome, no single cells.",
     "Each row is a (donor, TCR clonotype) analysis unit, not a sequenced cell."
   ),
+  # Declared contract, read app-wide (see getObservationUnit): a row here is an
+  # analysis unit, not a sequenced cell. Without this the app would call these
+  # rows "Cells" and state a measurement that was never made.
+  observation_unit = "analysis unit",
   # Declared contract, read by the app (see hla_selection_caveat): the receptor
   # set was chosen USING the published HLA association, and the donors were then
   # chosen for carrying those receptors. Any carrier/non-carrier difference the

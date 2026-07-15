@@ -205,7 +205,12 @@ ui <- dashboardPage(
         icon = icon("info"),
         selected = TRUE
       ),
-      menuItem("Projection", tabName = "overview", icon = icon("home")),
+      ## Projection is inserted conditionally (see insertConditionalTab in
+      ## shiny_server.R) for the same reason as the tabs below: a data set with
+      ## no projection — e.g. a bulk repertoire cohort, which has no embedding
+      ## to compute — would otherwise offer a menu item that opens to a blank
+      ## panel. Every single-cell .crb carries a projection and is unaffected.
+      div(id = "sidebar_item_overview_placeholder"),
       menuItem("Groups", tabName = "groups", icon = icon("layer-group")),
       ## Marker genes and Most expressed genes are inserted conditionally (see
       ## insertConditionalTab in shiny_server.R): a data set that carries neither
@@ -221,11 +226,9 @@ ui <- dashboardPage(
       div(id = "sidebar_item_hla_tcr_motifs_placeholder"),
       div(id = "sidebar_item_trajectory_placeholder"),
       div(id = "sidebar_item_spatial_placeholder"),
-      menuItem(
-        "Gene expression",
-        tabName = "geneExpression",
-        icon = icon("signal")
-      ),
+      ## Also conditional: a data set with no genes measured (bulk repertoire)
+      ## has nothing for this tab to show.
+      div(id = "sidebar_item_geneExpression_placeholder"),
       menuItem(
         "Gene ID conversion",
         tabName = "geneIdConversion",

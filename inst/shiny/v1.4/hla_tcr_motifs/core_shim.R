@@ -35,11 +35,16 @@ if (exists("Cerebro.options", inherits = TRUE)) {
 } else {
   NULL
 }
+## Every core file the module calls into. A file missing here fails ONLY on a
+## repository launch (the namespace path below sees the whole package), so the
+## omission survives unit tests and surfaces as "could not find function" in a
+## running app. tests/testthat/test-hla-app-contract.R pins both lists.
 .hla_source_files <- c(
   "hla_typing.R",
   "hla_motif_core.R",
   "hla_association_core.R",
-  "hla_visual_helpers.R"
+  "hla_visual_helpers.R",
+  "hla_export.R"
 )
 .hla_source_paths <- if (!is.null(.hla_source_root)) {
   file.path(.hla_source_root, "R", .hla_source_files)
@@ -80,6 +85,10 @@ if (.hla_has_source_tree) {
     "hla_carrier_index",
     "hla_allele_carrier_summary",
     "hla_node_carrier_status",
+    "hla_node_carrier_counts",
+    "hla_build_manifest",
+    "hla_graph_tables",
+    "hla_motif_summary",
     "hla_analysis_unit_map",
     "hla_allele_status_by_unit",
     "hla_descriptive_feature_overlap",

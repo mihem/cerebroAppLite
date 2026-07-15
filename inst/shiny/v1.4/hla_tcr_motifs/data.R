@@ -275,13 +275,12 @@ observeEvent(input$hla_color_allele, {
 })
 
 ## ---- What one row of the data actually is ----------------------------- ##
-## A .crb row is a cell for single-cell data, but the bulk cohort demo maps a
-## (donor, clonotype) pair onto a row. Detect it from the data rather than
-## trusting a label: with no genes measured there was no transcriptome, so the
-## rows cannot be cells. Used to name node size honestly in the tooltip.
+## Read the data set's DECLARED observation unit (see getObservationUnit in
+## utility_functions.R) rather than inferring it. An earlier version guessed
+## "not a cell" from an empty expression matrix, which is a proxy: it would
+## relabel any data set that merely ships without expression.
 hla_unit_noun <- reactive({
-  n_genes <- tryCatch(nrow(data_set()$expression), error = function(e) NULL)
-  if (!is.null(n_genes) && n_genes == 0) "analysis unit" else "cell"
+  getObservationUnit()$singular
 })
 
 ## ---- Cell-type column used for lineage-derived MHC context ------------- ##
