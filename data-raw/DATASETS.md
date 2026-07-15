@@ -208,6 +208,22 @@ Built by `data-raw/build_ir_demos.R` (see [`immune_repertoire.md`](immune_repert
 
 > `build_ir_demos.R` can also emit two narrower subsets — `demo_healthy_t.crb` (T + Mono, TCR only) and `demo_bcell_rich.crb` (B + few T, BCR only) — as a multi-sample switcher demo. They are **not shipped** by default; the Full set is their superset.
 
+### demo_hla_tcr.crb
+- **type**: immune_repertoire
+- **technology**: 10x Chromium 5' V(D)J (scRNA-seq + TCR/BCR), re-annotated for HLA context
+- **dropdown label**: `PBMC - HLA & TCR (synthetic HLA)`
+- **organism / tissue**: human (hg) / PBMC, healthy donor
+- **source**: derived entirely from `demo_full_tcr_bcr.crb` (itself the 10x public `vdj_v1_hs_pbmc3`); no new download. Real expression + real TCR are carried over unchanged.
+- **acquire**: none — built from the shipped `demo_full_tcr_bcr.crb`.
+- **object type**: `Cerebro_v1.3` (rebuilt via the current generator so the `hla_typing` slot + methods are present).
+- **sampling**: same 1,476 cells as `demo_full_tcr_bcr.crb`. Two additions: (1) `cell_type_fine` — a finer T-cell lineage (**CD8 T / CD4 T / Treg / T (unassigned)**) derived from the object's OWN marker expression (CD8A/CD8B vs CD4/IL7R vs FOXP3); B cells / Monocytes unchanged. (2) a **SYNTHETIC** per-sample HLA typing table (HLA-A/B/C/DRB1, two alleles each) drawn from common European allele frequencies, `set.seed(42)`.
+- **cell-type field**: `cell_type_fine` (fine lineage) — the coarse `cell_type` is also kept.
+- **embedded image**: none (n/a for immune repertoire)
+- **HLA typing**: **synthetic**, stored with `source_type = "synthetic"` in the `hla_typing` slot. It exists only to exercise the HLA & TCR Motifs workflow; it is **not a real genotype** and the app flags it as synthetic. Real donor HLA replaces it via the same `addHLATyping()` path.
+- **license**: 10x Genomics public dataset terms (expression/TCR); synthetic HLA has no external source.
+- **build**: `data-raw/build_hla_tcr_demo.R`
+- **output**: `inst/extdata/v1.4/demo_hla_tcr.crb` (~1.0 MB)
+
 ---
 
 ## Trajectory
