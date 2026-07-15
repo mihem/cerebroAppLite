@@ -4,12 +4,17 @@
 \alias{hla_aggregate_cdr3_nodes}
 \title{Aggregate parsed segments into unique-CDR3 nodes carrying distributions}
 \usage{
-hla_aggregate_cdr3_nodes(seg, meta_cols = character(0))
+hla_aggregate_cdr3_nodes(seg, meta_cols = character(0), context_col = NULL)
 }
 \arguments{
 \item{seg}{Output of [hla_parse_ir_segments()].}
 
 \item{meta_cols}{Character vector of metadata columns to summarise per node.}
+
+\item{context_col}{Optional name of a per-cell MHC-context column (values
+"Class I" / "Class II" / "Unknown"). When given, the node gets a
+[hla_context_summary()] value (single class, "Mixed", or "Unknown") instead
+of a plain mode, plus the usual `_dist` string.}
 }
 \value{
 A per-CDR3 data.frame, or NULL when `seg` is empty.

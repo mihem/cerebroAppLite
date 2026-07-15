@@ -9,7 +9,8 @@ hla_build_motif_graph(
   by_v = FALSE,
   min_nodes = 2L,
   show_isolated = FALSE,
-  meta_cols = character(0)
+  meta_cols = character(0),
+  context_col = NULL
 )
 }
 \arguments{
@@ -22,6 +23,9 @@ hla_build_motif_graph(
 \item{show_isolated}{When TRUE, also keep isolated (degree-0) CDR3s as points.}
 
 \item{meta_cols}{Metadata columns to carry as node distributions.}
+
+\item{context_col}{Optional per-cell MHC-context column; the node gets a
+[hla_context_summary()] value (single class / "Mixed" / "Unknown").}
 }
 \value{
 An igraph object (with a per-node `cluster` attribute and a
