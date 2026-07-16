@@ -853,6 +853,74 @@ test_that("the parameter gate stays OUTSIDE the cached graph reactives", {
   )
 })
 
+test_that("the page's allele lives outside both pickers", {
+  # There is ONE allele for the whole page, and it must not be stored in either
+  # picker's input. The network's picker sits in a conditionalPanel, so Shiny
+  # suspends it whenever the network is neither allele-scoped nor carrier-
+  # coloured — and updateSelectInput() addressed to a control that is not
+  # rendered is silently dropped. With the value living there, picking an allele
+  # on the Associations tab in that state wrote to nothing, and the network's
+  # picker later seeded itself from choices[1] and dragged Associations back.
+  # Measured before this fix: HLA-B*07:02 replaced by HLA-A*02:01, silently.
+  data_src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  assoc_src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/associations.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  settings_src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/settings.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  # A reactiveVal cannot be suspended; an input can.
+  expect_match(
+    data_src,
+    "hla_allele_state <- reactiveVal\\(",
+    perl = TRUE
+  )
+  # hla_color_allele() reads the shared value, never a picker's input.
+  gate <- regmatches(
+    data_src,
+    regexpr(
+      "hla_color_allele <- reactive\\(\\{[\\s\\S]{0,600}?\\n\\}\\)",
+      data_src,
+      perl = TRUE
+    )
+  )
+  expect_length(gate, 1L)
+  expect_match(gate, "hla_allele_state\\(\\)", perl = TRUE)
+  expect_no_match(gate, "input\\$hla_color_allele", perl = TRUE)
+  expect_no_match(gate, "input\\$hla_association_allele", perl = TRUE)
+
+  # Both pickers seed from the shared value rather than from the top of the list.
+  expect_match(
+    assoc_src,
+    "\"hla_association_allele\"[\\s\\S]{0,900}?selected = isolate\\(hla_color_allele\\(\\)\\)",
+    perl = TRUE
+  )
+  expect_match(
+    settings_src,
+    "\"hla_color_allele\"[\\s\\S]{0,900}?selected = isolate\\(hla_color_allele\\(\\)\\)",
+    perl = TRUE
+  )
+  # ...and the Associations numbers come from the shared allele, not from the
+  # picker that only exists while that tab is open.
+  expect_match(
+    assoc_src,
+    "hla_overlap_table <- reactive\\(\\{[\\s\\S]{0,400}?allele <- hla_color_allele\\(\\)",
+    perl = TRUE
+  )
+})
+
 test_that("the parameter gate covers the conditional allele pickers", {
   # The controls in output$hla_parameters_ui are only half the story. The allele
   # pickers live in SEPARATE uiOutputs inside conditionalPanels, so Shiny keeps

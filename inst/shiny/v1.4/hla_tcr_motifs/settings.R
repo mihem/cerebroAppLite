@@ -246,7 +246,15 @@ output$hla_color_allele_ui <- renderUI({
     "hla_color_allele",
     "HLA allele to colour by:",
     choices = choices,
-    selected = hla_param("hla_color_allele", unname(choices[1])),
+    # Seeded from the page's shared allele, so appearing for the first time
+    # ADOPTS whatever the Associations picker already chose rather than
+    # overwriting it with choices[1].
+    #
+    # isolate(): this control must not re-render when the allele changes. It is
+    # one of the two things that CHANGES the allele, so reading it live would
+    # make the picker tear itself down and rebuild on every pick. Once rendered,
+    # the observer above keeps it in step.
+    selected = isolate(hla_color_allele()),
     options = list(render = HLA_TWO_LINE_RENDER)
   )
 })

@@ -273,37 +273,81 @@ hla_allele_choices <- reactive({
   )
 })
 
-## ---- Allele currently colouring the network --------------------------- ##
-## Falls back to the most informative allele so the first carrier render is
-## meaningful before the picker has reported a value.
+## ---- The page's single allele ------------------------------------------ ##
 ## ONE allele for the whole page. The network's colour and the Associations
 ## tables must answer the same question: two independent pickers let the user
 ## colour by one allele while reading another's numbers, and nothing on screen
-## would reveal the mismatch. Either control writes this input.
+## would reveal the mismatch.
+##
+## The value is held HERE, not in either picker's input, and that is the whole
+## point. It used to live in input$hla_color_allele, with the two pickers kept
+## in sync by updateSelectInput. But that picker sits in a conditionalPanel, so
+## Shiny suspends it whenever the network is neither scoped to an allele nor
+## coloured by carrier status — and an update addressed to a control that is not
+## rendered is silently dropped. Picking an allele on the Associations tab in
+## that state therefore wrote to nothing: hla_color_allele() kept answering with
+## choices[1], and the moment the network's picker did appear it was seeded from
+## choices[1] and dragged the Associations picker back with it. Measured: the
+## user's HLA-B*07:02 replaced by HLA-A*02:01, no error, no notice.
+##
+## A reactiveVal cannot be suspended, so both pickers can always write it and
+## either can be absent.
+hla_allele_state <- reactiveVal(NULL)
+
+## Either picker writes the shared value. Guarded on nzchar() because a
+## selectize that is being torn down reports "" on its way out, which must not
+## erase the selection.
+observeEvent(input$hla_color_allele, {
+  a <- input$hla_color_allele
+  if (!is.null(a) && nzchar(a)) {
+    hla_allele_state(a)
+  }
+})
+observeEvent(input$hla_association_allele, {
+  a <- input$hla_association_allele
+  if (!is.null(a) && nzchar(a)) {
+    hla_allele_state(a)
+  }
+})
+
+## Keep whichever pickers ARE on screen showing it. Both can be visible at once
+## (the parameter column is shared by every tab, so an allele-scoped network and
+## the Associations tab put their pickers side by side), so this is not
+## redundant with seeding them at render time. Updates to a picker that is not
+## rendered are dropped, which is now harmless: the value does not live there.
+##
+## Terminates rather than ping-pongs: an update only fires when the picker
+## disagrees, the picker then reports the value this observer just sent, and
+## reactiveVal() does not invalidate when set to the value it already holds.
+observeEvent(hla_allele_state(), {
+  a <- hla_allele_state()
+  if (is.null(a)) {
+    return()
+  }
+  if (!identical(a, input$hla_color_allele)) {
+    updateSelectInput(session, "hla_color_allele", selected = a)
+  }
+  if (!identical(a, input$hla_association_allele)) {
+    updateSelectInput(session, "hla_association_allele", selected = a)
+  }
+})
+
+## ---- Allele currently colouring the network --------------------------- ##
+## Falls back to the most informative allele so the first carrier render is
+## meaningful before any picker has reported a value.
+##
+## Normalised against the CURRENT choices on every read, so an allele held over
+## from a data set that had it never leaks into one that does not.
 hla_color_allele <- reactive({
   choices <- hla_allele_choices()
   if (length(choices) == 0) {
     return(NULL)
   }
-  a <- input$hla_color_allele
+  a <- hla_allele_state()
   if (!is.null(a) && nzchar(a) && a %in% choices) {
     return(a)
   }
   unname(choices[1])
-})
-
-## Keep the Associations picker and the network picker pointing at one allele.
-observeEvent(input$hla_association_allele, {
-  a <- input$hla_association_allele
-  if (!is.null(a) && nzchar(a) && !identical(a, input$hla_color_allele)) {
-    updateSelectInput(session, "hla_color_allele", selected = a)
-  }
-})
-observeEvent(input$hla_color_allele, {
-  a <- input$hla_color_allele
-  if (!is.null(a) && nzchar(a) && !identical(a, input$hla_association_allele)) {
-    updateSelectInput(session, "hla_association_allele", selected = a)
-  }
 })
 
 ## ---- What one row of the data actually is ----------------------------- ##

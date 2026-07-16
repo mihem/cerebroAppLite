@@ -422,10 +422,16 @@ hla_visnet <- reactive({
   # Carrier status is derived HERE, from the cached graph's allele-independent
   # `samples_all` attribute, so switching allele re-colours without recomputing
   # a single Hamming distance.
-  allele <- hla_color_allele()
+  #
+  # The allele is read ONLY when it is actually drawn. Reading it unconditionally
+  # would take a reactive dependency on it in every colouring, so picking an
+  # allele on the Associations tab would redraw a network that is coloured by
+  # motif cluster and does not mention an allele anywhere.
+  use_carrier <- identical(color_by, "hla_carrier")
+  allele <- if (use_carrier) hla_color_allele() else NULL
   carrier <- NULL
   carrier_cnt <- NULL
-  if (identical(color_by, "hla_carrier") && !is.null(allele)) {
+  if (use_carrier && !is.null(allele)) {
     sa <- igraph::vertex_attr(g, "samples_all")
     typing <- hla_active_typing()
     smp <- names(getImmuneRepertoire())

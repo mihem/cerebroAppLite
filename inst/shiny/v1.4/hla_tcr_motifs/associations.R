@@ -70,7 +70,11 @@ output$hla_feature_selector_ui <- renderUI({
 hla_overlap_table <- reactive({
   typing <- hla_active_typing()
   members <- hla_selected_feature_members()
-  allele <- input$hla_association_allele
+  # The page's shared allele, not this tab's picker. Reading the picker directly
+  # meant these numbers came from a control that only exists while this tab is
+  # open, and that answered independently of the allele the network was
+  # coloured by — the exact mismatch hla_color_allele() exists to prevent.
+  allele <- hla_color_allele()
   seg <- hla_segments()
   if (
     !hla_has_typing() ||
@@ -171,7 +175,16 @@ output$hla_associations_ui <- renderUI({
           "hla_association_allele",
           "HLA allele:",
           choices = alleles,
-          selected = alleles[1],
+          # The page's shared allele, NOT alleles[1]. This tab renders the first
+          # time the user opens it, which may be long after they picked an
+          # allele on the network — seeding from the top of the list would
+          # silently answer about a different allele than the one on screen.
+          #
+          # isolate(): this UI already re-renders on an allele change (the scope
+          # caveat below names the allele), and the observer in data.R keeps the
+          # picker in step, so reading it live here would only add a second
+          # reason to rebuild the tab.
+          selected = isolate(hla_color_allele()),
           options = list(render = HLA_TWO_LINE_RENDER)
         )
       ),
