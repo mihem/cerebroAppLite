@@ -1,37 +1,41 @@
-## ---- Plot-panel height helpers ----------------------------------------- ##
-## One place controls the height of every IR tab body, instead of repeating a
-## `height = 450` literal in each tabPanel. `IR_PLOT_HEIGHT` fills the viewport
-## minus the fixed chrome above the plot (top bar, box title, tab strip, help
-## panel) and leaves a small gap at the bottom. Using a viewport-relative height
-## (rather than a flex `100%` chain) fills the screen while staying safe for both
-## plotly and static plotOutput — a percentage height on a flex item with no
-## resolved parent height collapses a static plot to zero.
-IR_PLOT_HEIGHT <- "calc(100vh - 250px)"
-
-## Paired Scatter carries an extra in-tab "Pair by" control row above the plot
-## (~74px measured), which the other tabs don't have. Subtract that on top of
-## the standard 250px chrome so the single (non-faceted) plot ends level with
-## the other tabs' plots and keeps the same ~25px bottom gap, instead of
-## overflowing past the viewport.
-IR_PAIRED_PLOT_HEIGHT <- "calc(100vh - 324px)"
+## ---- Plot-panel height --------------------------------------------------- ##
+## Every single-panel IR plot fills the viewport through the shared
+## `.cerebro-fill` mechanism (www/fill_height.js), the same one the HLA network
+## and the projection pages use — no per-plot height constant to keep in sync
+## with the chrome above it. The two hand-measured `calc(100vh - Npx)` constants
+## that used to live here are gone. Faceted variants stay on an explicit pixel
+## height because they are deliberately tall and meant to scroll.
 
 ## Static single plot tab body. `plotly = TRUE` emits an interactive
 ## plotlyOutput (zoom/pan/hover) instead of a static plotOutput.
+##
+## Height comes from the app-wide fill mechanism (www/fill_height.js), the SAME
+## one the HLA network uses: the `.cerebro-fill` wrapper is sized to the viewport
+## minus its live top offset, and the plot renders at height:100% inside it.
+## This replaces the old `calc(100vh - 250px)` — a hand-measured chrome constant
+## that over-reserved height (so the panel ballooned past the screen on first
+## paint, then snapped smaller). One mechanism now, one behaviour, no magic
+## number to keep in sync with the chrome.
 ir_fill_plot <- function(
   id,
   spinner = TRUE,
-  height = IR_PLOT_HEIGHT,
-  plotly = FALSE
+  plotly = FALSE,
+  height = NULL
 ) {
+  # height = NULL (the common case) -> fill the viewport via the shared
+  # `.cerebro-fill` mechanism. An explicit height is for the faceted plots that
+  # are DELIBERATELY tall (one panel per sample) and meant to scroll; those are
+  # rendered as-is, never fill'd.
+  fill <- is.null(height)
   plot <- if (plotly) {
-    plotly::plotlyOutput(id, height = height)
+    plotly::plotlyOutput(id, height = if (fill) "100%" else height)
   } else {
-    plotOutput(id, height = height)
+    plotOutput(id, height = if (fill) "100%" else height)
   }
   if (spinner) {
     plot <- shinycssloaders::withSpinner(plot)
   }
-  plot
+  if (fill) tags$div(class = "cerebro-fill", plot) else plot
 }
 
 ## Wrap an already-built output (e.g. a uiOutput whose server side computes a
@@ -61,14 +65,14 @@ output$ir_visualizations_UI <- renderUI({
       # Clonal expansion overlaid on the cell UMAP — the default landing tab,
       # so the first thing the user sees is where expanded clones sit.
       "Clonal UMAP",
-      # Reserve the final plot height for the spinner placeholder so the
-      # container does not collapse to the ~400px default and snap back up
-      # when the plot arrives (that height jump reflows the whole page and
-      # reads as a "flicker" on dataset switch). IR_PLOT_HEIGHT matches the
-      # ungrouped plotly height returned by ir_ui_clonalUMAP.
+      # Reserve a viewport-proportional placeholder for the spinner so the
+      # container does not collapse to the ~400px default and snap up when the
+      # plot arrives. 60vh matches the non-faceted plotly's own placeholder (and
+      # the projection pages'), so the placeholder and the settled height are
+      # close — no visible jump on first open.
       shinycssloaders::withSpinner(
         uiOutput("ir_ui_clonalUMAP"),
-        proxy.height = IR_PLOT_HEIGHT
+        proxy.height = "60vh"
       )
     ),
     tabPanel(
@@ -510,7 +514,12 @@ ir_clonalUMAP_projection_ui <- function() {
         plotly::plotlyOutput(
           "ir_clonalUMAP_projection",
           width = "auto",
-          height = IR_PLOT_HEIGHT
+          # 60vh placeholder, same as the overview projection: the shared
+          # renderer measures and resizes to the real viewport height, and the
+          # projection reveal gate keeps it hidden until then. A placeholder
+          # close to the settled height means no visible jump on reveal (the old
+          # calc(100vh - 250px) started ~125px too tall and shrank in view).
+          height = "60vh"
         ),
         type = 8,
         hide.ui = FALSE
@@ -980,31 +989,35 @@ output$ir_ui_pairedScatter <- renderUI({
 ## Single-panel paired scatter is interactive (plotly); the faceted variant is a
 ## patchwork grid that plotly cannot lay out cleanly, so it stays a static
 ## ggplot. The renderUI returns the matching output type for the current mode.
-ir_paired_plotly_output <- function(height) {
-  shinycssloaders::withSpinner(
-    plotly::plotlyOutput(
-      "ir_plot_pairedScatter",
-      width = "auto",
-      height = height
-    ),
-    type = 8,
-    hide.ui = FALSE
+## The single panel fills the viewport through the shared `.cerebro-fill`
+## mechanism, same as every other single IR plot — no per-plot height constant.
+ir_paired_plotly_output <- function() {
+  tags$div(
+    class = "cerebro-fill",
+    shinycssloaders::withSpinner(
+      plotly::plotlyOutput(
+        "ir_plot_pairedScatter",
+        width = "auto",
+        height = "100%"
+      ),
+      type = 8,
+      hide.ui = FALSE
+    )
   )
 }
 
 output$ir_ui_pairedScatter_plot <- renderUI({
   pair_mode <- input$ir_pair_compare
-  # Single-plot case (no compare mode): fill the viewport like every other tab,
-  # accounting for the extra Pair-by control row (IR_PAIRED_PLOT_HEIGHT).
+  # Single-plot case (no compare mode): fill the viewport like every other tab.
   if (is.null(pair_mode) || !nzchar(pair_mode)) {
-    return(ir_paired_plotly_output(IR_PAIRED_PLOT_HEIGHT))
+    return(ir_paired_plotly_output())
   }
   meta <- ir_sample_meta()
   req(!is.null(meta))
   facet_col <- input$ir_pair_facet
   if (is.null(facet_col) || facet_col == "") {
-    # Still a single panel — viewport-relative height, less the Pair-by row.
-    return(ir_paired_plotly_output(IR_PAIRED_PLOT_HEIGHT))
+    # Still a single panel — fills the viewport.
+    return(ir_paired_plotly_output())
   }
   # Faceted: size by the number of facet rows so panels aren't squashed. This is
   # intentionally a fixed pixel height (can exceed the viewport and scroll),

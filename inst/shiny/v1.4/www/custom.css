@@ -138,6 +138,19 @@ code, pre {
 pre { padding: 12px; border: 1px solid var(--c-border); }
 
 /* -------------------------------------------------------------------------
+   Single scroll container. Lock the document shell to the viewport so nothing
+   ABOVE the content area scrolls; the content area (.content-wrapper below) is
+   the only thing that does. Without this, html grows to fit its content and the
+   whole document scrolls — which makes every plot's "fill the viewport" a moving
+   target and lets body-level measurement artifacts stretch the page. The sidebar
+   is position:fixed, so it is unaffected and stays put.
+   ------------------------------------------------------------------------- */
+html, body, body .wrapper {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* -------------------------------------------------------------------------
    Header (topbar) — REMOVED: no top bar, no hamburger. The brand moves into
    the sidebar and the content lifts up to fill the space.
    ------------------------------------------------------------------------- */
@@ -269,9 +282,21 @@ body.skin-blue .sidebar-menu > li.header {
    skin sets `.content-wrapper { padding-top: 50px }` to clear the (now removed)
    header, and it loads after us — without !important that 50px band survives and
    pushes every page down, reading like a phantom header. */
+/* The content area is the ONE scroll container. Everything above it (html, body,
+   wrapper) is locked to the viewport and cannot scroll, so a page longer than
+   the screen scrolls INSIDE here rather than moving the whole document. Two
+   payoffs: (1) the fixed sidebar and the fill-height plots measure against a
+   viewport that never shifts; (2) the invisible size-measurement helpers that
+   Shiny and vis-network append to <body> (1px clip:rect probes, a hidden legend
+   text ruler) can no longer stretch the document's scroll height past the
+   viewport — they sit outside this container and are clipped by the locked body.
+   Was min-height:100vh, which let this element GROW past the viewport (so the
+   document scrolled and the height was a moving target); height:100vh pins it. */
 body .content-wrapper, body .right-side {
   background: var(--c-bg) !important;
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px 26px !important;
 }
 .content-header { padding: 6px 0 16px; }
@@ -347,6 +372,71 @@ body .content { padding-left: 0 !important; padding-right: 0 !important; }
     flex: 1 1 100%;
     max-width: none;
   }
+}
+
+/* -------------------------------------------------------------------------
+   Fill-to-viewport height. www/fill_height.js sets an explicit pixel height on
+   every `.cerebro-fill` element (viewport - its live top - a bottom gap). This
+   makes that element a flex column so whatever it wraps — a shinycssloaders
+   spinner container, then the html-widget/plot output at height:100% — inherits
+   the measured height without needing its own resolved-height chain (a bare
+   height:100% on a flex item with no resolved parent collapses to zero; the JS
+   px height on this wrapper IS that resolved parent).
+   ------------------------------------------------------------------------- */
+.cerebro-fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* Hard clip boundary. Interactive widgets (vis-network in particular) append
+     absolutely-positioned helpers — a hidden text-measurement span, navigation
+     buttons — that render BELOW the canvas and, left alone, extend the page's
+     scrollable height past the viewport. They are not content; clip them to the
+     sized box so the fill height is the true page bottom. */
+  overflow: hidden;
+  /* Placeholder height for the first paint, BEFORE fill_height.js measures. A
+     viewport-proportional value (not a pixel guess) so the box reserves a
+     sensible amount of space on every screen and the JS only nudges it, rather
+     than starting collapsed (and snapping up) or over-reserved (and snapping
+     down). The inline px height the JS sets overrides this immediately. */
+  height: 60vh;
+  /* Hidden until the JS has applied a measured height (adds .is-filled), so the
+     one intermediate frame at the placeholder/pre-settle size is never seen. */
+  opacity: 0;
+}
+.cerebro-fill.is-filled {
+  opacity: 1;
+  /* The one deliberate resize animation in the app: the plot fades in at its
+     final height, and any later re-measure (content below settles, a legend
+     wraps, the window resizes) eases rather than snaps — so a late height
+     correction reads as a smooth adjustment, never a flash. */
+  transition: opacity 0.2s ease, height 0.2s ease;
+}
+/* The spinner wrapper (or the output directly) fills the sized wrapper. */
+.cerebro-fill > .shiny-spinner-output-container,
+.cerebro-fill > .html-widget-output,
+.cerebro-fill > .shiny-plot-output,
+.cerebro-fill > .plotly.html-widget {
+  flex: 1 1 0;
+  min-height: 0;
+  height: 100% !important;
+}
+/* The spinner container wraps the real output. Overlay the output on it with
+   absolute positioning (the container is position:relative) so the widget
+   exactly fills the measured height — a plain height:100% left the widget in
+   normal flow, where a stray 20px offset pushed its bottom past the wrapper.
+   This is htmlwidgets' own fill idiom. */
+.cerebro-fill > .shiny-spinner-output-container {
+  position: relative;
+}
+.cerebro-fill > .shiny-spinner-output-container > .html-widget-output,
+.cerebro-fill > .shiny-spinner-output-container > .shiny-plot-output,
+.cerebro-fill > .shiny-spinner-output-container > .plotly.html-widget {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: auto !important;
 }
 
 /* Sidebar rail: hold a stable, comfortable width so long menu labels

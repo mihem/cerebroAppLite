@@ -51,6 +51,11 @@ tab_hla_tcr_motifs <- tabItem(
     column(
       width = 9,
       offset = 0,
+      # cerebro-viz-col: every other viz page carries this so the plot column
+      # absorbs the row's slack and can shrink below its content (min-width:0)
+      # instead of forcing overflow. HLA was the one page that omitted it, so the
+      # careful flex rules in custom.css never applied here.
+      class = "cerebro-viz-col",
       style = "padding: 0px;",
       cerebroBox(
         title = tagList(
@@ -67,10 +72,18 @@ tab_hla_tcr_motifs <- tabItem(
             "Motif Network",
             br(),
             uiOutput("hla_legend_ui"),
-            shinycssloaders::withSpinner(
-              visNetwork::visNetworkOutput(
-                "hla_plot_motifNetwork",
-                height = "640px"
+            # Fill the viewport instead of a hardcoded 640px: the wrapper is
+            # sized to (viewport - its live top - a bottom gap) by fill_height.js,
+            # and the network renders at height:100% inside it. The legend above
+            # is a sibling, so when it wraps the wrapper's top moves and the
+            # height re-measures itself. See www/fill_height.js + .cerebro-fill.
+            tags$div(
+              class = "cerebro-fill",
+              shinycssloaders::withSpinner(
+                visNetwork::visNetworkOutput(
+                  "hla_plot_motifNetwork",
+                  height = "100%"
+                )
               )
             ),
             uiOutput("hla_node_details"),

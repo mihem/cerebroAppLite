@@ -249,6 +249,16 @@ ui <- dashboardPage(
     includeCSS(
       file.path(Cerebro.options[["cerebro_root"]], "shiny/v1.4/www/custom.css")
     ),
+    ## Fill-to-viewport height, app-wide. Any element with class "cerebro-fill"
+    ## is sized to (viewport - its live top offset - a bottom gap), so a plot
+    ## fills the screen without a hardcoded height and re-measures itself when the
+    ## chrome above it changes. See www/fill_height.js.
+    includeScript(
+      file.path(
+        Cerebro.options[["cerebro_root"]],
+        "shiny/v1.4/www/fill_height.js"
+      )
+    ),
     tags$script(HTML('$("body").addClass("fixed");')),
     tabItems(
       tab_load_data,
