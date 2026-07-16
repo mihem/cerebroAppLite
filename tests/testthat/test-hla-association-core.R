@@ -1,17 +1,34 @@
 # Tests for descriptive feature x HLA overlap. These functions intentionally
 # perform no inferential statistics.
 
+# Every locus meant to support a NON-carrier call is written with both copies:
+# one copy leaves the second unknown, which is untyped, not negative (see
+# hla_locus_call_state). s3 is the fixture's non-carrier, so it gets a full
+# diploid call; s4 stays HLA-A-untyped on purpose.
 make_overlap_typing <- function() {
   hla_normalize_typing(
     data.frame(
-      sample = c("s1", "s2", "s3", "s4"),
-      donor_id = c("d1", "d1", "d2", "d3"),
-      locus = c("HLA-A", "HLA-A", "HLA-A", "HLA-B"),
+      sample = c("s1", "s1", "s2", "s2", "s3", "s3", "s4", "s4"),
+      donor_id = c("d1", "d1", "d1", "d1", "d2", "d2", "d3", "d3"),
+      locus = c(
+        "HLA-A",
+        "HLA-A",
+        "HLA-A",
+        "HLA-A",
+        "HLA-A",
+        "HLA-A",
+        "HLA-B",
+        "HLA-B"
+      ),
       allele = c(
         "HLA-A*02:01",
+        "HLA-A*11:01",
         "HLA-A*02:01",
+        "HLA-A*11:01",
         "HLA-A*01:01",
-        "HLA-B*08:01"
+        "HLA-A*11:01",
+        "HLA-B*08:01",
+        "HLA-B*07:02"
       ),
       stringsAsFactors = FALSE
     ),
@@ -52,6 +69,91 @@ test_that("allele status is locus-specific at the analysis-unit level", {
   expect_equal(status$hla_status[status$analysis_unit == "d1"], "carrier")
   expect_equal(status$hla_status[status$analysis_unit == "d2"], "non-carrier")
   expect_equal(status$hla_status[status$analysis_unit == "d3"], "untyped")
+})
+
+test_that("locus call completeness needs two copies at the locus", {
+  typing <- hla_normalize_typing(
+    data.frame(
+      sample = c("s1", "s1", "s2", "s3"),
+      locus = c("HLA-A", "HLA-A", "HLA-A", "HLA-B"),
+      allele = c("HLA-A*01:01", "HLA-A*03:01", "HLA-A*01:01", "HLA-B*08:01"),
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+
+  state <- hla_locus_call_state(typing, c("s1", "s2", "s3"), "HLA-A")
+  expect_equal(state$call_state[state$sample == "s1"], "complete")
+  expect_equal(state$call_state[state$sample == "s2"], "partial")
+  expect_equal(state$call_state[state$sample == "s3"], "absent")
+})
+
+test_that("a homozygous call written twice still reads as complete", {
+  typing <- hla_normalize_typing(
+    data.frame(
+      sample = c("s1", "s1"),
+      locus = c("HLA-A", "HLA-A"),
+      allele = c("HLA-A*01:01", "HLA-A*01:01"),
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+
+  state <- hla_locus_call_state(typing, "s1", "HLA-A")
+  expect_equal(state$call_state, "complete")
+})
+
+test_that("a half-typed locus cannot rule an allele out", {
+  # s2's second HLA-A copy is unknown, so it may yet be A*02:01. Calling it a
+  # non-carrier would put a possible carrier in the comparison group.
+  typing <- hla_normalize_typing(
+    data.frame(
+      sample = c("s1", "s1", "s2"),
+      locus = c("HLA-A", "HLA-A", "HLA-A"),
+      allele = c("HLA-A*01:01", "HLA-A*03:01", "HLA-A*01:01"),
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+
+  status <- hla_allele_status_by_unit(typing, c("s1", "s2"), "HLA-A*02:01")
+  expect_equal(status$hla_status[status$analysis_unit == "s1"], "non-carrier")
+  expect_equal(status$hla_status[status$analysis_unit == "s2"], "untyped")
+})
+
+test_that("a half-typed locus can still rule an allele IN", {
+  # Knowing one copy IS the query settles carriage; the unknown copy cannot
+  # un-carry it. Incomplete typing blocks negative calls only.
+  typing <- hla_normalize_typing(
+    data.frame(
+      sample = "s1",
+      locus = "HLA-A",
+      allele = "HLA-A*02:01",
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+
+  status <- hla_allele_status_by_unit(typing, "s1", "HLA-A*02:01")
+  expect_equal(status$hla_status, "carrier")
+})
+
+test_that("donor completeness comes from one sample, not pooled samples", {
+  # d1 has two samples with one HLA-A copy each. Pooling would count two rows
+  # and read as a complete diploid call; neither sample actually typed copy 2.
+  typing <- hla_normalize_typing(
+    data.frame(
+      sample = c("s1", "s2"),
+      donor_id = c("d1", "d1"),
+      locus = c("HLA-A", "HLA-A"),
+      allele = c("HLA-A*01:01", "HLA-A*01:01"),
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+
+  status <- hla_allele_status_by_unit(typing, c("s1", "s2"), "HLA-A*02:01")
+  expect_equal(status$hla_status[status$analysis_unit == "d1"], "untyped")
 })
 
 test_that("feature overlap reports donor-level presence breadth and cell fraction", {
@@ -390,8 +492,10 @@ test_that("an untyped locus stays untyped", {
 test_that("field prefixes do not match across loci or on partial digits", {
   # A*02 must not match B*02, and A*2 must not match A*24 (fields compare whole,
   # never as string prefixes).
+  # d1's HLA-A is called at both copies, so "non-carrier" here is the compare
+  # logic talking, not an incomplete call.
   typing <- hla_normalize_typing(
-    list(d1 = c("HLA-A*24:02"), d2 = c("HLA-B*02:01")),
+    list(d1 = c("HLA-A*24:02", "HLA-A*11:01"), d2 = c("HLA-B*02:01")),
     source_type = "genotyped"
   )
   st <- hla_allele_status_by_unit(typing, c("d1", "d2"), "HLA-A*02")
@@ -417,4 +521,153 @@ test_that("the per-allele scope follows the same resolution rule", {
   out <- hla_scope_segments_by_allele(seg, res_typing(), "HLA-A*02")
   expect_equal(nrow(out), 1L)
   expect_equal(out$sample, "donor_hi")
+})
+
+test_that("an all-Unknown context column empties a class-matched scope", {
+  # Why the lineage column must be found by what its labels RESOLVE to, not by
+  # its name: a coarse annotation ("T cells") produces a context column that is
+  # entirely Unknown, and class-matching against it keeps nothing at all. The
+  # page must report no lineage instead of drawing an empty network.
+  seg <- data.frame(
+    sample = c("s1", "s1", "s2"),
+    cdr3 = c("CASSL", "CASSF", "CASSL"),
+    mhc_context = "Unknown",
+    stringsAsFactors = FALSE
+  )
+  typing <- hla_normalize_typing(
+    list(s1 = c("HLA-A*02:01", "HLA-A*11:01"), s2 = c("HLA-A*02:01")),
+    source_type = "genotyped"
+  )
+
+  matched <- hla_scope_segments_by_allele(
+    seg,
+    typing,
+    "HLA-A*02:01",
+    context_col = "mhc_context"
+  )
+  expect_equal(nrow(matched), 0L)
+
+  # With no lineage claimed, the same scope keeps the carriers.
+  unmatched <- hla_scope_segments_by_allele(
+    seg,
+    typing,
+    "HLA-A*02:01",
+    context_col = NULL
+  )
+  expect_equal(nrow(unmatched), 3L)
+})
+
+test_that("coarse annotation resolves to no lineage at all", {
+  expect_true(all(
+    hla_lineage_context(c("T cells", "B cells", "Monocytes")) == "Unknown"
+  ))
+  expect_equal(hla_lineage_context("CD8 TEM"), "Class I")
+  expect_equal(hla_lineage_context("Treg"), "Class II")
+})
+
+## ---- Class I x Class II pair scope ------------------------------------ ##
+
+make_pair_typing <- function() {
+  hla_normalize_typing(
+    data.frame(
+      sample = c("s1", "s1", "s1", "s1", "s2", "s2", "s2", "s2"),
+      locus = c(
+        "HLA-A",
+        "HLA-A",
+        "HLA-DRB1",
+        "HLA-DRB1",
+        "HLA-A",
+        "HLA-A",
+        "HLA-DRB1",
+        "HLA-DRB1"
+      ),
+      allele = c(
+        "HLA-A*02:01",
+        "HLA-A*11:01",
+        "HLA-DRB1*15:01",
+        "HLA-DRB1*04:01",
+        "HLA-A*01:01",
+        "HLA-A*11:01",
+        "HLA-DRB1*15:01",
+        "HLA-DRB1*04:01"
+      ),
+      stringsAsFactors = FALSE
+    ),
+    source_type = "genotyped"
+  )
+}
+
+make_pair_segments <- function() {
+  data.frame(
+    sample = c("s1", "s1", "s2", "s2", "s1"),
+    cdr3 = c("CASSA", "CASSB", "CASSC", "CASSD", "CASSE"),
+    mhc_context = c(
+      "Class I",
+      "Class II",
+      "Class I",
+      "Class II",
+      "Unknown"
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("the pair scope assigns each cell the allele its lineage would use", {
+  # s1 carries A*02:01 AND DRB1*15:01; s2 carries only DRB1*15:01.
+  out <- hla_scope_segments_by_allele_pair(
+    make_pair_segments(),
+    make_pair_typing(),
+    allele_i = "HLA-A*02:01",
+    allele_ii = "HLA-DRB1*15:01",
+    context_col = "mhc_context"
+  )
+
+  # s1 Class I cell -> the Class I allele it carries
+  expect_equal(out$pair_allele[out$cdr3 == "CASSA"], "HLA-A*02:01")
+  # s1 Class II cell -> the Class II allele
+  expect_equal(out$pair_allele[out$cdr3 == "CASSB"], "HLA-DRB1*15:01")
+  # s2 does NOT carry A*02:01, so its Class I cell has no candidate: dropped
+  expect_false("CASSC" %in% out$cdr3)
+  # s2 carries DRB1*15:01, so its Class II cell stays
+  expect_equal(out$pair_allele[out$cdr3 == "CASSD"], "HLA-DRB1*15:01")
+  # Unknown lineage cannot claim either allele
+  expect_false("CASSE" %in% out$cdr3)
+})
+
+test_that("the pair scope needs a lineage to assign anything", {
+  # Without lineage every cell is Unknown, so no cell can be said to use one
+  # class's allele rather than the other's. The scope is undefined, not empty.
+  expect_null(
+    hla_scope_segments_by_allele_pair(
+      make_pair_segments(),
+      make_pair_typing(),
+      allele_i = "HLA-A*02:01",
+      allele_ii = "HLA-DRB1*15:01",
+      context_col = NULL
+    )
+  )
+})
+
+test_that("the pair scope refuses two alleles of the same class", {
+  expect_null(
+    hla_scope_segments_by_allele_pair(
+      make_pair_segments(),
+      make_pair_typing(),
+      allele_i = "HLA-A*02:01",
+      allele_ii = "HLA-A*11:01",
+      context_col = "mhc_context"
+    )
+  )
+})
+
+test_that("a CDR3 in both compartments summarises as Mixed", {
+  expect_equal(
+    hla_pair_class_summary(c("HLA-A*02:01", "HLA-A*02:01")),
+    "HLA-A*02:01"
+  )
+  expect_equal(
+    hla_pair_class_summary(c("HLA-A*02:01", "HLA-DRB1*15:01")),
+    HLA_PAIR_MIXED_LABEL
+  )
+  expect_true(is.na(hla_pair_class_summary(c(NA_character_, NA_character_))))
 })

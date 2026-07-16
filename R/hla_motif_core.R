@@ -317,6 +317,106 @@ hla_build_motif_groups <- function(df, by_v = FALSE) {
   list(motif_df = motif_df, edges = edges)
 }
 
+#' Tally every group's values in one pass
+#'
+#' The per-node summaries (`mode` + `_dist`) both need one thing: how often each
+#' value occurs within each node. Computing that with `table()` per node per
+#' column is what made aggregation ~95% of the graph build — `table()` factors
+#' its input and re-pays `match.arg`/`deparse`/`sys.call` on every one of tens of
+#' thousands of calls, and `mode` and `_dist` each built their own copy of the
+#' identical tally.
+#'
+#' This does it once per column, for every group at once: one radix `order()`
+#' drops into C, and the run boundaries of the sorted `(group, value)` pairs ARE
+#' the tally. Sparse by construction — a dense group x level matrix would be
+#' 630 columns wide on a cohort like Emerson, nearly all of it zero.
+#'
+#' Runs come out ALPHABETICAL within each group, which is what makes the
+#' tie-breaks below match `sort(table(x))`: see [hla_group_mode()].
+#'
+#' @param g Integer group id per row (1..K).
+#' @param v Values, one per row. NA / "" are dropped (a cell with no label is
+#'   absent from the summary, never a level called "NA").
+#' @return list(g, v, n): one entry per (group, distinct value) pair.
+#' @keywords internal
+hla_group_tally <- function(g, v) {
+  v <- as.character(v)
+  keep <- !is.na(v) & nzchar(v)
+  g <- g[keep]
+  v <- v[keep]
+  if (length(g) == 0) {
+    return(list(g = integer(0), v = character(0), n = integer(0)))
+  }
+  o <- order(g, v, method = "radix")
+  gg <- g[o]
+  vv <- v[o]
+  m <- length(gg)
+  # A run starts wherever the (group, value) pair changes.
+  new_run <- c(TRUE, gg[-1L] != gg[-m] | vv[-1L] != vv[-m])
+  list(g = gg[new_run], v = vv[new_run], n = tabulate(cumsum(new_run)))
+}
+
+#' Order a tally by descending count within each group
+#'
+#' Stable (radix), and [hla_group_tally()] hands over runs already in
+#' alphabetical order, so equal counts stay alphabetical. That is precisely what
+#' `sort(table(x), decreasing = TRUE)` did: `table()` names its counts by factor
+#' level (alphabetical) and R's sort keeps that order among ties.
+#'
+#' Getting this wrong is silent. Tallying in first-appearance order instead
+#' flips roughly a fifth of tied modes, moving node colours and tooltips with no
+#' error raised anywhere, so the order is a contract and is tested as one.
+#'
+#' @param t A [hla_group_tally()] result.
+#' @return The same list, reordered.
+#' @keywords internal
+hla_tally_order <- function(t) {
+  o <- order(t$g, -t$n, method = "radix")
+  list(g = t$g[o], v = t$v[o], n = t$n[o])
+}
+
+#' Modal value per group (ties -> alphabetically first)
+#'
+#' @param t A [hla_group_tally()] result.
+#' @param k Number of groups.
+#' @return Character vector of length `k`; NA where the group had no value.
+#' @keywords internal
+hla_group_mode <- function(t, k) {
+  out <- rep(NA_character_, k)
+  if (length(t$g) == 0) {
+    return(out)
+  }
+  t <- hla_tally_order(t)
+  first <- !duplicated(t$g)
+  out[t$g[first]] <- t$v[first]
+  out
+}
+
+#' Compact "N types: A (5), B (2)" distribution string per group
+#'
+#' @param t A [hla_group_tally()] result.
+#' @param k Number of groups.
+#' @return Character vector of length `k`; NA where the group had no value.
+#' @keywords internal
+hla_group_dist <- function(t, k) {
+  out <- rep(NA_character_, k)
+  if (length(t$g) == 0) {
+    return(out)
+  }
+  t <- hla_tally_order(t)
+  parts <- paste0(t$v, " (", t$n, ")")
+  body <- vapply(split(parts, t$g), paste, character(1), collapse = ", ")
+  gid <- as.integer(names(body))
+  n_types <- tabulate(t$g, nbins = k)[gid]
+  out[gid] <- sprintf(
+    "%d type%s: %s",
+    n_types,
+    ifelse(n_types == 1L, "", "s"),
+    unname(body)
+  )
+  out
+}
+
 #' Aggregate parsed segments into unique-CDR3 nodes carrying distributions
 #'
 #' Node key = unique CDR3 amino-acid string, or `(V gene, CDR3)` when `by_v` is
@@ -328,10 +428,15 @@ hla_build_motif_groups <- function(df, by_v = FALSE) {
 #'
 #' @param seg Output of [hla_parse_ir_segments()].
 #' @param meta_cols Character vector of metadata columns to summarise per node.
-#' @param context_col Optional name of a per-cell MHC-context column (values
-#'   "Class I" / "Class II" / "Unknown"). When given, the node gets a
-#'   [hla_context_summary()] value (single class, "Mixed", or "Unknown") instead
-#'   of a plain mode, plus the usual `_dist` string.
+#' @param context_col Optional name of a per-cell context column. When given,
+#'   the node gets a `context_summary` value instead of a plain mode, plus the
+#'   usual `_dist` string.
+#' @param context_summary How to collapse that column's per-cell values to one
+#'   node value. Defaults to [hla_context_summary()] (Class I / Class II /
+#'   "Mixed" / "Unknown"). The Class I x Class II pair scope passes
+#'   [hla_pair_class_summary()] instead. It is a parameter and not a hardcoded
+#'   call because these columns share one property that the plain mode destroys:
+#'   a node spanning BOTH values is the finding, not a tie to be broken.
 #' @param by_v When TRUE, aggregate with `(v_gene, cdr3)` as the node key.
 #' @return A per-node data.frame, or NULL when `seg` is empty.
 #' @keywords internal
@@ -339,80 +444,87 @@ hla_aggregate_cdr3_nodes <- function(
   seg,
   meta_cols = character(0),
   context_col = NULL,
-  by_v = FALSE
+  by_v = FALSE,
+  context_summary = hla_context_summary
 ) {
   if (is.null(seg) || nrow(seg) == 0) {
     return(NULL)
   }
   meta_cols <- intersect(meta_cols, colnames(seg))
-  mode_val <- function(x) {
-    x <- x[!is.na(x)]
-    if (length(x) == 0) {
-      return(NA_character_)
-    }
-    names(sort(table(as.character(x)), decreasing = TRUE))[1]
-  }
-  dist_str <- function(x) {
-    x <- x[!is.na(x) & nzchar(as.character(x))]
-    if (length(x) == 0) {
-      return(NA_character_)
-    }
-    tab <- sort(table(as.character(x)), decreasing = TRUE)
-    parts <- paste0(names(tab), " (", as.integer(tab), ")")
-    sprintf(
-      "%d type%s: %s",
-      length(tab),
-      if (length(tab) == 1) "" else "s",
-      paste(parts, collapse = ", ")
-    )
-  }
-  split_key <- if (isTRUE(by_v)) {
+  # One group id per row, and the row indices behind each group. Splitting the
+  # INDICES, not `seg` itself, is deliberate: splitting the wide data.frame
+  # copies every column of every group and cost more than the tallies do.
+  keys <- if (isTRUE(by_v)) {
     interaction(seg$v_gene, seg$cdr3, drop = TRUE, lex.order = TRUE)
   } else {
-    seg$cdr3
+    factor(seg$cdr3)
   }
-  agg <- do.call(
-    rbind,
-    lapply(split(seg, split_key, drop = TRUE), function(d) {
-      row <- data.frame(
-        node_id = if (isTRUE(by_v)) {
-          paste(d$v_gene[1], d$cdr3[1], sep = "::")
-        } else {
-          d$cdr3[1]
-        },
-        cdr3 = d$cdr3[1],
-        v_gene = mode_val(d$v_gene),
-        j_gene = mode_val(d$j_gene),
-        v_gene_dist = dist_str(d$v_gene),
-        j_gene_dist = dist_str(d$j_gene),
-        clone_count = nrow(d),
-        # Machine-readable set of the samples this node was seen in, so a
-        # renderer can derive per-node HLA carrier status for ANY allele without
-        # rebuilding the graph. Kept allele-independent on purpose: the graph is
-        # cached on its build parameters, and colouring must never invalidate it.
-        samples_all = if ("sample" %in% colnames(d)) {
-          paste(
-            sort(unique(as.character(d$sample[!is.na(d$sample)]))),
-            collapse = ","
-          )
-        } else {
-          NA_character_
-        },
-        stringsAsFactors = FALSE
-      )
-      for (mc in meta_cols) {
-        row[[mc]] <- mode_val(d[[mc]])
-        row[[paste0(mc, "_dist")]] <- dist_str(d[[mc]])
+  g <- as.integer(keys)
+  k <- nlevels(keys)
+  idx <- split(seq_len(nrow(seg)), keys, drop = FALSE)
+  # One representative row per group, for the columns that are constant within
+  # it (`cdr3`, and `v_gene` when it is part of the key).
+  first_i <- vapply(idx, `[`, integer(1), 1L)
+  # `mode` and `_dist` are two readings of ONE tally, so it is computed once.
+  summarise <- function(col) {
+    t <- hla_group_tally(g, seg[[col]])
+    list(mode = hla_group_mode(t, k), dist = hla_group_dist(t, k))
+  }
+
+  v_sum <- summarise("v_gene")
+  j_sum <- summarise("j_gene")
+  # ONE data.frame for every node, not one per node: the constructor is not
+  # cheap enough to call thousands of times (it was 47% of aggregation).
+  agg <- data.frame(
+    node_id = if (isTRUE(by_v)) {
+      paste(seg$v_gene[first_i], seg$cdr3[first_i], sep = "::")
+    } else {
+      seg$cdr3[first_i]
+    },
+    cdr3 = seg$cdr3[first_i],
+    v_gene = v_sum$mode,
+    j_gene = j_sum$mode,
+    v_gene_dist = v_sum$dist,
+    j_gene_dist = j_sum$dist,
+    clone_count = lengths(idx),
+    # Machine-readable set of the samples this node was seen in, so a
+    # renderer can derive per-node HLA carrier status for ANY allele without
+    # rebuilding the graph. Kept allele-independent on purpose: the graph is
+    # cached on its build parameters, and colouring must never invalidate it.
+    samples_all = if ("sample" %in% colnames(seg)) {
+      # The tally's values are already sorted and unique within each group.
+      t <- hla_group_tally(g, seg$sample)
+      out <- rep(NA_character_, k)
+      if (length(t$g) > 0) {
+        joined <- vapply(split(t$v, t$g), paste, character(1), collapse = ",")
+        out[as.integer(names(joined))] <- unname(joined)
       }
-      if (!is.null(context_col) && context_col %in% colnames(d)) {
-        row[[context_col]] <- hla_context_summary(
-          as.character(d[[context_col]])
-        )
-        row[[paste0(context_col, "_dist")]] <- dist_str(d[[context_col]])
-      }
-      row
-    })
+      out
+    } else {
+      NA_character_
+    },
+    stringsAsFactors = FALSE
   )
+  for (mc in meta_cols) {
+    m_sum <- summarise(mc)
+    agg[[mc]] <- m_sum$mode
+    agg[[paste0(mc, "_dist")]] <- m_sum$dist
+  }
+  if (!is.null(context_col) && context_col %in% colnames(seg)) {
+    # Not a mode, and not tallyable: `context_summary` is pluggable precisely
+    # because a node spanning both values is the finding rather than a tie to
+    # break, so it keeps its per-group call. It is cheap (any() / unique()).
+    ctx <- as.character(seg[[context_col]])
+    agg[[context_col]] <- vapply(
+      idx,
+      function(i) context_summary(ctx[i]),
+      character(1)
+    )
+    agg[[paste0(context_col, "_dist")]] <- hla_group_dist(
+      hla_group_tally(g, ctx),
+      k
+    )
+  }
   rownames(agg) <- NULL
   # Derived from samples_all, so it is allele-independent and cannot disagree
   # with the sample set the tooltip reports.
@@ -455,6 +567,62 @@ hla_node_sample_origin <- function(samples_all) {
   )
 }
 
+## Seed for the motif layout. Fixed so the same graph always draws the same
+## picture: a layout that reshuffled between sessions would make two screenshots
+## of one analysis impossible to compare, and the page's whole export/manifest
+## story rests on a view being reproducible.
+HLA_LAYOUT_SEED <- 42L
+
+#' Coordinates for drawing a motif graph, computed in igraph
+#'
+#' The browser used to do this: `visPhysics(stabilization = 150)` ran a
+#' force simulation in JS on every open, which blocked the main thread for ~1.8s
+#' on a 430-node graph and drew NOTHING until it finished — so the spinner (which
+#' only tracks Shiny's recalculation) had long since vanished, leaving a blank
+#' canvas. igraph does the same job in C in ~75ms.
+#'
+#' `layout_components` rather than a plain force layout, because a motif network
+#' is BY CONSTRUCTION a set of disconnected components (that is what a motif is).
+#' A force layout has to push those apart with repulsion alone, which is both the
+#' slow part and a bad picture — it is what the min-motif-size default exists to
+#' avoid ("the layout collapses to a ring"). Laying each component out on its own
+#' and packing the results is the shape of the actual data.
+#'
+#' @param graph A [hla_build_motif_graph()] igraph.
+#' @param seed RNG seed; the layout is randomized and must not be.
+#' @return A two-column matrix of coordinates, one row per vertex, or NULL.
+#' @keywords internal
+hla_motif_layout <- function(graph, seed = HLA_LAYOUT_SEED) {
+  if (!hla_motif_graph_ok(graph)) {
+    return(NULL)
+  }
+  # Seed locally and put the caller's RNG stream back. set.seed() in a Shiny
+  # session is a global side effect: silently re-seeding from here would make
+  # every later random draw in that session — in any other tab — follow from
+  # this seed. (visNetwork::visIgraphLayout(randomSeed=) does exactly that,
+  # which is why the layout is computed here and passed in instead.)
+  had_seed <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+  old_seed <- if (had_seed) {
+    get(".Random.seed", envir = globalenv(), inherits = FALSE)
+  } else {
+    NULL
+  }
+  on.exit(
+    {
+      if (had_seed) {
+        assign(".Random.seed", old_seed, envir = globalenv())
+      } else if (
+        exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+      ) {
+        rm(".Random.seed", envir = globalenv())
+      }
+    },
+    add = TRUE
+  )
+  set.seed(seed)
+  igraph::layout_components(graph, layout = igraph::layout_with_fr)
+}
+
 #' Is a motif-graph result a usable igraph?
 #'
 #' [hla_build_motif_graph()] returns NULL (nothing to draw), an NA carrying a
@@ -480,8 +648,10 @@ hla_motif_graph_ok <- function(g) {
 #' @param min_nodes Keep connected components of size >= `min_nodes`. Default 2.
 #' @param show_isolated When TRUE, also keep isolated (degree-0) CDR3s as points.
 #' @param meta_cols Metadata columns to carry as node distributions.
-#' @param context_col Optional per-cell MHC-context column; the node gets a
-#'   [hla_context_summary()] value (single class / "Mixed" / "Unknown").
+#' @param context_col Optional per-cell context column; the node gets a
+#'   `context_summary` value rather than a mode.
+#' @param context_summary Collapse function for `context_col`; see
+#'   [hla_aggregate_cdr3_nodes()].
 #' @return An igraph object (with a per-node `cluster` attribute and a
 #'   `total_cells` graph attribute) or NULL. Attaches attr "guard" with a
 #'   message when a size guard tripped (graph is NULL in that case).
@@ -492,7 +662,8 @@ hla_build_motif_graph <- function(
   min_nodes = 2L,
   show_isolated = FALSE,
   meta_cols = character(0),
-  context_col = NULL
+  context_col = NULL,
+  context_summary = hla_context_summary
 ) {
   # A guard trip returns NA (not NULL) carrying a message attribute, because an
   # attribute cannot be set on NULL. Callers treat is.null() OR a "guard" attr
@@ -509,7 +680,8 @@ hla_build_motif_graph <- function(
     seg,
     meta_cols = meta_cols,
     context_col = context_col,
-    by_v = by_v
+    by_v = by_v,
+    context_summary = context_summary
   )
   if (is.null(agg) || nrow(agg) == 0) {
     return(NULL)
@@ -584,5 +756,15 @@ hla_build_motif_graph <- function(
   igraph::V(g)$cluster <- igraph::components(g)$membership
   # Denominator for a node's clone-size fraction shown in tooltips.
   g <- igraph::set_graph_attr(g, "total_cells", nrow(seg))
+  # Draw coordinates travel WITH the graph, deliberately. The layout is a
+  # function of the graph's structure alone, so it belongs to the thing the
+  # caller caches on the build parameters. Computing it at render time instead
+  # would redo it on every colour change — and, worse, a colour change would
+  # then be free to re-arrange the network, which is not a colour change.
+  xy <- hla_motif_layout(g)
+  if (!is.null(xy)) {
+    igraph::V(g)$layout_x <- xy[, 1]
+    igraph::V(g)$layout_y <- xy[, 2]
+  }
   g
 }

@@ -37,24 +37,41 @@ hla_ir_annotated <- reactive({
     return(NULL)
   }
   md <- tryCatch(getMetaData(), error = function(e) NULL)
-  if (is.null(md) || !("cell_barcode" %in% colnames(md))) {
-    return(data)
+  has_md <- !is.null(md) && "cell_barcode" %in% colnames(md)
+  meta_cols <- if (has_md) {
+    setdiff(colnames(md), "cell_barcode")
+  } else {
+    character(0)
   }
-  meta_cols <- setdiff(colnames(md), "cell_barcode")
-  lapply(data, function(df) {
-    if (is.null(df) || !("barcode" %in% colnames(df))) {
+  nm <- names(data)
+  out <- lapply(seq_along(data), function(i) {
+    df <- data[[i]]
+    if (is.null(df)) {
       return(df)
     }
-    add <- setdiff(meta_cols, colnames(df))
-    if (length(add) == 0) {
-      return(df)
+    if (has_md && "barcode" %in% colnames(df)) {
+      add <- setdiff(meta_cols, colnames(df))
+      if (length(add) > 0) {
+        idx <- match(df$barcode, md$cell_barcode)
+        for (col in add) {
+          df[[col]] <- md[[col]][idx]
+        }
+      }
     }
-    idx <- match(df$barcode, md$cell_barcode)
-    for (col in add) {
-      df[[col]] <- md[[col]][idx]
+    # `sample` is STRUCTURAL here, not a metadata column this page hopes to
+    # find: HLA typing is matched to the repertoire by the names of this very
+    # list (hla_analysis_unit_map is handed names(getImmuneRepertoire())), so
+    # the list name is what "sample" has to mean for every join on this page.
+    # Taking it from a metadata column of the same name would leave the page
+    # broken on any object that names it differently, and quietly inconsistent
+    # on one where the column and the list disagree.
+    if (!is.null(nm) && nzchar(nm[i])) {
+      df$sample <- nm[i]
     }
     df
   })
+  names(out) <- nm
+  out
 })
 
 ## ---- TCR chains available (TRA / TRB only for this page) --------------- ##
@@ -89,46 +106,40 @@ hla_param <- function(id, default = NULL) {
   if (is.null(v)) default else v
 }
 
-## ---- Metadata columns offered for node colouring ---------------------- ##
-## Categorical metadata columns (character/factor, > 1 value) that are not raw
-## scRepertoire columns. "sample" and "cell_type" are surfaced first as the
-## common colouring choices.
-HLA_SCR_COLS <- c(
-  "barcode",
-  "CTgene",
-  "CTnt",
-  "CTaa",
-  "CTstrict",
-  "clonalProportion",
-  "clonalFrequency",
-  "cloneSize",
-  "Frequency",
-  "frequency",
-  "cloneType"
-)
-hla_color_meta_cols <- reactive({
+## ---- Columns the receptor table actually carries ---------------------- ##
+## Declared or not. This is a question about the DATA ("is the lineage here?"),
+## which is why it is separate from the colour list below: what the user may
+## colour by is a curation decision, what this page can compute is not. Tying
+## the two together would make MHC context vanish for any data set whose lineage
+## column exists but was never declared a grouping.
+hla_available_cols <- reactive({
   data <- hla_ir_annotated()
   if (is.null(data)) {
     return(character(0))
   }
-  common <- Reduce(intersect, lapply(data, colnames))
-  merged <- do.call(
-    rbind,
-    lapply(data, function(df) df[, common, drop = FALSE])
-  )
-  cand <- setdiff(common, HLA_SCR_COLS)
-  keep <- vapply(
-    cand,
-    function(col) {
-      v <- merged[[col]]
-      (is.character(v) || is.factor(v)) &&
-        length(unique(v[!is.na(v) & nzchar(as.character(v))])) > 1
-    },
-    logical(1)
-  )
-  cols <- cand[keep]
-  ordered <- intersect(c("sample", "cell_type"), cols)
-  c(ordered, setdiff(cols, ordered))
+  Reduce(intersect, lapply(data, colnames))
+})
+
+## ---- Metadata columns offered for node colouring ---------------------- ##
+## The data set's DECLARED grouping variables — the same list, in the same
+## order, that the Groups page offers as "Choose a grouping variable".
+##
+## This used to infer the list instead: every metadata column that happened to
+## be a string with more than one value. Inference cannot tell a grouping from a
+## leftover, so it offered whatever the upstream pipeline had lying around
+## (`orig.ident`, `RNA_snn_res.0.6`, ...) as if those were biology, and the same
+## data set could offer different colourings on two pages. getGroups() is the
+## object's own answer to "what are the groupings here"; there is no reason for
+## this page to hold a second opinion.
+##
+## Intersected with what actually reached the receptor table: a declared group
+## whose values did not survive the barcode join has nothing to colour with.
+hla_color_meta_cols <- reactive({
+  groups <- tryCatch(getGroups(), error = function(e) character(0))
+  if (length(groups) == 0) {
+    return(character(0))
+  }
+  intersect(groups, hla_available_cols())
 })
 
 ## Colouring by a column with more distinct values than this is unreadable: the
@@ -136,22 +147,14 @@ hla_color_meta_cols <- reactive({
 ## would promise a grouping it cannot show. Such columns are not offered.
 HLA_MAX_COLOR_LEVELS <- 24L
 
-## ---- Colour columns that can actually be read -------------------------- ##
-## hla_color_meta_cols() keeps any categorical column with > 1 level, but a
-## column with a level per sample (e.g. `sample` / `donor_id` in a 100-donor
-## cohort) yields ~100 hues and a suppressed legend: the control would offer a
-## grouping the plot cannot convey. Cap the cardinality for the colour picker
-## only; such columns remain available as node tooltips.
-hla_usable_color_cols <- reactive({
+## ---- Level count of each declared grouping, as the receptors see it ----- ##
+hla_color_col_levels <- reactive({
   cols <- hla_color_meta_cols()
-  if (length(cols) == 0) {
-    return(character(0))
-  }
   data <- hla_ir_annotated()
-  if (is.null(data)) {
-    return(cols)
+  if (length(cols) == 0 || is.null(data)) {
+    return(stats::setNames(integer(0), character(0)))
   }
-  n_levels <- vapply(
+  vapply(
     cols,
     function(col) {
       v <- unlist(lapply(data, function(df) {
@@ -161,7 +164,32 @@ hla_usable_color_cols <- reactive({
     },
     integer(1)
   )
-  cols[n_levels <= HLA_MAX_COLOR_LEVELS]
+})
+
+## ---- Colour columns that can actually be read -------------------------- ##
+## A grouping with a level per donor (`sample` in the 100-donor bulk cohort)
+## yields ~100 hues over a network of a few hundred nodes: every node gets its
+## own colour and the picture stops being a grouping at all. Capped for the
+## colour picker only; the column is still on the node tooltips, and
+## "Sample of origin" is the readable way to ask that question here.
+##
+## This is the ONE place this page's list is narrower than the Groups page's.
+## hla_color_cols_dropped() exists so the difference is stated on screen rather
+## than looking like the grouping was never declared.
+hla_usable_color_cols <- reactive({
+  cols <- hla_color_meta_cols()
+  if (length(cols) == 0) {
+    return(character(0))
+  }
+  if (is.null(hla_ir_annotated())) {
+    return(cols)
+  }
+  n_levels <- hla_color_col_levels()
+  cols[n_levels[cols] <= HLA_MAX_COLOR_LEVELS]
+})
+
+hla_color_cols_dropped <- reactive({
+  setdiff(hla_color_meta_cols(), hla_usable_color_cols())
 })
 
 ## ---- Does the source key its receptors on V gene + CDR3? --------------- ##
@@ -230,10 +258,14 @@ hla_allele_choices <- reactive({
   contrast <- pmin(summ$n_carrier, summ$n_noncarrier)
   ord <- order(-contrast, -summ$n_carrier, summ$allele)
   summ <- summ[ord, , drop = FALSE]
+  # "allele|counts": the bar is where HLA_TWO_LINE_RENDER breaks the label, so
+  # the allele gets a line of its own and the carrier split reads as the
+  # annotation it is. At this column width one long label wrapped wherever it
+  # ran out of room, splitting "non-carrier" across lines.
   stats::setNames(
     summ$allele,
     sprintf(
-      "%s - %d carrier / %d non-carrier",
+      "%s|%d carrier / %d non-carrier",
       summ$allele,
       summ$n_carrier,
       summ$n_noncarrier
@@ -283,18 +315,75 @@ hla_unit_noun <- reactive({
   getObservationUnit()$singular
 })
 
-## ---- Cell-type column used for lineage-derived MHC context ------------- ##
-## Prefer a finer lineage column (cell_type_fine) when present, since a coarse
-## "T cells" label cannot separate CD4/CD8 and collapses to Unknown context.
+## ---- Column the CD4/CD8 lineage is read from -------------------------- ##
+## MHC context (CD8 -> Class I, CD4/Treg -> Class II) needs to know which column
+## holds the lineage label. Two ways to know, in this order:
+##
+##   1. the data set DECLARES it in `technical_info$lineage_column`, the same
+##      contract style as observation_unit / receptor_key;
+##   2. failing that, ASK THE VALUES. hla_lineage_context() already matches on
+##      the label itself (CD8 / CD4 / Treg), never on the column name, so the
+##      column that resolves the most cells to a real lineage is the lineage
+##      column, whatever it is called.
+##
+## What this deliberately no longer does is match names: `cell_type_fine` then
+## `cell_type` worked for the bundled demos and quietly produced "Unknown" for
+## everyone whose annotation lives in `celltype`, `annotation`, `azimuth_l2`,
+## `predicted.id`... This is a general-purpose viewer; the columns are the
+## user's to name.
+##
+## Ties break toward the column with MORE distinct labels: between a coarse
+## "T cells / B cells" and a fine "CD8 TEM / CD4 naive", both may resolve the
+## same cells, and the finer one carries the lineage more precisely.
 hla_celltype_col <- reactive({
-  cols <- hla_color_meta_cols()
-  if ("cell_type_fine" %in% cols) {
-    "cell_type_fine"
-  } else if ("cell_type" %in% cols) {
-    "cell_type"
-  } else {
-    NA_character_
+  data <- hla_ir_annotated()
+  cols <- hla_available_cols()
+  if (is.null(data) || length(cols) == 0) {
+    return(NA_character_)
   }
+
+  declared <- tryCatch(
+    data_set()$technical_info$lineage_column,
+    error = function(e) NULL
+  )
+  if (
+    is.character(declared) && length(declared) >= 1 && declared[1] %in% cols
+  ) {
+    return(declared[1])
+  }
+
+  score <- vapply(
+    cols,
+    function(col) {
+      v <- unlist(lapply(data, function(df) {
+        if (col %in% colnames(df)) as.character(df[[col]]) else character(0)
+      }))
+      v <- v[!is.na(v) & nzchar(v)]
+      if (length(v) == 0) {
+        return(0)
+      }
+      mean(hla_lineage_context(v) != "Unknown")
+    },
+    numeric(1)
+  )
+  if (max(score) == 0) {
+    return(NA_character_)
+  }
+  best <- cols[score == max(score)]
+  if (length(best) == 1) {
+    return(best)
+  }
+  best_levels <- vapply(
+    best,
+    function(col) {
+      v <- unlist(lapply(data, function(df) {
+        if (col %in% colnames(df)) as.character(df[[col]]) else character(0)
+      }))
+      length(unique(v[!is.na(v) & nzchar(v)]))
+    },
+    integer(1)
+  )
+  best[which.max(best_levels)]
 })
 
 ## ---- Parsed segments for the active chain (+ per-cell MHC context) ----- ##
@@ -317,12 +406,16 @@ hla_segments <- reactive({
 
 ## ---- Metadata columns to carry onto nodes (for tooltip / colouring) ---- ##
 hla_node_meta_cols <- reactive({
-  cols <- hla_color_meta_cols()
-  # Always carry sample + cell_type when present (used by evidence join / MHC
-  # context), plus whatever the user colours by.
-  base <- intersect(c("sample", "cell_type"), cols)
+  # `sample` is always carried: every HLA join on this page is by sample, and
+  # hla_ir_annotated() guarantees the column from the repertoire's own list
+  # names. The lineage column comes from hla_celltype_col(), which finds it in
+  # the data rather than assuming what it is called. The colour choice is added
+  # on top and is necessarily one of the declared groupings.
+  ct <- hla_celltype_col()
+  base <- c("sample", if (!is.na(ct)) ct else character(0))
   cb <- hla_param("hla_color_by", "")
-  unique(c(base, if (nzchar(cb) && cb %in% cols) cb else character(0)))
+  extra <- if (nzchar(cb) && cb %in% hla_color_meta_cols()) cb else character(0)
+  unique(intersect(c(base, extra), hla_available_cols()))
 })
 
 ## ---- Network scope ----------------------------------------------------- ##
@@ -331,10 +424,84 @@ hla_node_meta_cols <- reactive({
 ##             allele (its carriers, class-matched). This is a different graph,
 ##             not a different colour: edges never join a carrier's CDR3 to a
 ##             non-carrier's, which the global graph does by construction.
+## "pair"   -> the graph is rebuilt on ONE Class I allele and ONE Class II
+##             allele at once; each cell is assigned the one its own lineage
+##             could use, and a CDR3 seen on both sides is the thing to look at.
 ## Scoping needs typing, so it collapses to "all" without it.
+## Falls back on hla_has_analyzable_allele(), not hla_has_typing(): removing the
+## selector does not clear input$hla_scope, so a session that scoped to an
+## allele and then lost its usable typing would keep reporting "allele" with no
+## control on screen and no allele behind it.
+HLA_SCOPE_MODES <- c("all", "allele", "pair")
 hla_scope_mode <- reactive({
   m <- hla_param("hla_scope", "all")
-  if (!hla_has_typing() || !(m %in% c("all", "allele"))) "all" else m
+  if (!hla_has_analyzable_allele() || !(m %in% HLA_SCOPE_MODES)) {
+    return("all")
+  }
+  # The pair scope needs BOTH classes to be offerable, and a lineage to split
+  # cells by. Without either it is not a narrower view, it is undefined — so it
+  # collapses rather than silently drawing something else.
+  if (identical(m, "pair") && !hla_pair_available()) {
+    return("all")
+  }
+  m
+})
+
+## ---- Can a Class I x Class II pair be formed at all? ------------------- ##
+hla_pair_available <- reactive({
+  !is.na(hla_celltype_col()) &&
+    length(hla_class_allele_choices("Class I")) > 0 &&
+    length(hla_class_allele_choices("Class II")) > 0
+})
+
+## The allele choices of one MHC class, in the same order and with the same
+## labels as the page's single-allele picker.
+hla_class_allele_choices <- function(class) {
+  choices <- hla_allele_choices()
+  if (length(choices) == 0) {
+    return(choices)
+  }
+  keep <- vapply(
+    unname(choices),
+    function(a) identical(hla_locus_class(hla_allele_locus(a)), class),
+    logical(1)
+  )
+  choices[keep]
+}
+
+## ---- The two alleles of the pair scope -------------------------------- ##
+## The Class I side reuses the page's single allele when that allele IS class I,
+## so switching into the pair scope keeps the allele the user was already
+## looking at rather than silently jumping to another one.
+hla_pair_allele_i <- reactive({
+  choices <- hla_class_allele_choices("Class I")
+  if (length(choices) == 0) {
+    return(NULL)
+  }
+  picked <- input$hla_pair_allele_i
+  if (!is.null(picked) && nzchar(picked) && picked %in% choices) {
+    return(picked)
+  }
+  current <- hla_color_allele()
+  if (
+    !is.null(current) &&
+      current %in% choices
+  ) {
+    return(current)
+  }
+  unname(choices[1])
+})
+
+hla_pair_allele_ii <- reactive({
+  choices <- hla_class_allele_choices("Class II")
+  if (length(choices) == 0) {
+    return(NULL)
+  }
+  picked <- input$hla_pair_allele_ii
+  if (!is.null(picked) && nzchar(picked) && picked %in% choices) {
+    return(picked)
+  }
+  unname(choices[1])
 })
 
 ## The scope reuses the page's single allele rather than adding a picker: see
@@ -342,13 +509,31 @@ hla_scope_mode <- reactive({
 ## scopes to one allele while reading another's numbers.
 hla_scoped_segments <- reactive({
   seg <- hla_segments()
-  if (
-    is.null(seg) ||
-      nrow(seg) == 0 ||
-      !identical(hla_scope_mode(), "allele")
-  ) {
+  mode <- hla_scope_mode()
+  if (is.null(seg) || nrow(seg) == 0 || identical(mode, "all")) {
     return(seg)
   }
+  ctx <- if ("mhc_context" %in% colnames(seg)) "mhc_context" else NULL
+
+  if (identical(mode, "pair")) {
+    a_i <- hla_pair_allele_i()
+    a_ii <- hla_pair_allele_ii()
+    if (is.null(a_i) || is.null(a_ii)) {
+      return(seg)
+    }
+    out <- hla_scope_segments_by_allele_pair(
+      seg,
+      hla_active_typing(),
+      allele_i = a_i,
+      allele_ii = a_ii,
+      context_col = ctx
+    )
+    # NULL means the pair is not analysable at all. Falling back to the whole
+    # repertoire would answer a different question under the pair's label, so
+    # return nothing and let hla_scope_status say why.
+    return(out)
+  }
+
   allele <- hla_color_allele()
   if (is.null(allele)) {
     return(seg)
@@ -357,7 +542,7 @@ hla_scoped_segments <- reactive({
     seg,
     hla_active_typing(),
     allele,
-    context_col = if ("mhc_context" %in% colnames(seg)) "mhc_context" else NULL
+    context_col = ctx
   )
   if (is.null(out)) seg else out
 })
@@ -365,34 +550,149 @@ hla_scoped_segments <- reactive({
 ## Cache key fragment: constant while unscoped, so changing the allele still
 ## re-colours the cached global graph instead of rebuilding it. Only in "allele"
 ## scope does the allele become a build parameter.
+##
+## The allele NAME is not enough to key on. In allele scope the graph is built
+## from that allele's carriers, so the CARRIER SET is the real build parameter —
+## and two different typings can name the same allele while disagreeing about
+## who carries it. Without the carrier set in the key, uploading a second typing
+## and keeping the allele selected would serve the graph cached from the old
+## carriers while the colours and the Associations table came from the new
+## typing: one screen, two cohorts, no error.
+##
+## Fingerprinted only in allele scope, and only the carrier set rather than the
+## whole typing table: hla_scope_segments_by_allele reads typing through
+## hla_carriers_of() and nowhere else, and in "all" scope typing never touches
+## the build at all (colour is applied downstream at render). Keying wider than
+## that would rebuild the Hamming graph on typing edits that cannot change it.
 hla_scope_key <- reactive({
-  if (identical(hla_scope_mode(), "allele")) {
-    paste0("allele:", hla_color_allele() %||% "")
-  } else {
-    "all"
+  mode <- hla_scope_mode()
+  if (identical(mode, "all")) {
+    return("all")
   }
+  # Same rule for both scoped modes: name the alleles AND fingerprint whose
+  # carriage they resolve to.
+  fingerprint <- function(allele) {
+    allele <- allele %||% ""
+    carriers <- if (nzchar(allele)) {
+      hla_carriers_of(hla_active_typing(), allele)
+    } else {
+      character(0)
+    }
+    paste0(allele, "|carriers:", paste(sort(carriers), collapse = ","))
+  }
+  if (identical(mode, "pair")) {
+    return(paste0(
+      "pair:",
+      fingerprint(hla_pair_allele_i()),
+      "|x|",
+      fingerprint(hla_pair_allele_ii()),
+      # The lineage decides which side each cell lands on, so it is a build
+      # parameter too: the same two alleles over a different lineage column are
+      # a different graph.
+      "|lineage:",
+      hla_celltype_col() %||% ""
+    ))
+  }
+  paste0("allele:", fingerprint(hla_color_allele()))
+})
+
+## ---- Have the build parameters reported yet? --------------------------- ##
+## Every build/display control on this page is created by output$hla_parameters_ui
+## (its choices depend on the data set, so it cannot be static UI). That has a
+## consequence worth stating: on the flush that first draws this page the inputs
+## DO NOT EXIST, so hla_param() serves its fallbacks, and the browser reports the
+## real values one flush later.
+##
+## Left ungated, the page therefore builds and draws the whole network twice on
+## first open — once against the fallbacks, then again for real. Both passes
+## agree today (the slider's `value` and the hla_param() fallback share one
+## expression), so bindCache spares the second Hamming build and the visible cost
+## is the network being torn down and re-stabilised the moment it appears. That
+## agreement is a coincidence maintained by hand, though: change either default
+## without the other and the first pass becomes a full wasted build of a graph
+## nobody ever sees.
+##
+## So wait for the controls to report instead. The slider and the colour picker
+## are created unconditionally, so either being non-NULL proves the panel
+## rendered and reported. Checked with is.null(), NOT req(input$hla_color_by):
+## that input's default value is "" (colour by motif cluster), which req() treats
+## as missing — the network would then never draw until the user picked a
+## colouring.
+##
+## The allele pickers need the same wait, one level deeper, and this is easy to
+## miss because they are not on screen when the problem starts. They live in
+## their own uiOutputs inside conditionalPanels, so Shiny suspends them until the
+## panel appears — which is the very moment the user picks the scope that needs
+## them. Selecting "One HLA allele" therefore ran the whole build against
+## hla_color_allele()'s fallback, drew it, and redrew it ~130ms later when the
+## picker finally reported. Measured: two widgets on one scope change, which is
+## the flash.
+##
+## Guarded on hla_allele_choices() being non-empty, not just on the mode: a data
+## set with no analysable allele renders that uiOutput as a bare "no alleles"
+## message and creates no input at all, so requiring one would wait forever.
+hla_params_ready <- reactive({
+  if (is.null(input$hla_color_by) || is.null(input$hla_min_nodes)) {
+    return(FALSE)
+  }
+  if (length(hla_allele_choices()) == 0) {
+    return(TRUE)
+  }
+  mode <- hla_scope_mode()
+  # The page's single allele is a build parameter in "allele" scope and a display
+  # parameter under carrier colouring; either way the graph or its colours wait
+  # on it.
+  needs_allele <- identical(mode, "allele") ||
+    identical(hla_param("hla_color_by", ""), "hla_carrier")
+  if (needs_allele && is.null(input$hla_color_allele)) {
+    return(FALSE)
+  }
+  if (
+    identical(mode, "pair") &&
+      (is.null(input$hla_pair_allele_i) || is.null(input$hla_pair_allele_ii))
+  ) {
+    return(FALSE)
+  }
+  TRUE
 })
 
 ## ---- The motif graph (heavy; keyed on build parameters) --------------- ##
 ## Only build parameters (chain, min_nodes, split-by-V, show-isolated, scope)
 ## and the dataset re-trigger this; colour is applied downstream in the renderer.
-hla_motif_graph <- reactive({
-  if (!hla_has_deps()) {
+hla_build_graph_from <- function(seg) {
+  if (!hla_has_deps() || is.null(seg) || nrow(seg) == 0) {
     return(NULL)
   }
-  seg <- hla_scoped_segments()
-  if (is.null(seg) || nrow(seg) == 0) {
-    return(NULL)
+  # In the pair scope the per-cell candidate allele IS the context, and it is
+  # summarised by hla_pair_class_summary so a CDR3 on both sides reads as
+  # "Both classes" rather than as whichever side had more cells. The plain MHC
+  # context adds nothing there: the assignment already came from the lineage.
+  if ("pair_allele" %in% colnames(seg)) {
+    ctx_col <- "pair_allele"
+    ctx_summary <- hla_pair_class_summary
+  } else {
+    ctx_col <- if ("mhc_context" %in% colnames(seg)) "mhc_context" else NULL
+    ctx_summary <- hla_context_summary
   }
-  ctx_col <- if ("mhc_context" %in% colnames(seg)) "mhc_context" else NULL
   hla_build_motif_graph(
     seg,
     by_v = isTRUE(hla_param("hla_by_v", hla_by_v_default())),
     min_nodes = as.integer(hla_param("hla_min_nodes", hla_default_min_nodes())),
     show_isolated = isTRUE(hla_param("hla_show_isolated", FALSE)),
     meta_cols = hla_node_meta_cols(),
-    context_col = ctx_col
+    context_col = ctx_col,
+    context_summary = ctx_summary
   )
+}
+
+## The gate lives in an UNCACHED wrapper, never inside the cached reactive: a
+## req() stop inside a bindCache body would be a value the cache is entitled to
+## store under the current key, and every later hit on that key would replay the
+## stop instead of building the graph. Keeping the two apart means the cached
+## reactive is only ever reached with real parameters, and every existing caller
+## of hla_motif_graph() is gated without knowing it.
+hla_motif_graph_cached <- reactive({
+  hla_build_graph_from(hla_scoped_segments())
 }) %>%
   hla_bindCache(
     hla_active_chain(),
@@ -403,6 +703,53 @@ hla_motif_graph <- reactive({
     hla_scope_key(),
     available_crb_files$selected
   )
+
+hla_motif_graph <- reactive({
+  req(hla_params_ready())
+  hla_motif_graph_cached()
+})
+
+## ---- The allele-INDEPENDENT graph (features for Associations) ---------- ##
+## Associations compares carriers against non-carriers of an allele. If the
+## motif it compares was itself discovered in a graph built from that allele's
+## carriers, the allele picked the feature and is then asked whether it explains
+## it — the carriers' side is guaranteed to look enriched, whatever the biology.
+## The comparison must therefore only ever see motifs found WITHOUT reference to
+## the allele, so this graph is always built from the unscoped segments.
+##
+## The scoped views stay available as exploratory VIEWS; they just cannot also
+## be the thing that nominates the feature.
+##
+## Tested as "is the scope 'all'", NOT as "is the scope something other than
+## 'allele'". Those read the same until a scope is added: the pair scope is just
+## as allele-selected, and a not-equal test would have handed its graph straight
+## back to Associations while looking untouched.
+##
+## Costs a second Hamming build in a scoped view only: when the scope is "all",
+## the drawn graph is already allele-independent and is reused as-is.
+## Same split as hla_motif_graph above, and for the same reason: the gate must
+## stay outside the cache. Associations reads this, so without the gate the page
+## would build the allele-independent graph on the fallback parameters too.
+hla_global_motif_graph_cached <- reactive({
+  if (identical(hla_scope_mode(), "all")) {
+    return(hla_motif_graph_cached())
+  }
+  hla_build_graph_from(hla_segments())
+}) %>%
+  hla_bindCache(
+    hla_active_chain(),
+    hla_param("hla_by_v", hla_by_v_default()),
+    hla_param("hla_min_nodes", hla_default_min_nodes()),
+    hla_param("hla_show_isolated", FALSE),
+    paste(hla_node_meta_cols(), collapse = ","),
+    "all",
+    available_crb_files$selected
+  )
+
+hla_global_motif_graph <- reactive({
+  req(hla_params_ready())
+  hla_global_motif_graph_cached()
+})
 
 ## ---- How many motif clusters the current view holds -------------------- ##
 ## Only used to explain the suppressed legend, so it reads the built graph
@@ -519,4 +866,57 @@ hla_active_typing <- reactive({
 hla_has_typing <- reactive({
   t <- hla_active_typing()
   is.data.frame(t) && nrow(t) > 0
+})
+
+## ---- Is any allele actually usable as an analysis axis? ---------------- ##
+## "The typing table has rows" is a much weaker fact than "this page can put an
+## allele on screen", and the analysis controls need the stronger one. A table
+## can be non-empty and still offer nothing: typed for another cohort (no sample
+## matches the repertoire), or typed only at DQ/DP (valid, stored, but not an
+## independently interpretable unit here — see hla_allele_choices).
+##
+## Gating the carrier colouring and the allele scope on the weaker fact left
+## both controls on screen with nothing behind them: the picker said "no alleles
+## available" and the scope quietly fell back to the whole network, which looks
+## exactly like a scope that found everything.
+hla_has_analyzable_allele <- reactive({
+  length(hla_allele_choices()) > 0
+})
+
+## Why there is nothing to analyse, when there is typing but no usable allele.
+## Hiding the controls without saying why just moves the confusion.
+hla_no_allele_reason <- reactive({
+  if (!hla_has_typing() || hla_has_analyzable_allele()) {
+    return(NULL)
+  }
+  typing <- hla_active_typing()
+  ir_samples <- names(getImmuneRepertoire())
+  matched <- intersect(unique(as.character(typing$sample)), ir_samples)
+  if (length(matched) == 0) {
+    return(sprintf(
+      paste(
+        "None of the %d typed sample names match this data set's %d sample",
+        "names. Matching is exact, never guessed."
+      ),
+      length(unique(typing$sample)),
+      length(ir_samples)
+    ))
+  }
+  in_scope <- typing[typing$sample %in% matched, , drop = FALSE]
+  loci <- sort(unique(as.character(in_scope$locus)))
+  if (!any(loci %in% HLA_MVP_LOCI)) {
+    return(sprintf(
+      paste(
+        "The matched samples are typed only at %s. This page can interpret %s;",
+        "DQ and DP are alpha/beta heterodimers and are not independently",
+        "interpretable without pairing."
+      ),
+      paste(loci, collapse = ", "),
+      paste(HLA_MVP_LOCI, collapse = ", ")
+    ))
+  }
+  paste(
+    "The matched, interpretable alleles are carried by every sample or by none,",
+    "so no carrier contrast exists in this data set."
+  )
 })

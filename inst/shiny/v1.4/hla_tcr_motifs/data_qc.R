@@ -13,15 +13,11 @@ observeEvent(input$hla_upload, {
   if (is.null(f)) {
     return()
   }
+  # Delimiter comes from the ORIGINAL name (f$name), not the temp path Shiny
+  # hands over. Reading itself lives in hla_read_typing_file so it is unit
+  # testable -- it is where the wide format's column names get preserved.
   raw <- tryCatch(
-    {
-      # Sniff delimiter from the extension; default to comma.
-      if (grepl("\\.tsv$", f$name, ignore.case = TRUE)) {
-        utils::read.delim(f$datapath, stringsAsFactors = FALSE)
-      } else {
-        utils::read.csv(f$datapath, stringsAsFactors = FALSE)
-      }
-    },
+    hla_read_typing_file(f$datapath, name = f$name),
     error = function(e) NULL
   )
   if (is.null(raw) || nrow(raw) == 0) {
@@ -173,11 +169,16 @@ output$hla_coverage_table <- DT::renderDataTable({
     return(NULL)
   }
   cov <- hla_coverage_by_sample(t)
+  # scrollX + nowrap, like every table on this page: the widths here are the
+  # user's data (sample names, and a Loci cell listing every typed locus), not
+  # anything this layout can size for. Left to wrap, "HLA-A" breaks across two
+  # lines mid-token and an identifier stops reading as one value.
   DT::datatable(
     cov,
     rownames = FALSE,
     colnames = c("Sample", "# alleles", "Loci"),
-    options = list(pageLength = 10, dom = "t")
+    class = "display nowrap",
+    options = list(pageLength = 10, dom = "t", scrollX = TRUE)
   )
 })
 
@@ -189,6 +190,7 @@ output$hla_normalized_preview <- DT::renderDataTable({
   DT::datatable(
     t,
     rownames = FALSE,
+    class = "display nowrap",
     options = list(pageLength = 8, scrollX = TRUE, dom = "tip")
   )
 })
@@ -203,7 +205,8 @@ output$hla_donor_mapping_preview <- DT::renderDataTable({
     map,
     rownames = FALSE,
     colnames = c("IR sample", "Analysis unit", "Unit type"),
-    options = list(pageLength = 10, dom = "t")
+    class = "display nowrap",
+    options = list(pageLength = 10, dom = "t", scrollX = TRUE)
   )
 })
 

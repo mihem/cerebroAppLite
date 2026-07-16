@@ -281,3 +281,85 @@ test_that("empty input yields an empty canonical table", {
   expect_true(hla_is_typing_table(t))
   expect_equal(nrow(t), 0L)
 })
+
+## ---- uploaded files: the read must not rewrite the format -------------- ##
+
+test_that("a wide CSV survives the read the upload path uses", {
+  # The regression this guards: read.csv's default check.names rewrites
+  # `HLA-A_1` to `HLA.A_1`, and the wide adapter matches on `^HLA-`. That made
+  # every real wide upload -- a format the Data & QC tab advertises -- fail as
+  # "no valid HLA alleles found", blaming the user's file.
+  wide <- data.frame(
+    sample = c("p1", "p2"),
+    `HLA-A_1` = c("A*02:01", "A*01:01"),
+    `HLA-A_2` = c("A*11:01", "A*03:01"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  utils::write.csv(wide, path, row.names = FALSE)
+
+  raw <- hla_read_typing_file(path)
+  expect_true("HLA-A_1" %in% colnames(raw))
+
+  t <- hla_normalize_typing(raw, source_type = "genotyped")
+  expect_true(hla_is_typing_table(t))
+  expect_setequal(unique(t$sample), c("p1", "p2"))
+  expect_setequal(
+    unique(t$allele),
+    c("HLA-A*02:01", "HLA-A*11:01", "HLA-A*01:01", "HLA-A*03:01")
+  )
+  expect_equal(hla_carriers_of(t, "HLA-A*02:01"), "p1")
+})
+
+test_that("a wide TSV is read on its name, not its temp path", {
+  # Shiny hands the handler a temp path with no useful extension, so the
+  # delimiter has to come from the uploaded file's own name.
+  wide <- data.frame(
+    sample = "p1",
+    `HLA-A_1` = "A*02:01",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  path <- tempfile(fileext = ".bin")
+  on.exit(unlink(path), add = TRUE)
+  utils::write.table(wide, path, sep = "\t", row.names = FALSE, quote = FALSE)
+
+  raw <- hla_read_typing_file(path, name = "typing.tsv")
+  expect_true("HLA-A_1" %in% colnames(raw))
+
+  t <- hla_normalize_typing(raw, source_type = "genotyped")
+  expect_equal(unique(t$allele), "HLA-A*02:01")
+})
+
+test_that("a long CSV still reads unchanged", {
+  long <- data.frame(
+    sample = c("p1", "p1"),
+    locus = c("HLA-A", "HLA-A"),
+    allele = c("HLA-A*02:01", "HLA-A*11:01"),
+    stringsAsFactors = FALSE
+  )
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  utils::write.csv(long, path, row.names = FALSE)
+
+  t <- hla_normalize_typing(
+    hla_read_typing_file(path),
+    source_type = "genotyped"
+  )
+  expect_setequal(unique(t$allele), c("HLA-A*02:01", "HLA-A*11:01"))
+})
+
+test_that("carrier summary is empty, not an error, when no sample matches", {
+  # A typing file for another cohort is format-valid and non-empty, so the page
+  # accepts it; every sample then falls outside the repertoire. That used to
+  # reach `order(-out$n_carrier)` with out = NULL and die on the unary minus.
+  t <- hla_normalize_typing(
+    list(ghost = c("HLA-A*02:01", "HLA-A*11:01")),
+    source_type = "genotyped"
+  )
+  summ <- hla_allele_carrier_summary(t, samples = c("real1", "real2"))
+  expect_true(is.data.frame(summ))
+  expect_equal(nrow(summ), 0L)
+})

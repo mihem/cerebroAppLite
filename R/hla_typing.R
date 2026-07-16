@@ -178,6 +178,37 @@ hla_locus_class <- function(locus) {
   )
 }
 
+#' Read an uploaded HLA typing file into a raw data.frame
+#'
+#' Delimiter is sniffed from the file name (`.tsv` -> tab, otherwise comma), so
+#' the name matters even when the bytes live in a temp file, as they do behind
+#' a Shiny fileInput.
+#'
+#' `check.names = FALSE` is the entire reason this is a function. R's default
+#' rewrites any column name that is not a syntactic identifier, which turns the
+#' documented wide format's `HLA-A_1` into `HLA.A_1` — and [.hla_wide_to_long]
+#' matches columns on `^HLA-`. With the default, the wide upload the Data & QC
+#' tab advertises cannot survive its own read: every real wide file dies as
+#' "no valid HLA alleles found", pointing the user at their data instead of at
+#' this line. Long uploads are unaffected either way (`sample`, `locus`,
+#' `allele` are already syntactic).
+#'
+#' @param path Path to the file on disk.
+#' @param name Original file name, used only to pick the delimiter. Defaults to
+#'   `path`.
+#' @return A data.frame with column names exactly as written in the file.
+#' @keywords internal
+hla_read_typing_file <- function(path, name = path) {
+  if (!file.exists(path)) {
+    stop("HLA typing file does not exist: ", path, call. = FALSE)
+  }
+  if (grepl("\\.tsv$", name, ignore.case = TRUE)) {
+    utils::read.delim(path, stringsAsFactors = FALSE, check.names = FALSE)
+  } else {
+    utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
+  }
+}
+
 #' Normalize any accepted HLA input into the canonical long table
 #'
 #' Accepts:
@@ -459,6 +490,56 @@ hla_carriers_of <- function(typing, allele) {
   sort(unique(as.character(typing$sample[hit])))
 }
 
+#' How completely a locus was called, per sample
+#'
+#' A negative call ("this donor does not carry X") is only valid once BOTH
+#' copies of the locus are known: a donor typed `A*01:01` at one copy may still
+#' carry `A*02:01` at the other. Sources differ here — the synthetic fixture
+#' writes a homozygote as two identical rows, while published carrier calls
+#' (e.g. DeWitt) list positives only and never repeat a homozygote — and the
+#' `copy` column is re-numbered by row order on import, so it cannot tell the
+#' two apart. Row count per sample x locus is therefore the only honest signal,
+#' and one row has to read as "unknown second copy", not "homozygous".
+#'
+#' Counted per SAMPLE, never pooled across a donor's samples: two samples with
+#' one copy each are two partial calls, not one diploid call.
+#'
+#' @param typing Canonical HLA typing table.
+#' @param samples Sample names to report on.
+#' @param locus Locus name, e.g. "HLA-A".
+#' @return data.frame(sample, n_copies, call_state) where call_state is
+#'   "complete" (>= 2 copies), "partial" (exactly 1) or "absent" (none).
+#' @keywords internal
+hla_locus_call_state <- function(typing, samples, locus) {
+  samples <- unique(as.character(samples))
+  out <- data.frame(
+    sample = samples,
+    n_copies = rep(0L, length(samples)),
+    call_state = rep("absent", length(samples)),
+    stringsAsFactors = FALSE
+  )
+  if (
+    !hla_is_typing_table(typing) ||
+      nrow(typing) == 0 ||
+      length(samples) == 0
+  ) {
+    return(out)
+  }
+  rows <- typing[
+    typing$sample %in% samples & typing$locus == locus,
+    ,
+    drop = FALSE
+  ]
+  counts <- table(factor(as.character(rows$sample), levels = samples))
+  out$n_copies <- as.integer(counts[samples])
+  out$call_state <- ifelse(
+    out$n_copies >= 2L,
+    "complete",
+    ifelse(out$n_copies == 1L, "partial", "absent")
+  )
+  out
+}
+
 ## ---- Lineage-derived MHC context -------------------------------------- ##
 
 #' Map a cell-type label to a lineage-derived MHC class context
@@ -506,6 +587,36 @@ hla_context_summary <- function(contexts) {
   "Unknown"
 }
 
+## The label for a CDR3 seen in BOTH compartments of a Class I x Class II pair.
+## Not "Mixed": this page already uses that word for two other things (a node
+## whose donors are part carrier / part non-carrier, and a node spanning both
+## lineages), and all three would otherwise read as one concept.
+HLA_PAIR_MIXED_LABEL <- "Both classes"
+
+#' Summarise a node's per-cell candidate alleles into one pair class
+#'
+#' In a Class I x Class II pair scope every cell carries the allele its lineage
+#' would present on ([hla_scope_segments_by_allele_pair]). A CDR3 node pools
+#' cells, so it can span both compartments: that is the observation the pair
+#' network exists to show, and it must not be averaged away — taking the modal
+#' allele would silently report such a node as whichever compartment happened to
+#' contribute more cells.
+#'
+#' @param x Per-cell candidate alleles (NA where none applies).
+#' @return The single allele when all cells agree, [HLA_PAIR_MIXED_LABEL] when
+#'   both appear, NA when there is nothing to summarise.
+#' @keywords internal
+hla_pair_class_summary <- function(x) {
+  vals <- unique(as.character(x[!is.na(x)]))
+  if (length(vals) == 0) {
+    return(NA_character_)
+  }
+  if (length(vals) > 1) {
+    return(HLA_PAIR_MIXED_LABEL)
+  }
+  vals[1]
+}
+
 ## ---- Descriptive HLA carrier summaries (NO inferential statistics) ----- ##
 
 #' Descriptive per-allele carrier summary over analysis units
@@ -523,10 +634,8 @@ hla_context_summary <- function(contexts) {
 #'   the function reports sample-level counts.
 #' @keywords internal
 hla_allele_carrier_summary <- function(typing, samples) {
-  if (
-    !hla_is_typing_table(typing) || nrow(typing) == 0 || length(samples) == 0
-  ) {
-    return(data.frame(
+  empty <- function() {
+    data.frame(
       allele = character(0),
       locus = character(0),
       mhc_class = character(0),
@@ -536,10 +645,21 @@ hla_allele_carrier_summary <- function(typing, samples) {
       carriers = character(0),
       analysis_unit = character(0),
       stringsAsFactors = FALSE
-    ))
+    )
+  }
+  if (
+    !hla_is_typing_table(typing) || nrow(typing) == 0 || length(samples) == 0
+  ) {
+    return(empty())
   }
   samples <- unique(as.character(samples))
   in_scope <- typing[typing$sample %in% samples, , drop = FALSE]
+  # A typing table from another cohort is format-valid and non-empty, so it gets
+  # this far and then matches nothing. Without this the allele loop runs zero
+  # times, rbind of no frames gives NULL, and the sort below dies on `-NULL`.
+  if (nrow(in_scope) == 0) {
+    return(empty())
+  }
   donor_by_sample <- vapply(
     samples,
     function(s) {

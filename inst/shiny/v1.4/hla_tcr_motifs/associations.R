@@ -6,8 +6,12 @@
 ## and never labels co-occurrence as restriction.
 ##----------------------------------------------------------------------------##
 
+## Deliberately hla_global_motif_graph(), never the drawn hla_motif_graph():
+## under the allele scope the drawn graph is built from one allele's carriers,
+## and a feature nominated by the exposure cannot then be tested against it.
+## See hla_global_motif_graph in data.R.
 hla_feature_catalog <- reactive({
-  g <- hla_motif_graph()
+  g <- hla_global_motif_graph()
   if (!hla_motif_graph_ok(g)) {
     return(NULL)
   }
@@ -120,29 +124,69 @@ output$hla_associations_ui <- renderUI({
       style = "font-size: 13px;",
       tags$b("Descriptive overlap only."),
       paste(
-        "The selected node/motif is frozen from the current Hamming-1 graph.",
-        "Counts are donor-level only with complete donor mapping, otherwise",
-        "sample-level. No p-value or restriction claim is produced."
+        "The selected node/motif is frozen from the Hamming-1 graph over ALL",
+        "cells, whatever the network scope. Counts are donor-level only with",
+        "complete donor mapping, otherwise sample-level. No p-value or",
+        "restriction claim is produced."
       )
     ),
+    # Under ANY allele-selected scope the tab is deliberately NOT showing
+    # features from the network on screen. Silently listing a different motif
+    # set than the one drawn would be its own trap, so name the divergence and
+    # the reason. Keyed on "not all", never on one scope's name: the guard in
+    # hla_global_motif_graph covers every scoped view, and an explanation that
+    # covers fewer of them leaves the rest diverging in silence.
+    if (!identical(hla_scope_mode(), "all")) {
+      built_from <- if (identical(hla_scope_mode(), "pair")) {
+        sprintf(
+          "carriers of %s and %s",
+          hla_pair_allele_i() %||% "the Class I allele",
+          hla_pair_allele_ii() %||% "the Class II allele"
+        )
+      } else {
+        sprintf("carriers of %s", hla_color_allele() %||% "the selected allele")
+      }
+      tags$div(
+        class = "alert alert-warning",
+        style = "font-size: 13px;",
+        tags$b("Features here ignore the network scope. "),
+        paste0(
+          "The network is currently built from ",
+          built_from,
+          ", so a motif taken from it would have been picked BY the very ",
+          "allele this tab then compares carriers on — the carrier side would ",
+          "look enriched whatever the biology. The list below is therefore ",
+          "taken from the all-cells graph and may not match the network on ",
+          "screen."
+        )
+      )
+    },
     fluidRow(
       column(
         4,
-        selectInput(
+        # Same two-line labels as the network's picker (allele on one line, the
+        # carrier split under it): it is the same list, so it must not read as a
+        # different one here.
+        selectizeInput(
           "hla_association_allele",
           "HLA allele:",
           choices = alleles,
-          selected = alleles[1]
+          selected = alleles[1],
+          options = list(render = HLA_TWO_LINE_RENDER)
         )
       ),
       column(
         3,
+        # Stacked, not inline: inline puts both radios on one line, and at this
+        # column width the second wraps under the first with its circle indented
+        # by however much text preceded it. Stacked, the circles share a left
+        # edge at any width.
         radioButtons(
           "hla_feature_type",
           "Feature type:",
           choices = c("Motif component" = "motif", "CDR3 node" = "node"),
           selected = "motif",
-          inline = TRUE
+          inline = FALSE
         )
       ),
       column(5, uiOutput("hla_feature_selector_ui"))
@@ -203,7 +247,15 @@ output$hla_overlap_summary <- DT::renderDataTable({
       )
     })
   )
-  DT::datatable(show, rownames = FALSE, options = list(dom = "t"))
+  # scrollX: this table grows a column per carrier status and its headers are
+  # named after the data set's own unit, so its width is not something this
+  # layout can assume. Without it the table pushes the page sideways.
+  DT::datatable(
+    show,
+    rownames = FALSE,
+    class = "display nowrap",
+    options = list(dom = "t", scrollX = TRUE)
+  )
 })
 
 output$hla_overlap_table <- DT::renderDataTable({
@@ -225,7 +277,8 @@ output$hla_overlap_table <- DT::renderDataTable({
     show,
     rownames = FALSE,
     colnames = headers,
-    options = list(pageLength = 15, dom = "tip")
+    class = "display nowrap",
+    options = list(pageLength = 15, dom = "tip", scrollX = TRUE)
   )
 })
 
@@ -240,6 +293,7 @@ output$hla_allele_matrix <- DT::renderDataTable({
   DT::datatable(
     mat,
     rownames = FALSE,
+    class = "display nowrap",
     options = list(pageLength = 10, scrollX = TRUE, dom = "tip")
   )
 })

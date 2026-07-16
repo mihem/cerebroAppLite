@@ -260,6 +260,190 @@ test_that("total size guard trips with a guard message (not a usable graph)", {
   expect_true(grepl("unique CDR3", attr(g, "guard")))
 })
 
+## ---- draw layout ------------------------------------------------------- ##
+
+test_that("the graph carries igraph-computed draw coordinates", {
+  seg <- hla_parse_ir_segments(
+    make_ir_list(c("CASSL", "CASSF", "CASST", "CWWWL", "CWWWF")),
+    "TRB"
+  )
+  g <- hla_build_motif_graph(seg, min_nodes = 2L)
+  expect_true(hla_motif_graph_ok(g))
+  x <- igraph::V(g)$layout_x
+  y <- igraph::V(g)$layout_y
+  expect_equal(length(x), igraph::vcount(g))
+  expect_equal(length(y), igraph::vcount(g))
+  expect_false(any(is.na(c(x, y))))
+  # Not all at the origin: a degenerate layout would draw every node on one spot.
+  expect_true(length(unique(paste(x, y))) > 1)
+})
+
+test_that("the layout is deterministic for the same graph", {
+  # The layout must not move when nothing about the graph moved. It is computed
+  # once and cached WITH the graph, but the seed is what makes two sessions (and
+  # two screenshots of one analysis) agree.
+  seg <- hla_parse_ir_segments(
+    make_ir_list(c("CASSL", "CASSF", "CASST", "CWWWL", "CWWWF")),
+    "TRB"
+  )
+  a <- hla_build_motif_graph(seg, min_nodes = 2L)
+  b <- hla_build_motif_graph(seg, min_nodes = 2L)
+  expect_equal(igraph::V(a)$layout_x, igraph::V(b)$layout_x)
+  expect_equal(igraph::V(a)$layout_y, igraph::V(b)$layout_y)
+})
+
+test_that("computing the layout leaves the caller's RNG stream alone", {
+  # hla_motif_layout seeds itself so the picture is reproducible. Doing that
+  # without restoring would re-seed the whole Shiny session from a render call:
+  # every later random draw, in any tab, would follow from HLA_LAYOUT_SEED.
+  seg <- hla_parse_ir_segments(make_ir_list(c("CASSL", "CASSF")), "TRB")
+  g <- hla_build_motif_graph(seg, min_nodes = 2L)
+
+  set.seed(123)
+  expected <- runif(3)
+  set.seed(123)
+  invisible(hla_motif_layout(g))
+  expect_equal(runif(3), expected)
+})
+
+test_that("hla_motif_layout declines a graph that is not drawable", {
+  expect_null(hla_motif_layout(NULL))
+  expect_null(hla_motif_layout(NA))
+})
+
+## ---- per-node summaries: mode + distribution --------------------------- ##
+## These pin the CONTRACT of the per-node summaries rather than any one
+## implementation of them. The aggregation was rewritten from a per-node
+## table()/sort() loop to one grouped tally per column; that is a ~40x speedup
+## and must be a pure speedup, so every tie-break and format below is the
+## behaviour of the version that shipped before it.
+
+test_that("a tied mode resolves to the alphabetically first value", {
+  # NOT the first-seen value. `table()` names its counts by factor level, i.e.
+  # alphabetically, and a stable descending sort keeps that order among equal
+  # counts — so "A" wins a 2-2 tie against "B" even though "B" was seen first.
+  # A rewrite that tallies in first-appearance order silently flips ~20% of
+  # ties, which would move node colours and tooltips with no error anywhere.
+  df <- data.frame(
+    barcode = paste0("bc", 1:4),
+    CTgene = c("TRBV2.TRBJ1", "TRBV2.TRBJ1", "TRBV1.TRBJ1", "TRBV1.TRBJ1"),
+    CTaa = "CASSL",
+    sample = "s1",
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  agg <- hla_aggregate_cdr3_nodes(seg)
+  expect_equal(nrow(agg), 1L)
+  expect_equal(agg$v_gene, "TRBV1")
+})
+
+test_that("the distribution is ordered by count, ties alphabetically", {
+  # The string is read left to right as "what this node mostly is": the order
+  # is the information. Equal counts fall back to alphabetical so the same node
+  # never renders two different strings across sessions.
+  df <- data.frame(
+    barcode = paste0("bc", 1:5),
+    CTgene = "TRBV1.TRBJ1",
+    CTaa = "CASSL",
+    sample = "s1",
+    cell_type = c("CD8 T", "CD8 T", "CD8 T", "B cell", "A cell"),
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  agg <- hla_aggregate_cdr3_nodes(seg, meta_cols = "cell_type")
+  expect_equal(agg$cell_type_dist, "3 types: CD8 T (3), A cell (1), B cell (1)")
+  expect_equal(agg$cell_type, "CD8 T")
+})
+
+test_that("a single-level distribution says 'type', not 'types'", {
+  df <- data.frame(
+    barcode = c("bc1", "bc2"),
+    CTgene = "TRBV1.TRBJ1",
+    CTaa = "CASSL",
+    sample = "s1",
+    cell_type = c("CD8 T", "CD8 T"),
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  agg <- hla_aggregate_cdr3_nodes(seg, meta_cols = "cell_type")
+  expect_equal(agg$cell_type_dist, "1 type: CD8 T (2)")
+})
+
+test_that("NA and empty values are dropped from mode and distribution", {
+  # An unlabelled cell is absent from the summary, never a level called "NA":
+  # the tooltip would otherwise report missingness as if it were a cell type.
+  df <- data.frame(
+    barcode = paste0("bc", 1:4),
+    CTgene = "TRBV1.TRBJ1",
+    CTaa = "CASSL",
+    sample = "s1",
+    cell_type = c("CD8 T", NA, "", "CD8 T"),
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  agg <- hla_aggregate_cdr3_nodes(seg, meta_cols = "cell_type")
+  expect_equal(agg$cell_type_dist, "1 type: CD8 T (2)")
+  expect_equal(agg$cell_type, "CD8 T")
+  expect_equal(agg$clone_count, 4L) # the cells still count toward node size
+})
+
+test_that("a node whose column is entirely NA summarises to NA", {
+  df <- data.frame(
+    barcode = c("bc1", "bc2"),
+    CTgene = "TRBV1.TRBJ1",
+    CTaa = "CASSL",
+    sample = "s1",
+    cell_type = NA_character_,
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  agg <- hla_aggregate_cdr3_nodes(seg, meta_cols = "cell_type")
+  expect_true(is.na(agg$cell_type))
+  expect_true(is.na(agg$cell_type_dist))
+})
+
+test_that("samples_all is the sorted unique sample set, not the modal sample", {
+  seg <- hla_parse_ir_segments(
+    make_ir_list(rep("CASSL", 3), samples = c("s2", "s1", "s2")),
+    "TRB"
+  )
+  agg <- hla_aggregate_cdr3_nodes(seg, meta_cols = "sample")
+  expect_equal(agg$samples_all, "s1,s2")
+})
+
+test_that("the context column is summarised by context_summary, not by mode", {
+  # A node spanning both lineages is the finding; the modal value would report
+  # it as whichever compartment happened to contribute more cells. The plain
+  # `_dist` string alongside it stays an ordinary tally.
+  seg <- hla_parse_ir_segments(
+    make_ir_list(
+      rep("CASSL", 3),
+      cell_types = c("CD8 T", "CD8 T", "CD4 T")
+    ),
+    "TRB"
+  )
+  seg$mhc_context <- hla_lineage_context(seg$cell_type)
+  agg <- hla_aggregate_cdr3_nodes(seg, context_col = "mhc_context")
+  expect_equal(agg$mhc_context, "Mixed") # NOT "Class I", which is the mode
+  expect_equal(agg$mhc_context_dist, "2 types: Class I (2), Class II (1)")
+})
+
+test_that("by_v keys nodes on (V gene, CDR3) and keeps both", {
+  df <- data.frame(
+    barcode = paste0("bc", 1:3),
+    CTgene = c("TRBV1.TRBJ1", "TRBV2.TRBJ1", "TRBV1.TRBJ1"),
+    CTaa = "CASSL",
+    sample = "s1",
+    stringsAsFactors = FALSE
+  )
+  seg <- hla_parse_ir_segments(list(s1 = df), "TRB")
+  agg <- hla_aggregate_cdr3_nodes(seg, by_v = TRUE)
+  expect_equal(nrow(agg), 2L)
+  expect_setequal(agg$node_id, c("TRBV1::CASSL", "TRBV2::CASSL"))
+  expect_setequal(agg$clone_count, c(2L, 1L))
+  expect_true(all(agg$cdr3 == "CASSL"))
+})
+
 ## ---- sample of origin -------------------------------------------------- ##
 
 test_that("sample origin names a single sample and collapses the rest", {

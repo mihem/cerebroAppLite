@@ -73,7 +73,8 @@ hla_build_motif_visnet <- function(
   carrier_counts = NULL,
   carrier_allele = NULL,
   unit_noun = "cell",
-  legend_mode = "auto"
+  legend_mode = "auto",
+  lineage_col = NULL
 ) {
   if (!hla_motif_graph_ok(graph)) {
     return(NULL)
@@ -113,6 +114,26 @@ hla_build_motif_visnet <- function(
   group_raw <- as.character(get_attr(color_col))
   use_origin <- identical(color_col, "sample_origin")
   use_context <- identical(color_col, "mhc_context")
+  use_pair <- identical(color_col, "pair_allele")
+  # The pair's levels are allele NAMES, so they change with the picker — but
+  # what they MEAN does not: one is the class I side, one the class II side.
+  # Order and hue therefore follow the class, not the string.
+  pair_levels <- if (use_pair) {
+    present <- unique(group_raw[!is.na(group_raw)])
+    alleles <- setdiff(present, HLA_PAIR_MIXED_LABEL)
+    cls <- vapply(
+      alleles,
+      function(a) hla_locus_class(hla_allele_locus(a)),
+      character(1)
+    )
+    c(
+      alleles[cls == "Class I"],
+      alleles[cls == "Class II"],
+      intersect(HLA_PAIR_MIXED_LABEL, present)
+    )
+  } else {
+    character(0)
+  }
   levels_ord <- if (color_col == "cluster") {
     as.character(sort(unique(suppressWarnings(as.numeric(group_raw)))))
   } else if (use_carrier) {
@@ -122,6 +143,8 @@ hla_build_motif_visnet <- function(
   } else if (use_context) {
     # Same reasoning: a fixed scale, fixed order, fixed hues across data sets.
     intersect(HLA_CONTEXT_LEVELS, unique(group_raw))
+  } else if (use_pair) {
+    pair_levels
   } else if (use_origin) {
     # Samples alphabetical, "Shared" last: it is the level the eye should find,
     # and pinning it to the end keeps its slot stable as samples come and go.
@@ -137,6 +160,27 @@ hla_build_motif_visnet <- function(
     HLA_CARRIER_COLORS[levels_ord]
   } else if (use_context) {
     HLA_CONTEXT_COLORS[levels_ord]
+  } else if (use_pair) {
+    # Deliberately the SAME hues as MHC context, because it is the same axis:
+    # the class I side is the class I colour. Giving the pair its own palette
+    # would teach two colour languages for one distinction — a user who learned
+    # that orange means class I here would have to unlearn it one scope over.
+    stats::setNames(
+      vapply(
+        levels_ord,
+        function(lv) {
+          if (identical(lv, HLA_PAIR_MIXED_LABEL)) {
+            unname(HLA_CONTEXT_COLORS[["Mixed"]])
+          } else {
+            unname(HLA_CONTEXT_COLORS[[
+              hla_locus_class(hla_allele_locus(lv))
+            ]])
+          }
+        },
+        character(1)
+      ),
+      levels_ord
+    )
   } else if (use_origin) {
     # Per-sample hues, then "Shared" in near-black so a CDR3 recurring across
     # samples reads against every sample colour rather than competing with one.
@@ -169,14 +213,29 @@ hla_build_motif_visnet <- function(
   if (length(total_cells) != 1 || is.na(total_cells)) {
     total_cells <- NA_real_
   }
+  # Which column holds the lineage is the data set's business, not this
+  # renderer's: it is passed in (hla_celltype_col() finds it by what the labels
+  # resolve to). Hardcoding "cell_type" here made the lineage line vanish for
+  # any object that names its annotation differently.
+  lineage_col <- if (is.character(lineage_col) && length(lineage_col) == 1) {
+    lineage_col
+  } else {
+    NA_character_
+  }
   # Distribution of the active colour column across a node's cells (only for
-  # metadata colouring, and skipped for cell_type which has its own line).
-  color_dist <- if (!color_col %in% c("cluster", "cell_type")) {
+  # metadata colouring, and skipped for the lineage column, which has its own
+  # line below).
+  skip_dist <- c("cluster", if (!is.na(lineage_col)) lineage_col)
+  color_dist <- if (!color_col %in% skip_dist) {
     get_attr(paste0(color_col, "_dist"))
   } else {
     rep(NA_character_, n)
   }
-  cell_dist <- get_attr("cell_type_dist")
+  cell_dist <- if (!is.na(lineage_col)) {
+    get_attr(paste0(lineage_col, "_dist"))
+  } else {
+    rep(NA_character_, n)
+  }
 
   titles <- vapply(
     seq_len(n),
@@ -307,15 +366,32 @@ hla_build_motif_visnet <- function(
     n_multi
   )
 
+  # Draw coordinates, computed once by igraph when the graph was built (see
+  # hla_motif_layout) and carried on the vertices ever since. NULL only for a
+  # graph built before this existed, in which case the renderer falls back to
+  # letting the browser settle it.
+  layout <- if (all(c("layout_x", "layout_y") %in% names(va))) {
+    cbind(as.numeric(va[["layout_x"]]), as.numeric(va[["layout_y"]]))
+  } else {
+    NULL
+  }
+
   list(
     nodes = nodes,
     edges = edges,
+    layout = layout,
     legend = legend,
     legend_title = if (color_col == "cluster") {
       "Motif cluster"
     } else if (use_carrier) {
       # Name the allele being shown, not the internal column.
       carrier_allele %||% "HLA carrier status"
+    } else if (use_pair) {
+      # Likewise: the entries already name the alleles, so the title says what
+      # the colours ARE. "pair_allele" is this code's word, not the reader's.
+      "Candidate allele by lineage"
+    } else if (use_context) {
+      "MHC context"
     } else {
       color_col
     },
@@ -364,7 +440,8 @@ hla_visnet <- reactive({
     carrier_counts = carrier_cnt,
     carrier_allele = allele,
     unit_noun = hla_unit_noun(),
-    legend_mode = hla_param("hla_legend_mode", "auto")
+    legend_mode = hla_param("hla_legend_mode", "auto"),
+    lineage_col = hla_celltype_col()
   )
 })
 
@@ -374,10 +451,6 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
     return(NULL)
   }
 
-  # Physics is disabled above the render-size guard, so large graphs settle
-  # instantly instead of freezing the browser.
-  use_physics <- vn$n_render <= HLA_MOTIF_MAX_PHYSICS
-
   net <- visNetwork::visNetwork(
     vn$nodes,
     vn$edges
@@ -386,11 +459,40 @@ output$hla_plot_motifNetwork <- visNetwork::renderVisNetwork({
   # already computed per node by hla_node_radius().
   net <- visNetwork::visNodes(net, shape = "dot")
   net <- visNetwork::visEdges(net, color = list(color = "#cccccc"))
-  net <- visNetwork::visPhysics(
-    net,
-    enabled = use_physics,
-    stabilization = list(iterations = 150)
-  )
+  # Draw at the coordinates igraph already computed; the browser runs no physics
+  # at all.
+  #
+  # It used to: visPhysics(stabilization = list(iterations = 150)) made
+  # vis-network settle the graph in JS on every open. That work happens AFTER
+  # Shiny's output is delivered, so shinycssloaders had already taken its spinner
+  # away — and vis-network draws nothing until it finishes. Measured on the
+  # 430-node demo: ~1.8s of blank canvas with no spinner, main thread blocked
+  # throughout. The same layout out of igraph takes ~75ms in C, off the browser's
+  # thread entirely.
+  #
+  # `layout.norm` is visIgraphLayout's documented "coordinates supplied" mode: it
+  # normalises them and sets the flag the vis-network binding needs to scale them
+  # to the canvas. It is used INSTEAD of visIgraphLayout's own layout= /
+  # randomSeed= because that path calls set.seed() on the global RNG and never
+  # restores it — a render must not silently re-seed the user's session.
+  # physics = FALSE excludes the nodes from the simulation; they stay put and
+  # stay draggable.
+  net <- if (!is.null(vn$layout)) {
+    visNetwork::visIgraphLayout(
+      net,
+      layout = "layout.norm",
+      layoutMatrix = vn$layout,
+      physics = FALSE
+    )
+  } else {
+    # No coordinates (a graph from before hla_motif_layout existed): fall back to
+    # the browser settling it, rather than drawing every node at the origin.
+    visNetwork::visPhysics(
+      net,
+      enabled = vn$n_render <= HLA_MOTIF_MAX_PHYSICS,
+      stabilization = list(iterations = 150)
+    )
+  }
   net <- visNetwork::visInteraction(
     net,
     hover = TRUE,

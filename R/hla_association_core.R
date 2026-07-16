@@ -50,8 +50,10 @@ hla_analysis_unit_map <- function(typing, samples) {
 
 #' Classify each analysis unit for one HLA allele
 #'
-#' Non-carrier means the allele's locus was typed and the allele was absent.
-#' Missing locus typing is always reported separately as untyped.
+#' Non-carrier means the allele's locus was typed at BOTH copies and the allele
+#' was absent from both. Anything short of that -- no typing at the locus, only
+#' one copy called, or typing too coarse to decide -- is untyped: no information
+#' either way, and excluded from both groups rather than assumed negative.
 #'
 #' @param typing Canonical HLA typing table.
 #' @param samples In-scope immune-repertoire sample names.
@@ -74,7 +76,16 @@ hla_allele_status_by_unit <- function(typing, samples, allele) {
   sample_to_unit <- stats::setNames(unit_map$analysis_unit, unit_map$sample)
   locus <- hla_allele_locus(allele)
   locus_rows <- in_scope[in_scope$locus == locus, , drop = FALSE]
-  typed_units <- unique(unname(sample_to_unit[locus_rows$sample]))
+
+  # Only a COMPLETELY called locus can put a unit in the comparison group. A
+  # unit typed at one copy has an unknown second copy that may yet be the
+  # allele, so ruling it out would seed the non-carrier group with possible
+  # carriers -- a false-negative bias pointing the same way as the effect being
+  # looked for. See hla_locus_call_state for why row count is the only signal.
+  call_state <- hla_locus_call_state(typing, unit_map$sample, locus)
+  complete_units <- unique(unname(sample_to_unit[
+    call_state$sample[call_state$call_state == "complete"]
+  ]))
 
   # Field-wise, not string-equal: typing is never zero-padded, so `A*02` and
   # `A*02:01` are different strings for the same family. See hla_allele_compare.
@@ -92,7 +103,7 @@ hla_allele_status_by_unit <- function(typing, samples, allele) {
     locus_rows$sample[cmp == "ambiguous"]
   ]))
 
-  units$hla_status[units$analysis_unit %in% typed_units] <- "non-carrier"
+  units$hla_status[units$analysis_unit %in% complete_units] <- "non-carrier"
   # Typing too coarse to decide cannot rule the allele OUT, so the unit must not
   # join the comparison group. "untyped" already means "no information either
   # way" and is already excluded from carrier calls, which is exactly right.
@@ -391,6 +402,85 @@ hla_unit_allele_matrix <- function(typing, samples) {
 #'   ("Class I"/"Class II"/"Unknown"), or NULL to skip class matching.
 #' @return A subset of `seg` (possibly zero rows), or NULL when unusable.
 #' @keywords internal
+#' Scope segments to one Class I x Class II allele pair
+#'
+#' The pair view asks a different question from the single-allele scope: not
+#' "what do carriers of X look like" but "within the donors who could present on
+#' X (class I) or Y (class II), which CDR3s turn up on each side, and which turn
+#' up on BOTH".
+#'
+#' Every kept cell is assigned the ONE allele its own lineage could actually use
+#' AND its donor actually carries:
+#'   * a Class I (CD8) cell of a donor carrying `allele_i`  -> allele_i
+#'   * a Class II (CD4/Treg) cell of a donor carrying `allele_ii` -> allele_ii
+#'   * anything else is dropped, including a Class I cell from a donor who
+#'     carries only `allele_ii`: that cell has no candidate in this pair, and
+#'     keeping it would put a receptor under an allele its donor does not have.
+#'
+#' Unknown-lineage cells are always dropped: the assignment IS the lineage, so a
+#' cell with no lineage cannot claim either side.
+#'
+#' As with every scope on this page, this is co-occurrence, never restriction: a
+#' CDR3 sitting under `allele_i` only means it was seen in a CD8 cell of a donor
+#' who carries it.
+#'
+#' @param seg Parsed segments (needs `sample` and the lineage context column).
+#' @param typing Canonical HLA typing table.
+#' @param allele_i A Class I allele.
+#' @param allele_ii A Class II allele.
+#' @param context_col Per-cell MHC-context column. Required: NULL returns NULL.
+#' @return `seg` subset to the pair, plus a `pair_allele` column; NULL when the
+#'   pair is not analysable (no lineage, same class, unrecognisable alleles).
+#' @keywords internal
+hla_scope_segments_by_allele_pair <- function(
+  seg,
+  typing,
+  allele_i,
+  allele_ii,
+  context_col = "mhc_context"
+) {
+  if (is.null(seg) || nrow(seg) == 0) {
+    return(seg)
+  }
+  # No lineage, no pair: the whole construction rests on knowing which class a
+  # cell would present on. Returning an unfiltered graph here would silently
+  # answer a question nobody asked.
+  if (
+    is.null(context_col) ||
+      !(context_col %in% colnames(seg)) ||
+      !("sample" %in% colnames(seg)) ||
+      !hla_is_typing_table(typing)
+  ) {
+    return(NULL)
+  }
+  allele_i <- hla_normalize_allele(allele_i)
+  allele_ii <- hla_normalize_allele(allele_ii)
+  if (is.na(allele_i) || is.na(allele_ii)) {
+    return(NULL)
+  }
+  class_i <- hla_locus_class(hla_allele_locus(allele_i))
+  class_ii <- hla_locus_class(hla_allele_locus(allele_ii))
+  # The pair is defined BY the two classes. Two alleles of one class would make
+  # the lineage split meaningless — every CD8 cell would claim both.
+  if (!identical(class_i, "Class I") || !identical(class_ii, "Class II")) {
+    return(NULL)
+  }
+
+  carriers_i <- hla_carriers_of(typing, allele_i)
+  carriers_ii <- hla_carriers_of(typing, allele_ii)
+  samples <- as.character(seg$sample)
+  ctx <- as.character(seg[[context_col]])
+
+  pair_allele <- rep(NA_character_, nrow(seg))
+  pair_allele[samples %in% carriers_i & ctx == "Class I"] <- allele_i
+  pair_allele[samples %in% carriers_ii & ctx == "Class II"] <- allele_ii
+
+  out <- seg[!is.na(pair_allele), , drop = FALSE]
+  out$pair_allele <- pair_allele[!is.na(pair_allele)]
+  rownames(out) <- NULL
+  out
+}
+
 hla_scope_segments_by_allele <- function(
   seg,
   typing,

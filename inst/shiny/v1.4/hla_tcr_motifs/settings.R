@@ -4,12 +4,15 @@
 
 ## ---- Two-line option renderer ----------------------------------------- ##
 ## selectize draws each option/item as one run of text, so a label long enough
-## to wrap breaks wherever it runs out of room — "re-colours" split across two
-## lines. This renders "name|explanation" as a name plus a smaller, muted second
-## line, so the break is a decision. escape() is selectize's own HTML escaper;
-## the labels are ours, but rendering them raw would make any future label an
-## injection point.
-HLA_SCOPE_RENDER <- I(
+## to wrap breaks wherever it runs out of room — "re-colours" or "non-carrier"
+## split across two lines. This renders "name|explanation" as a name plus a
+## smaller, muted second line, so the break is a decision. escape() is
+## selectize's own HTML escaper; the labels are ours, but rendering them raw
+## would make any future label an injection point.
+##
+## Shared by every picker on this page whose label is "what it is" plus "what it
+## means": network scope, and both allele pickers.
+HLA_TWO_LINE_RENDER <- I(
   "{
     option: function(item, escape) {
       var p = item.label.split('|');
@@ -38,19 +41,33 @@ output$hla_parameters_ui <- renderUI({
     "Motif cluster" = "",
     stats::setNames(meta_cols, meta_cols)
   )
-  # "MHC context" is a derived node attribute (CD8->Class I / CD4->Class II /
-  # Unknown), offered only when a cell-type column exists to derive it from.
-  if (!is.na(hla_celltype_col())) {
-    color_choices <- c(color_choices, "MHC context" = "mhc_context")
-  }
-  # Carrier status of ONE allele is the colouring this page exists for: it is
-  # what connects the network to the HLA context. Offered only with typing, and
-  # deliberately named for what it shows (who carries the allele), never as if
-  # the allele restricted the TCR.
-  if (hla_has_typing()) {
+  # In the pair scope every node already carries its candidate allele, and that
+  # IS the lineage split — so "MHC context" would be the same picture under a
+  # vaguer name. Offer the pair class instead.
+  if (identical(hla_scope_mode(), "pair")) {
     color_choices <- c(
       color_choices,
-      "HLA carrier status (pick allele below)" = "hla_carrier"
+      "Pair class|which allele, or both" = "pair_allele"
+    )
+  } else if (!is.na(hla_celltype_col())) {
+    # "MHC context" is a derived node attribute (CD8->Class I / CD4->Class II /
+    # Unknown), offered only when a lineage column exists to derive it from.
+    color_choices <- c(
+      color_choices,
+      "MHC context|CD8 -> Class I, CD4 -> Class II" = "mhc_context"
+    )
+  }
+  # Carrier status of ONE allele is the colouring this page exists for: it is
+  # what connects the network to the HLA context. Deliberately named for what it
+  # shows (who carries the allele), never as if the allele restricted the TCR.
+  #
+  # Gated on an allele this page can actually put on screen, not merely on the
+  # typing table being non-empty: with typing that matches no sample, or only
+  # DQ/DP, this control used to appear and then have nothing to offer.
+  if (hla_has_analyzable_allele()) {
+    color_choices <- c(
+      color_choices,
+      "HLA carrier status|pick the allele below" = "hla_carrier"
     )
   }
   # Sample of origin, with every CDR3 seen in >1 sample collapsed to "Shared".
@@ -60,7 +77,7 @@ output$hla_parameters_ui <- renderUI({
   if (length(names(getImmuneRepertoire())) > 1) {
     color_choices <- c(
       color_choices,
-      "Sample of origin (shared = black)" = "sample_origin"
+      "Sample of origin|seen in more than one = black" = "sample_origin"
     )
   }
   tagList(
@@ -78,30 +95,44 @@ output$hla_parameters_ui <- renderUI({
       )
     },
     # Scope decides WHICH CELLS the graph is built from; colour only decides how
-    # the built graph is painted. Offered only with typing, since both scopes
-    # other than "all" need to know who carries what.
+    # the built graph is painted. Needs an allele this page can interpret, since
+    # every scope other than "all" is defined by who carries one.
     # Two lines per option, not one long label: at this column width the single
     # label wrapped wherever it happened to run out of room, splitting
     # "re-colours" across lines. The name goes on line one and the explanation
     # on a smaller second line, so the break is chosen rather than accidental.
-    # Labels carry "name|explanation"; HLA_SCOPE_RENDER splits on the bar.
-    if (hla_has_typing()) {
+    # Labels carry "name|explanation"; HLA_TWO_LINE_RENDER splits on the bar.
+    if (hla_has_analyzable_allele()) {
+      scope_choices <- c(
+        "All cells|one graph; the allele only re-colours it" = "all",
+        "One HLA allele|rebuild the graph on its carriers" = "allele"
+      )
+      # Offered only when both classes have an allele to pick AND a lineage
+      # exists to sort cells between them; without either, the pair is not a
+      # narrower view of anything.
+      if (hla_pair_available()) {
+        scope_choices <- c(
+          scope_choices,
+          "Class I x Class II pair|one allele of each; both classes at once" = "pair"
+        )
+      }
       selectizeInput(
         "hla_scope",
         "Network scope:",
-        choices = c(
-          "All cells|one graph; the allele only re-colours it" = "all",
-          "One HLA allele|rebuild the graph on its carriers" = "allele"
-        ),
+        choices = scope_choices,
         selected = hla_param("hla_scope", "all"),
-        options = list(render = HLA_SCOPE_RENDER)
+        options = list(render = HLA_TWO_LINE_RENDER)
       )
     },
-    selectInput(
+    # Same two-line labels as the pickers above: the derived colourings each
+    # need a clause explaining what the colour means, and at this column width
+    # one long label wrapped mid-phrase — "(pick allele" / "below)".
+    selectizeInput(
       "hla_color_by",
       "Colour nodes by:",
       choices = color_choices,
-      selected = hla_param("hla_color_by", "")
+      selected = hla_param("hla_color_by", ""),
+      options = list(render = HLA_TWO_LINE_RENDER)
     ),
     # The page's single allele. It drives the carrier colouring AND the allele
     # scope, so it is shown for either. Under "all" scope, changing it only
@@ -113,6 +144,12 @@ output$hla_parameters_ui <- renderUI({
         "|| input.hla_scope == 'allele'"
       ),
       uiOutput("hla_color_allele_ui")
+    ),
+    # The pair needs two alleles, one per class, so it gets its own pair of
+    # pickers rather than bending the page's single allele into both roles.
+    conditionalPanel(
+      condition = "input.hla_scope == 'pair'",
+      uiOutput("hla_pair_allele_ui")
     ),
     uiOutput("hla_scope_status"),
     sliderInput(
@@ -133,6 +170,22 @@ output$hla_parameters_ui <- renderUI({
       "Show unconnected CDR3s",
       value = isTRUE(hla_param("hla_show_isolated", FALSE))
     ),
+    # A declared grouping that is missing from the list above looks like a bug
+    # or like bad data. It is neither: it has too many levels to read as colour.
+    if (length(hla_color_cols_dropped()) > 0) {
+      tags$p(
+        class = "text-muted",
+        style = "font-size: 11px;",
+        sprintf(
+          paste(
+            "%s not offered above: more than %d levels, which colour cannot",
+            "show on a network. Still on the node tooltips."
+          ),
+          paste(hla_color_cols_dropped(), collapse = ", "),
+          HLA_MAX_COLOR_LEVELS
+        )
+      )
+    },
     tags$p(
       class = "text-muted",
       style = "font-size: 11px;",
@@ -189,11 +242,58 @@ output$hla_color_allele_ui <- renderUI({
   if (length(choices) == 0) {
     return(tags$p(class = "text-muted", "No HLA alleles available."))
   }
-  selectInput(
+  selectizeInput(
     "hla_color_allele",
     "HLA allele to colour by:",
     choices = choices,
-    selected = hla_param("hla_color_allele", unname(choices[1]))
+    selected = hla_param("hla_color_allele", unname(choices[1])),
+    options = list(render = HLA_TWO_LINE_RENDER)
+  )
+})
+
+## ---- The pair scope's two allele pickers ------------------------------ ##
+## One picker per class, each offering only that class's alleles: the pair is
+## defined by the two classes, and a picker that let both sides be Class I would
+## be offering a graph this page cannot build (see
+## hla_scope_segments_by_allele_pair).
+output$hla_pair_allele_ui <- renderUI({
+  class_i <- hla_class_allele_choices("Class I")
+  class_ii <- hla_class_allele_choices("Class II")
+  if (length(class_i) == 0 || length(class_ii) == 0) {
+    return(tags$p(
+      class = "text-muted",
+      "No Class I / Class II allele pair available."
+    ))
+  }
+  tagList(
+    selectizeInput(
+      "hla_pair_allele_i",
+      "Class I allele (CD8 side):",
+      choices = class_i,
+      selected = hla_pair_allele_i(),
+      options = list(render = HLA_TWO_LINE_RENDER)
+    ),
+    selectizeInput(
+      "hla_pair_allele_ii",
+      "Class II allele (CD4 side):",
+      choices = class_ii,
+      selected = hla_pair_allele_ii(),
+      options = list(render = HLA_TWO_LINE_RENDER)
+    ),
+    # DQ/DP are stored and normalized but never offered (HLA_MVP_LOCI): a lone
+    # DQB1 / DPB1 allele is not an independently interpretable molecule. Say so
+    # here, or a user looking for their DQ allele reads its absence as a bug.
+    tags$p(
+      class = "text-muted",
+      style = "font-size: 11px;",
+      sprintf(
+        paste(
+          "Class II here means %s only. DQ and DP are alpha/beta heterodimers",
+          "and need pairing rules this version does not have."
+        ),
+        paste(intersect(HLA_MVP_LOCI, HLA_CLASS_II_LOCI), collapse = " / ")
+      )
+    )
   )
 })
 
@@ -242,6 +342,23 @@ output$hla_status_ui <- renderUI({
         "Contains synthetic / unknown-provenance typing: descriptive context only."
       )
     },
+    ## Typing loaded, nothing to analyse. The controls are gone by now, so this
+    ## is the only place the user can learn whether the file was for another
+    ## cohort, was DQ/DP-only, or simply holds no contrast.
+    if (!is.null(hla_no_allele_reason())) {
+      tagList(
+        tags$p(
+          class = "text-warning",
+          style = "font-size: 12px;",
+          tags$b("No allele can be analysed here.")
+        ),
+        tags$p(
+          class = "text-muted",
+          style = "font-size: 12px;",
+          hla_no_allele_reason()
+        )
+      )
+    },
     ## The typing warning above covers the HLA side only. Colouring the network
     ## by carrier status is itself an association display, so a declared
     ## selection caveat has to reach every tab, not just HLA Associations.
@@ -263,11 +380,77 @@ output$hla_status_ui <- renderUI({
   )
 })
 
+## ---- What the pair scope kept, and on which side ---------------------- ##
+## The pair drops more than any other scope — a donor carrying neither allele
+## contributes nothing, and a Class I cell of a donor who carries only the
+## Class II allele is dropped too. Report the split, or a thin network reads as
+## a weak signal rather than as a small denominator.
+hla_pair_scope_status <- function() {
+  full <- hla_segments()
+  scoped <- hla_scoped_segments()
+  a_i <- hla_pair_allele_i()
+  a_ii <- hla_pair_allele_ii()
+  if (is.null(full) || is.null(a_i) || is.null(a_ii)) {
+    return(NULL)
+  }
+  noun <- hla_unit_noun()
+  if (is.null(scoped) || nrow(scoped) == 0) {
+    return(tags$p(
+      class = "text-danger",
+      style = "font-size: 12px;",
+      sprintf(
+        paste(
+          "Nothing in scope: no typed carrier of %s has a CD8 %s, and no",
+          "carrier of %s has a CD4 %s."
+        ),
+        a_i,
+        noun,
+        a_ii,
+        noun
+      )
+    ))
+  }
+  n_i <- sum(scoped$pair_allele == a_i)
+  n_ii <- sum(scoped$pair_allele == a_ii)
+  tagList(
+    tags$p(
+      class = "text-muted",
+      style = "font-size: 12px;",
+      sprintf(
+        "Scope: %s of %s %ss — %s on %s (CD8), %s on %s (CD4).",
+        format(nrow(scoped), big.mark = ","),
+        format(nrow(full), big.mark = ","),
+        noun,
+        format(n_i, big.mark = ","),
+        a_i,
+        format(n_ii, big.mark = ","),
+        a_ii
+      )
+    ),
+    tags$p(
+      class = "text-muted",
+      style = "font-size: 12px;",
+      paste(
+        "Each",
+        noun,
+        "is shown under the allele its OWN lineage could present on and its",
+        "donor carries. A CDR3 coloured",
+        sprintf("\"%s\"", HLA_PAIR_MIXED_LABEL),
+        "was seen in both compartments — which is convergence across lineages,",
+        "not evidence that either allele restricts it."
+      )
+    )
+  )
+}
+
 ## ---- What the current scope actually kept ----------------------------- ##
 ## A scope silently dropping most of the data is the failure mode here: the user
 ## sees a smaller network and has no way to tell whether the allele is rare, the
 ## class filter bit, or the lineage was Unknown. State the counts.
 output$hla_scope_status <- renderUI({
+  if (identical(hla_scope_mode(), "pair")) {
+    return(hla_pair_scope_status())
+  }
   if (!identical(hla_scope_mode(), "allele")) {
     return(NULL)
   }

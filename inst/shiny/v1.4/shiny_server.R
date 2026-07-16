@@ -609,12 +609,18 @@ server <- function(input, output, session) {
     ## Show only when the data set actually carries a TCR (TRA/TRB). HLA typing
     ## is NOT required — the motif network works without it, and the Data & QC
     ## tab is where a user would add HLA, so the page must be reachable first.
-    ## `detect_chains()` is defined in the IR module's server scope, which is
-    ## sourced before this closure is ever evaluated.
+    ##
+    ## hla_detect_chains(), not the IR module's detect_chains(): the latter only
+    ## scans the first three samples, so a cohort whose TCR data starts at sample
+    ## four would hide this page while the core underneath could analyse it
+    ## perfectly well — and the page is the only way to reach Data & QC, so there
+    ## would be no way in. The gate has to agree with what the page can do.
+    ## Bound into this scope by the module's core_shim, which is sourced before
+    ## this closure is ever evaluated.
     function() {
       any(
         tryCatch(
-          detect_chains(getImmuneRepertoire()),
+          hla_detect_chains(getImmuneRepertoire()),
           error = function(e) character(0)
         ) %in%
           c("TRA", "TRB")

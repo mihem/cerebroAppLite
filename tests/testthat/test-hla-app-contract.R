@@ -6,6 +6,22 @@ hla_inst_file <- function(...) {
   testthat::test_path("../../inst", ...)
 }
 
+# The body of hla_params_ready(), so the gate's contract can be asserted against
+# the gate itself rather than against a window of characters that happens to
+# follow its name. Lazy up to the first line-start "})".
+hla_params_ready_src <- function(data_src) {
+  m <- regmatches(
+    data_src,
+    regexpr(
+      "hla_params_ready <- reactive\\(\\{[\\s\\S]{0,1500}?\\n\\}\\)",
+      data_src,
+      perl = TRUE
+    )
+  )
+  testthat::expect_length(m, 1L)
+  m
+}
+
 test_that("HLA Associations is wired to a frozen motif feature", {
   src <- paste(
     readLines(
@@ -20,6 +36,49 @@ test_that("HLA Associations is wired to a frozen motif feature", {
   expect_match(src, "hla_descriptive_feature_overlap", fixed = TRUE)
   expect_match(src, "hla_overlap_table")
   expect_match(src, "hla_allele_matrix")
+})
+
+test_that("Associations takes its features from the allele-independent graph", {
+  # Sourcing the drawn graph here would let the allele scope nominate the very
+  # motif the allele is then compared on. Guarded statically because the wiring
+  # is a Shiny reactive: the unit suite cannot see which graph it reads.
+  src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/associations.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  expect_match(
+    src,
+    "hla_feature_catalog <- reactive\\(\\{[\\s\\S]{0,120}hla_global_motif_graph\\(\\)",
+    perl = TRUE
+  )
+  expect_no_match(
+    src,
+    "hla_feature_catalog <- reactive\\(\\{[\\s\\S]{0,120}g <- hla_motif_graph\\(\\)",
+    perl = TRUE
+  )
+})
+
+test_that("the allele scope cache key carries the carrier set, not just a name", {
+  # Two typings can name the same allele and disagree on who carries it. If the
+  # key is the allele name alone, the second upload serves the graph cached from
+  # the first one's carriers while every caption around it updates.
+  src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  expect_match(
+    src,
+    "hla_scope_key <- reactive\\(\\{[\\s\\S]{0,600}hla_carriers_of\\(",
+    perl = TRUE
+  )
 })
 
 test_that("Data and QC exposes normalized and donor mapping previews", {
@@ -583,4 +642,261 @@ test_that("MHC context is a fixed scale, not a data-order palette", {
     fixed = TRUE
   )
   expect_match(viz, "HLA_CONTEXT_COLORS[levels_ord]", fixed = TRUE)
+})
+
+test_that("the page's nav gate scans every sample, like the core does", {
+  # The IR module's detect_chains() stops after three samples. The HLA page is
+  # gated on chains being present, and it is also the only route to its own
+  # Data & QC tab -- so a cohort whose TCR happens to start at sample four would
+  # be locked out of a page that could analyse it. The core already scans all
+  # samples; the gate must use the core.
+  late <- list(
+    s1 = data.frame(CTgene = NA_character_, stringsAsFactors = FALSE),
+    s2 = data.frame(CTgene = NA_character_, stringsAsFactors = FALSE),
+    s3 = data.frame(CTgene = NA_character_, stringsAsFactors = FALSE),
+    s4 = data.frame(
+      CTgene = "TRAV1-2.TRAJ33.TRAC_TRBV19.TRBD1.TRBJ2-7.TRBC2",
+      stringsAsFactors = FALSE
+    )
+  )
+  expect_setequal(hla_detect_chains(late), c("TRA", "TRB"))
+
+  src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/shiny_server.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  expect_match(
+    src,
+    "\"hla_tcr_motifs\",[\\s\\S]{0,1500}hla_detect_chains\\(getImmuneRepertoire\\(\\)\\)",
+    perl = TRUE
+  )
+})
+
+test_that("node colouring is offered from the declared groupings", {
+  # The colour list used to be inferred: every metadata column that happened to
+  # be a string with >1 value. That offered whatever the upstream pipeline left
+  # behind (orig.ident, RNA_snn_res.0.6) as though it were biology, and let one
+  # data set advertise different groupings on two pages. getGroups() is the
+  # object's own answer and the Groups page's source; this page must not hold a
+  # second opinion.
+  src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  expect_match(
+    src,
+    "hla_color_meta_cols <- reactive\\(\\{[\\s\\S]{0,300}getGroups\\(\\)",
+    perl = TRUE
+  )
+  # The lineage column must NOT be gated on the declared groupings: MHC context
+  # is a question about the data, not about curation.
+  expect_match(
+    src,
+    "hla_celltype_col <- reactive\\(\\{[\\s\\S]{0,60}hla_available_cols\\(\\)",
+    perl = TRUE
+  )
+})
+
+test_that("the lineage column is found by its labels, not by its name", {
+  # A general-purpose viewer cannot assume the annotation is called cell_type /
+  # cell_type_fine: it may be `annotation`, `azimuth_l2`, `predicted.id`. The
+  # labels are what carry the lineage, and hla_lineage_context() reads those.
+  src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"), warn = FALSE),
+    collapse = "\n"
+  )
+
+  expect_match(
+    src,
+    "hla_celltype_col <- reactive\\(\\{[\\s\\S]{0,1600}hla_lineage_context\\(",
+    perl = TRUE
+  )
+  # A data set may still declare it outright, like observation_unit does.
+  expect_match(
+    src,
+    "hla_celltype_col <- reactive\\(\\{[\\s\\S]{0,900}lineage_column",
+    perl = TRUE
+  )
+  expect_no_match(
+    src,
+    "hla_celltype_col <- reactive\\(\\{[\\s\\S]{0,400}\"cell_type_fine\" %in% cols",
+    perl = TRUE
+  )
+})
+
+test_that("every scrolling table keeps its cells on one line", {
+  # A table that scrolls sideways must not ALSO wrap: the column gets squeezed
+  # and an identifier breaks mid-token ("HLA-" / "A"), which reads as two values.
+  # DataTables ships the `nowrap` class for exactly this pairing.
+  for (f in c("associations.R", "data_qc.R")) {
+    src <- paste(
+      readLines(
+        hla_inst_file(file.path("shiny/v1.4/hla_tcr_motifs", f)),
+        warn = FALSE
+      ),
+      collapse = "\n"
+    )
+    calls <- regmatches(
+      src,
+      gregexpr("DT::datatable\\((?:[^()]|\\([^()]*\\))*\\)", src, perl = TRUE)
+    )[[1]]
+    scrolling <- calls[grepl("scrollX = TRUE", calls, fixed = TRUE)]
+    expect_gt(length(scrolling), 0)
+    for (call in scrolling) {
+      expect_match(
+        call,
+        "nowrap",
+        info = paste0(f, ": scrollX without nowrap in ", substr(call, 1, 60))
+      )
+    }
+  }
+})
+
+test_that("scope guards test for 'all', never for one scope's name", {
+  # Both the feature guard and its on-screen explanation must cover EVERY
+  # allele-selected scope. Written as `!= "allele"` they read the same until a
+  # scope is added -- and then the new one silently walks past both: its graph
+  # goes back to nominating features, with no notice that it did.
+  data_src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  assoc_src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/associations.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  # The guard lives in the CACHED reactive: hla_global_motif_graph itself is now
+  # a thin uncached wrapper that only gates on hla_params_ready(), because a
+  # req() stop inside a bindCache body would be cached under the current key.
+  # The scope test being asserted here is unchanged — it just moved one layer in
+  # with the build it guards.
+  expect_match(
+    data_src,
+    "hla_global_motif_graph_cached <- reactive\\(\\{[\\s\\S]{0,200}identical\\(hla_scope_mode\\(\\), \"all\"\\)",
+    perl = TRUE
+  )
+  # Pinned against the name the logic actually lives under, so this cannot pass
+  # by matching a wrapper that never mentions a scope at all.
+  expect_no_match(
+    data_src,
+    "hla_global_motif_graph_cached <- reactive\\(\\{[\\s\\S]{0,200}!identical\\(hla_scope_mode\\(\\), \"allele\"\\)",
+    perl = TRUE
+  )
+  expect_match(
+    assoc_src,
+    "!identical\\(hla_scope_mode\\(\\), \"all\"\\)",
+    perl = TRUE
+  )
+})
+
+test_that("the parameter gate stays OUTSIDE the cached graph reactives", {
+  # Both heavy graphs are gated on hla_params_ready() so the page does not build
+  # and draw once against hla_param()'s fallbacks and then again for real the
+  # moment output$hla_parameters_ui's inputs report.
+  #
+  # The gate must sit in the uncached wrapper. req() raises a silent condition,
+  # and inside a bindCache body that condition is a value the cache may store
+  # under the current key — every later hit on that key would then replay the
+  # stop instead of building. Structural, and silent when broken: the page would
+  # simply go blank for whichever parameters were live when it first opened.
+  data_src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  # Each cached reactive is bindCache'd and must not gate.
+  for (nm in c("hla_motif_graph_cached", "hla_global_motif_graph_cached")) {
+    expect_match(
+      data_src,
+      paste0(nm, " <- reactive\\(\\{[\\s\\S]{0,400}hla_bindCache\\("),
+      perl = TRUE,
+      info = paste(nm, "must be the bindCache'd reactive")
+    )
+    expect_no_match(
+      data_src,
+      paste0(nm, " <- reactive\\(\\{[\\s\\S]{0,200}req\\("),
+      perl = TRUE,
+      info = paste(nm, "must not req() inside the cached body")
+    )
+  }
+  # ...and each public reactive gates before reaching its cache.
+  for (nm in c("hla_motif_graph", "hla_global_motif_graph")) {
+    expect_match(
+      data_src,
+      paste0(nm, " <- reactive\\(\\{\\s*req\\(hla_params_ready\\(\\)\\)"),
+      perl = TRUE,
+      info = paste(nm, "must gate on hla_params_ready() first")
+    )
+  }
+  # The gate must decide on hla_color_by with is.null(), and must never req() it:
+  # that input's default value is "" (colour by motif cluster), which req()
+  # treats as missing, so the network would never draw until the user happened to
+  # pick a colouring. Asserted as "tests it, but not with req()" rather than
+  # against one spelling — `!is.null(x) &&` and `if (is.null(x)) return(FALSE)`
+  # are the same contract.
+  expect_match(
+    hla_params_ready_src(data_src),
+    "is\\.null\\(input\\$hla_color_by\\)",
+    perl = TRUE
+  )
+  expect_no_match(
+    hla_params_ready_src(data_src),
+    "req\\(input\\$hla_color_by\\)",
+    perl = TRUE
+  )
+})
+
+test_that("the parameter gate covers the conditional allele pickers", {
+  # The controls in output$hla_parameters_ui are only half the story. The allele
+  # pickers live in SEPARATE uiOutputs inside conditionalPanels, so Shiny keeps
+  # them suspended until the panel appears — which is the same instant the user
+  # selects the scope or colouring that needs them. They therefore report one
+  # flush AFTER the thing that reveals them, and a gate that only waits for the
+  # main panel lets the page build against hla_color_allele()'s fallback, draw
+  # it, and redraw it when the picker lands. Measured before this: two widgets
+  # on one scope change.
+  #
+  # This is the third place the same shape of bug appeared (first open, allele
+  # scope, pair scope), which is why it is pinned rather than just fixed.
+  data_src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  gate <- hla_params_ready_src(data_src)
+
+  # The single allele: a build parameter in "allele" scope, a display parameter
+  # under carrier colouring.
+  expect_match(gate, "input\\$hla_color_allele", perl = TRUE)
+  expect_match(gate, "hla_carrier", perl = TRUE)
+  # The pair scope's two pickers.
+  expect_match(gate, "input\\$hla_pair_allele_i", perl = TRUE)
+  expect_match(gate, "input\\$hla_pair_allele_ii", perl = TRUE)
+  # ...but never wait for a picker the data set cannot offer: that uiOutput
+  # renders a bare message and creates no input, so the gate would never open.
+  expect_match(gate, "hla_allele_choices\\(\\)", perl = TRUE)
+})
+
+test_that("the pair scope is offered only when both classes can be picked", {
+  src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  # A pair with no lineage to sort cells by is undefined, not narrower.
+  expect_match(
+    src,
+    "hla_pair_available <- reactive\\(\\{[\\s\\S]{0,200}hla_celltype_col\\(\\)",
+    perl = TRUE
+  )
+  expect_match(
+    src,
+    "hla_pair_available <- reactive\\(\\{[\\s\\S]{0,300}Class II",
+    perl = TRUE
+  )
 })
