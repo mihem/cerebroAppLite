@@ -177,6 +177,33 @@ launchCerebroV1.4 <- function(
   options(shiny.maxRequestSize = maxFileSize * 1024^2)
 
   ##--------------------------------------------------------------------------##
+  ## Preventive error hardening (framework level). sanitizeErrors hides an
+  ## unexpected output error's internals from the viewer (a generic message
+  ## instead of a raw red stack); shiny.error still records the real error to
+  ## stderr and a temp file so nothing is silently lost. Sanitising is OFF only
+  ## when explicitly developing (shiny.autoreload / options(cerebro.debug) /
+  ## CEREBRO_DEV), ON for ordinary interactive end-user launches.
+  ##--------------------------------------------------------------------------##
+  options(
+    shiny.sanitizeErrors = !(isTRUE(getOption("shiny.autoreload")) ||
+      isTRUE(getOption("cerebro.debug")) ||
+      tolower(Sys.getenv("CEREBRO_DEV")) %in% c("1", "true", "yes"))
+  )
+  options(shiny.error = function() {
+    ts <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    msg <- geterrmessage()
+    message(sprintf("[cerebro] [%s] unhandled error: %s", ts, msg))
+    try(
+      cat(
+        sprintf("[%s] %s\n", ts, msg),
+        file = file.path(tempdir(), "cerebro-errors.log"),
+        append = TRUE
+      ),
+      silent = TRUE
+    )
+  })
+
+  ##--------------------------------------------------------------------------##
   ## Load server and UI functions.
   ##--------------------------------------------------------------------------##
   source(

@@ -1080,7 +1080,12 @@ body .modal-footer { border-top: 1px solid var(--c-border); padding: 15px 24px; 
    Loading / progress / notifications — unified to the warm accent
    ------------------------------------------------------------------------- */
 body .recalculating { opacity: 0.55; transition: opacity var(--dur) var(--ease); }
-body .shiny-output-error { color: var(--c-error); font-family: var(--font-mono); font-size: 12.5px; }
+/* Unexpected output error: render it as a quiet muted note, not a red crash
+   box. In production the text is already sanitized to a generic message; here
+   we make sure it never reads as an alarming red/grey failure panel. The
+   -error-validation variant (from validate(need(...))) is an intentional,
+   user-facing hint and stays as the calm italic message it already was. */
+body .shiny-output-error { color: var(--c-text-3); font-family: var(--font-mono); font-size: 12px; font-style: italic; }
 body .shiny-output-error-validation { color: var(--c-text-2); font-style: italic; }
 
 body #shiny-notification-panel { bottom: 24px !important; right: 24px !important; width: 340px; }

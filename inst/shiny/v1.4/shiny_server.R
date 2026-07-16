@@ -305,33 +305,60 @@ server <- function(input, output, session) {
 
   ## create reactive value holding the current data set
   data_set <- reactive({
+    ## req stays OUTSIDE the tryCatch: "no dataset selected yet" is a silent
+    ## skip, not an error to report. Only a genuine load failure below is caught.
     req(!is.null(available_crb_files$selected))
     dataset_to_load <- available_crb_files$selected
-    if (exists(dataset_to_load)) {
-      print(glue::glue(
-        "[{Sys.time()}] Load data set from variable: {dataset_to_load}"
-      ))
-      data <- get(dataset_to_load)
-    } else {
-      ## Route through the process-level cache defined in utility_functions.R.
-      ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch) and
-      ## then re-attaches external expression backends (bpcells / h5) using
-      ## paths rooted at the crb's parent directory. Cerebro.options can still
-      ## override the matrix path via expression_matrix_BPCells /
-      ## expression_matrix_h5 -- the helper picks that up internally.
-      data <- get_or_load_crb(dataset_to_load)
-    }
-    ## log message
-    message(data$print())
-    ## check if 'expression' slot exists and print log message with its format
-    ## if it does
-    if (!is.null(data$expression)) {
-      print(glue::glue(
-        "[{Sys.time()}] Format of expression data: {class(data$expression)}"
-      ))
-    }
-    ## return loaded data
-    return(data)
+    tryCatch(
+      {
+        if (exists(dataset_to_load)) {
+          print(glue::glue(
+            "[{Sys.time()}] Load data set from variable: {dataset_to_load}"
+          ))
+          data <- get(dataset_to_load)
+        } else {
+          ## Route through the process-level cache defined in utility_functions.R.
+          ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch) and
+          ## then re-attaches external expression backends (bpcells / h5) using
+          ## paths rooted at the crb's parent directory. Cerebro.options can still
+          ## override the matrix path via expression_matrix_BPCells /
+          ## expression_matrix_h5 -- the helper picks that up internally.
+          data <- get_or_load_crb(dataset_to_load)
+        }
+        ## log message
+        message(data$print())
+        ## check if 'expression' slot exists and print log message with its
+        ## format if it does
+        if (!is.null(data$expression)) {
+          print(glue::glue(
+            "[{Sys.time()}] Format of expression data: {class(data$expression)}"
+          ))
+        }
+        ## return loaded data
+        data
+      },
+      error = function(e) {
+        ## Root of the whole reactive tree: a load failure here must not white-
+        ## screen the app. Tell the user loudly (not a silent empty state) and
+        ## return NULL so every downstream req(data_set()) simply stands down.
+        message(
+          "[cerebro] failed to load dataset '",
+          dataset_to_load,
+          "': ",
+          conditionMessage(e)
+        )
+        showNotification(
+          paste0(
+            "Could not load dataset \"",
+            dataset_to_load,
+            "\". See the logs for details."
+          ),
+          type = "error",
+          duration = 10
+        )
+        NULL
+      }
+    )
   })
 
   # list of available trajectories
@@ -435,65 +462,40 @@ server <- function(input, output, session) {
   ##--------------------------------------------------------------------------##
   ## Tabs.
   ##--------------------------------------------------------------------------##
-  source(
-    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/load_data/server.R"),
-    local = TRUE
-  )
-  source(
-    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/overview/server.R"),
-    local = TRUE
-  )
-  source(
-    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/groups/server.R"),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/marker_genes/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/gene_expression/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/gene_id_conversion/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/color_management/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/about/server.R"),
-    local = TRUE
-  )
+  ## Load a tab/module server file in isolation: a missing file or an error
+  ## while sourcing one module is logged and skipped instead of aborting the
+  ## whole session, so one broken tab cannot take down the app. Core infra
+  ## (color_setup / plotting_functions / utility_functions, sourced above) is
+  ## deliberately NOT wrapped -- if that fails there is nothing to salvage.
+  ## local = parent.frame() sources into THIS server environment, exactly as
+  ## the previous `local = TRUE` did, so module outputs/reactives register here.
+  try_source <- function(rel_path) {
+    tryCatch(
+      source(
+        paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/", rel_path),
+        local = parent.frame()
+      ),
+      error = function(e) {
+        message(
+          "[cerebro] tab module failed to load (",
+          rel_path,
+          "): ",
+          conditionMessage(e)
+        )
+      }
+    )
+  }
+  try_source("load_data/server.R")
+  try_source("overview/server.R")
+  try_source("groups/server.R")
+  try_source("marker_genes/server.R")
+  try_source("gene_expression/server.R")
+  try_source("gene_id_conversion/server.R")
+  try_source("color_management/server.R")
+  try_source("about/server.R")
   ## Enhanced module servers.
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/most_expressed_genes/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/enriched_pathways/server.R"
-    ),
-    local = TRUE
-  )
+  try_source("most_expressed_genes/server.R")
+  try_source("enriched_pathways/server.R")
 
   ##--------------------------------------------------------------------------##
   ## Dynamic sidebar: insert/remove conditional tabs based on dataset content.
@@ -662,48 +664,12 @@ server <- function(input, output, session) {
 
   ##--------------------------------------------------------------------------##
   ## Shared module: group-filters widget used by projection-style tabs.
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/module/group_filters/group_filters_widget.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/extra_material/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/immune_repertoire/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/hla_tcr_motifs/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/trajectory/server.R"
-    ),
-    local = TRUE
-  )
-  source(
-    paste0(
-      Cerebro.options[["cerebro_root"]],
-      "/shiny/v1.4/spatial/server.R"
-    ),
-    local = TRUE
-  )
+  try_source("module/group_filters/group_filters_widget.R")
+  try_source("extra_material/server.R")
+  try_source("immune_repertoire/server.R")
+  try_source("hla_tcr_motifs/server.R")
+  try_source("trajectory/server.R")
+  try_source("spatial/server.R")
 
   ##--------------------------------------------------------------------------##
   ## Export reactive values for testing (shinytest2).
