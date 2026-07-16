@@ -30,18 +30,10 @@ output[["trajectory_projection_UI"]] <- renderUI({
         width = 3,
         offset = 0,
         class = "cerebro-param-col",
-        style = "padding: 0px;",
         cerebroBox(
           title = tagList(
             "Main parameters",
-            actionButton(
-              inputId = "trajectory_projection_main_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("trajectory_projection_main_parameters_info")
           ),
           tagList(
             uiOutput("trajectory_select_method_and_name_UI"),
@@ -51,13 +43,8 @@ output[["trajectory_projection_UI"]] <- renderUI({
         cerebroBox(
           title = tagList(
             "Additional parameters",
-            actionButton(
-              inputId = "trajectory_projection_additional_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
+            cerebroInfoButton(
+              "trajectory_projection_additional_parameters_info"
             )
           ),
           uiOutput("trajectory_projection_additional_parameters_UI"),
@@ -66,14 +53,7 @@ output[["trajectory_projection_UI"]] <- renderUI({
         cerebroBox(
           title = tagList(
             "Group filters",
-            actionButton(
-              inputId = "trajectory_projection_group_filters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("trajectory_projection_group_filters_info")
           ),
           uiOutput("trajectory_projection_group_filters_UI"),
           collapsed = TRUE
@@ -83,19 +63,11 @@ output[["trajectory_projection_UI"]] <- renderUI({
         width = 9,
         offset = 0,
         class = "cerebro-viz-col",
-        style = "padding: 0px;",
         shiny::tagAppendAttributes(
           cerebroBox(
             title = tagList(
               boxTitle("Trajectory"),
-              actionButton(
-                inputId = "trajectory_projection_info",
-                label = "info",
-                icon = NULL,
-                class = "btn-xs",
-                title = "Show additional information for this panel.",
-                style = "margin-right: 3px"
-              ),
+              cerebroInfoButton("trajectory_projection_info"),
               shinyFiles::shinySaveButton(
                 "trajectory_projection_export",
                 label = "export to PDF",

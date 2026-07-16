@@ -1453,3 +1453,38 @@ body .btn:active { transform: translateY(0.5px); }
   font-size: 11px;
   color: #333;
 }
+
+/* Panel "info" button (cerebroInfoButton): the small gap that used to be a
+   per-call inline margin. margin-left separates it from the panel title;
+   margin-right keeps the projection viz-box's info button off the settings
+   cog that follows it. Harmless (trailing) on buttons that end a title row. */
+.cerebro-info-btn {
+  margin-left: 5px;
+  margin-right: 3px;
+}
+
+/* IR parameter help cards (rendered into the "info" modal on the Immune
+   repertoire tab). Migrated here from an inline tags$style() so the colours
+   track the theme tokens instead of hardcoded AdminLTE hexes. */
+.ir-help-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ir-help-card {
+  border: 1px solid var(--c-border-2);
+  border-left: 4px solid var(--c-blue);
+  border-radius: var(--r-xs);
+  padding: 10px 14px;
+  background: var(--c-surface-2);
+}
+.ir-help-card-title {
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 3px;
+}
+.ir-help-card-body {
+  color: var(--c-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}

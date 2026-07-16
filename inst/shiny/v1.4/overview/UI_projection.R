@@ -9,32 +9,17 @@ output[["overview_projection_UI"]] <- renderUI({
       width = 3,
       offset = 0,
       class = "cerebro-param-col",
-      style = "padding: 0px;",
       cerebroBox(
         title = tagList(
           "Main parameters",
-          actionButton(
-            inputId = "overview_projection_main_parameters_info",
-            label = "info",
-            icon = NULL,
-            class = "btn-xs",
-            title = "Show additional information for this panel.",
-            style = "margin-left: 5px"
-          )
+          cerebroInfoButton("overview_projection_main_parameters_info")
         ),
         uiOutput("overview_projection_main_parameters_UI")
       ),
       cerebroBox(
         title = tagList(
           "Additional parameters",
-          actionButton(
-            inputId = "overview_projection_additional_parameters_info",
-            label = "info",
-            icon = NULL,
-            class = "btn-xs",
-            title = "Show additional information for this panel.",
-            style = "margin-left: 5px"
-          )
+          cerebroInfoButton("overview_projection_additional_parameters_info")
         ),
         uiOutput("overview_projection_additional_parameters_UI"),
         collapsed = TRUE
@@ -42,14 +27,7 @@ output[["overview_projection_UI"]] <- renderUI({
       cerebroBox(
         title = tagList(
           "Group filters",
-          actionButton(
-            inputId = "overview_projection_group_filters_info",
-            label = "info",
-            icon = NULL,
-            class = "btn-xs",
-            title = "Show additional information for this panel.",
-            style = "margin-left: 5px"
-          )
+          cerebroInfoButton("overview_projection_group_filters_info")
         ),
         uiOutput("overview_projection_group_filters_UI"),
         collapsed = TRUE
@@ -60,19 +38,11 @@ output[["overview_projection_UI"]] <- renderUI({
       width = 9,
       offset = 0,
       class = "cerebro-viz-col",
-      style = "padding: 0px;",
       shiny::tagAppendAttributes(
         cerebroBox(
           title = tagList(
             boxTitle("Dimensional reduction"),
-            actionButton(
-              inputId = "overview_projection_info",
-              label = "info",
-              title = "Show additional information for this panel.",
-              icon = NULL,
-              class = "btn-xs",
-              style = "margin-right: 3px"
-            ),
+            cerebroInfoButton("overview_projection_info"),
             #shinyFiles::shinySaveButton(
             # "overview_projection_export",
             #label = "export to PDF",

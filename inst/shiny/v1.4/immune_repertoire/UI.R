@@ -50,33 +50,18 @@ tab_immune_repertoire <- tabItem(
       width = 3,
       offset = 0,
       class = "cerebro-param-col",
-      style = "padding: 0px;",
       tagList(
         cerebroBox(
           title = tagList(
             "Main parameters",
-            actionButton(
-              inputId = "ir_main_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("ir_main_parameters_info")
           ),
           uiOutput("ir_main_params_UI")
         ),
         cerebroBox(
           title = tagList(
             "Additional parameters",
-            actionButton(
-              inputId = "ir_additional_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("ir_additional_parameters_info")
           ),
           uiOutput("ir_additional_params_UI"),
           collapsed = TRUE
@@ -84,14 +69,7 @@ tab_immune_repertoire <- tabItem(
         cerebroBox(
           title = tagList(
             "Group filters",
-            actionButton(
-              inputId = "ir_group_filters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("ir_group_filters_info")
           ),
           uiOutput("ir_group_filters_UI"),
           collapsed = TRUE
@@ -103,7 +81,6 @@ tab_immune_repertoire <- tabItem(
       width = 9,
       offset = 0,
       class = "cerebro-viz-col",
-      style = "padding: 0px;",
       cerebroBox(
         title = tagList(
           boxTitle("Immune Repertoire visualizations"),

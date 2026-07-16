@@ -9,20 +9,12 @@ output[["spatial_projection_UI"]] <- renderUI({
       width = 3,
       offset = 0,
       class = "cerebro-param-col",
-      style = "padding: 0px;",
       tags$div(
         id = "spatial_main_parameters_wrapper",
         cerebroBox(
           title = tagList(
             "Main parameters",
-            actionButton(
-              inputId = "spatial_projection_main_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("spatial_projection_main_parameters_info")
           ),
           uiOutput("spatial_projection_main_parameters_UI")
         )
@@ -32,14 +24,7 @@ output[["spatial_projection_UI"]] <- renderUI({
         cerebroBox(
           title = tagList(
             "Additional parameters",
-            actionButton(
-              inputId = "spatial_projection_additional_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("spatial_projection_additional_parameters_info")
           ),
           uiOutput("spatial_projection_additional_parameters_UI"),
           collapsed = TRUE
@@ -48,14 +33,7 @@ output[["spatial_projection_UI"]] <- renderUI({
       cerebroBox(
         title = tagList(
           "Group filters",
-          actionButton(
-            inputId = "spatial_projection_group_filters_info",
-            label = "info",
-            icon = NULL,
-            class = "btn-xs",
-            title = "Show additional information for this panel.",
-            style = "margin-left: 5px"
-          )
+          cerebroInfoButton("spatial_projection_group_filters_info")
         ),
         uiOutput("spatial_projection_group_filters_UI"),
         collapsed = TRUE
@@ -66,19 +44,11 @@ output[["spatial_projection_UI"]] <- renderUI({
       width = 9,
       offset = 0,
       class = "cerebro-viz-col",
-      style = "padding: 0px;",
       shiny::tagAppendAttributes(
         cerebroBox(
           title = tagList(
             boxTitle("Dimensional reduction"),
-            actionButton(
-              inputId = "spatial_projection_info",
-              label = "info",
-              title = "Show additional information for this panel.",
-              icon = NULL,
-              class = "btn-xs",
-              style = "margin-right: 3px"
-            ),
+            cerebroInfoButton("spatial_projection_info"),
             #shinyFiles::shinySaveButton(
             # "spatial_projection_export",
             #label = "export to PDF",

@@ -8,19 +8,11 @@ output[["expression_projection_UI"]] <- renderUI({
       width = 3,
       offset = 0,
       class = "cerebro-param-col",
-      style = "padding: 0px;",
       tagList(
         cerebroBox(
           title = tagList(
             "Main parameters",
-            actionButton(
-              inputId = "expression_projection_main_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("expression_projection_main_parameters_info")
           ),
           tagList(
             shinyWidgets::radioGroupButtons(
@@ -38,13 +30,8 @@ output[["expression_projection_UI"]] <- renderUI({
         cerebroBox(
           title = tagList(
             "Additional parameters",
-            actionButton(
-              inputId = "expression_projection_additional_parameters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
+            cerebroInfoButton(
+              "expression_projection_additional_parameters_info"
             )
           ),
           uiOutput("expression_projection_additional_parameters_UI"),
@@ -53,14 +40,7 @@ output[["expression_projection_UI"]] <- renderUI({
         cerebroBox(
           title = tagList(
             "Group filters",
-            actionButton(
-              inputId = "expression_projection_group_filters_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("expression_projection_group_filters_info")
           ),
           uiOutput("expression_projection_group_filters_UI"),
           collapsed = TRUE
@@ -68,14 +48,7 @@ output[["expression_projection_UI"]] <- renderUI({
         cerebroBox(
           title = tagList(
             "Color scale",
-            actionButton(
-              inputId = "expression_projection_color_scale_info",
-              label = "info",
-              icon = NULL,
-              class = "btn-xs",
-              title = "Show additional information for this panel.",
-              style = "margin-left: 5px"
-            )
+            cerebroInfoButton("expression_projection_color_scale_info")
           ),
           tagList(
             uiOutput("expression_projection_color_scale_UI"),
@@ -89,20 +62,12 @@ output[["expression_projection_UI"]] <- renderUI({
       width = 9,
       offset = 0,
       class = "cerebro-viz-col",
-      style = "padding: 0px;",
       shiny::tagAppendAttributes(
         cerebroBox(
           title = tagList(
             boxTitle("Dimensional reduction"),
             tagList(
-              actionButton(
-                inputId = "expression_projection_info",
-                label = "info",
-                icon = NULL,
-                class = "btn-xs",
-                title = "Show additional information for this panel.",
-                style = "margin-right: 3px"
-              ),
+              cerebroInfoButton("expression_projection_info"),
               ## shinyFiles::shinySaveButton(
               ##   "expression_projection_export",
               ##   label = "export to PDF",

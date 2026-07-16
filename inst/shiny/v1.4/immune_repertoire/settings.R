@@ -536,10 +536,9 @@ ir_param_help_cards <- function(ids) {
       div(class = "ir-help-card-body", IR_PARAM_DESC[[id]])
     )
   })
-  tagList(
-    ir_help_card_style,
-    div(class = "ir-help-cards", do.call(tagList, cards))
-  )
+  ## Card styling lives in www/custom.css (.ir-help-card*), driven by theme
+  ## tokens; no inline <style> needed here.
+  div(class = "ir-help-cards", do.call(tagList, cards))
 }
 
 ## Lookup: input id -> human label (from IR_PARAM_SPEC / display / globals).
@@ -559,19 +558,6 @@ IR_PARAM_LABELS <- local({
   }
   labs
 })
-
-## Card styling — compact, clearly separated, with a coloured accent bar.
-ir_help_card_style <- tags$style(HTML(
-  "
-  .ir-help-cards { display:flex; flex-direction:column; gap:10px; }
-  .ir-help-card {
-    border:1px solid #e3e6ea; border-left:4px solid #3c8dbc;
-    border-radius:6px; padding:10px 14px; background:#fafbfc;
-  }
-  .ir-help-card-title { font-weight:600; color:#2c3e50; margin-bottom:3px; }
-  .ir-help-card-body { color:#4a4a4a; font-size:13px; line-height:1.5; }
-  "
-))
 
 ## Main parameters info: global controls + this tab's analysis params.
 observeEvent(input$ir_main_parameters_info, {

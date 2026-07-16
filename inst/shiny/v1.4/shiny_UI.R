@@ -23,7 +23,7 @@ cerebroInfoButton <- function(id, ...) {
     inputId = id,
     label = "info",
     icon = NULL,
-    class = "btn-xs",
+    class = "btn-xs cerebro-info-btn",
     title = "Show additional information for this panel.",
     ...
   )

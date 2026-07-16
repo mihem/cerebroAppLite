@@ -21,7 +21,6 @@ tab_hla_tcr_motifs <- tabItem(
       width = 3,
       offset = 0,
       class = "cerebro-param-col",
-      style = "padding: 0px;",
       tagList(
         cerebroBox(
           title = tagList(
@@ -56,7 +55,6 @@ tab_hla_tcr_motifs <- tabItem(
       # instead of forcing overflow. HLA was the one page that omitted it, so the
       # careful flex rules in custom.css never applied here.
       class = "cerebro-viz-col",
-      style = "padding: 0px;",
       cerebroBox(
         title = tagList(
           "HLA & TCR Motifs",
