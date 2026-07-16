@@ -174,6 +174,39 @@ test_that("createShinyApp bundles real spatial demos with mixed image paths", {
   expect_true(any(grepl("xenium", bundled, ignore.case = TRUE)))
 })
 
+test_that("the generated app declares its cerebroAppLite dependency", {
+  app <- build_real_app()
+  skip_if(is.null(app), "bundled real spatial demos not available")
+
+  exprs <- as.list(parse(file.path(app$app_dir, "app.R")))
+  has_text <- function(pattern) {
+    vapply(
+      exprs,
+      function(e) any(grepl(pattern, deparse(e), fixed = TRUE)),
+      logical(1)
+    )
+  }
+
+  ## The bundle ships UI/server sources and data, but no function definitions:
+  ## the analysis core is resolved from the installed package namespace at
+  ## runtime (see inst/shiny/v1.4/hla_tcr_motifs/core_shim.R). Without a guard,
+  ## requireNamespace() there returns FALSE silently, binds nothing, and the app
+  ## boots fine until the user opens the HLA tab. Fail at startup instead.
+  guard <- has_text("requireNamespace")
+  expect_true(any(guard))
+
+  ## The guard is worthless if it runs after the modules are sourced.
+  sourced <- has_text("shiny_server.R")
+  expect_true(any(sourced))
+  expect_lt(which(guard)[1], which(sourced)[1])
+
+  ## On a machine without the package the guard must stop, and the message must
+  ## name what to install rather than surface as a generic "not found".
+  env <- new.env(parent = baseenv())
+  env$requireNamespace <- function(...) FALSE
+  expect_error(eval(exprs[[which(guard)[1]]], envir = env), "cerebroAppLite")
+})
+
 test_that("the generated real-data app boots with the Spatial tab", {
   skip_if_not_installed("shinytest2")
   skip_on_cran()

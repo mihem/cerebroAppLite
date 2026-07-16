@@ -454,6 +454,19 @@ createShinyApp <- function(
     library(shinydashboard)
     library(shinyWidgets)
 
+    ## This bundle carries UI/server sources and data, but no function
+    ## definitions: modules resolve the analysis core from the installed
+    ## cerebroAppLite namespace at runtime. Without the package, that lookup
+    ## fails silently and the app boots normally until a tab that needs the
+    ## core is opened, so check once here instead.
+    if (!requireNamespace("cerebroAppLite", quietly = TRUE)) {{
+      stop(
+        "This app requires the cerebroAppLite package to be installed. ",
+        "Install it on this machine, then start the app again.",
+        call. = FALSE
+      )
+    }}
+
     cerebro_root <- "."
 
     if (file.exists("cerebro_config.rds")) {{
