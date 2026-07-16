@@ -66,5 +66,7 @@ articles:
       - enriched_pathways
       - extra_material
       - immune_repertoire_analysis
+      - hla_tcr_motifs
+      - hla_bulk_tcr_associations
       - trajectory_analysis
       - spatial_analysis

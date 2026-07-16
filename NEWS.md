@@ -1,3 +1,38 @@
+# cerebroAppLite 2.2.0
+
+## HLA & TCR Motifs
+
+- **New page: HLA & TCR Motifs.** A standalone top-level tab (peer of Immune
+  Repertoire) that draws a CDR3 motif network — every unique CDR3 is a node and
+  an edge joins two equal-length CDR3s at Hamming distance 1 — alongside
+  donor-level HLA context. It appears conditionally, only when the loaded `.crb`
+  carries a TRA/TRB chain. Three sub-tabs: **Motif Network** (colour by motif
+  cluster, cell type, MHC context, HLA carrier status, or sample of origin),
+  **HLA Associations** (descriptive carrier vs. non-carrier overlap — no p-value,
+  no restriction claim), and **Data & QC** (coverage, normalized typing, and a
+  session-only HLA upload).
+- **HLA typing on the data class.** `Cerebro_v1.3` gained an optional
+  `hla_typing` slot with `addHLATyping()` / `getHLATyping()`; the getter is
+  backward-compatible with older `.crb` files. Typing accepts a canonical long
+  table, a wide `sample` + `HLA-*_1/_2` table, or a named list, and carries
+  provenance (`genotyped` / `imputed` / `synthetic` / `unknown`) so a synthetic
+  or imputed genotype is never treated as directly typed.
+- **Export picks it up automatically.** `exportFromSeurat()` now reads
+  `object@misc$hla_typing` (with `object@misc$hla_typing_source_type`), parallel
+  to the existing `immune_repertoire` slot.
+- **Declared contracts for bulk data.** A `.crb` may declare
+  `observation_unit`, `receptor_key`, and `tcr_selection` in `technical_info`, so
+  the page states honestly when rows are analysis units rather than cells, when a
+  receptor is keyed by V gene + CDR3, and when a carrier contrast is a positive
+  control rather than independent evidence.
+- **Two demo data sets.** `demo_hla_tcr.crb` (single cells, synthetic HLA and
+  designed motif families) and `demo_hla_tcr_bulk.crb` (bulk TCRβ with real donor
+  HLA from the Emerson 2017 cohort).
+- **Two new vignettes.** *"HLA & TCR Motifs: from synthetic data to an
+  interactive app"* (single-cell, runnable end to end) and *"HLA Associations on
+  bulk TCRβ with real donor HLA"* (the bulk workflow and its positive-control
+  caveat).
+
 # cerebroAppLite 2.1.0
 
 ## Projection overhaul, unified interface, and cross-tab selection
