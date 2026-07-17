@@ -18,6 +18,34 @@ if (!nzchar(inst_dir) || !file.exists(file.path(inst_dir, "app.R"))) {
   inst_dir <- testthat::test_path("../../inst")
 }
 
+ir_sidebar_selector <- 'a[href="#shiny-tab-immune_repertoire"]'
+
+wait_for_ir_sidebar <- function(app, timeout = 60000) {
+  app$wait_for_js(
+    sprintf("document.querySelector('%s') !== null", ir_sidebar_selector),
+    timeout = timeout
+  )
+}
+
+activate_ir_tab <- function(app, timeout = 60000) {
+  wait_for_ir_sidebar(app, timeout = timeout)
+  app$run_js(
+    sprintf("document.querySelector('%s').click();", ir_sidebar_selector)
+  )
+  app$wait_for_js(
+    paste0(
+      "(function(){",
+      "var tabs=document.querySelector('#ir_tabs.shiny-bound-input');",
+      "var active=document.querySelector(",
+      "'#ir_tabs li.active a[data-value=\"Clonal UMAP\"]');",
+      "var receptor=document.querySelector('#ir_p_umap_receptor');",
+      "return !!tabs && !!active && !!receptor && receptor.options.length>0;",
+      "})()"
+    ),
+    timeout = timeout
+  )
+}
+
 test_that("immune_repertoire tab is present with example data (has TCR)", {
   local_app_support(inst_dir)
   app <- AppDriver$new(
@@ -27,15 +55,14 @@ test_that("immune_repertoire tab is present with example data (has TCR)", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  wait_for_ir_sidebar(app)
 
   # example.crb carries real TCR data — the conditional tab should appear
   tab_present <- app$get_js(
     'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\') !== null;'
   )
   expect_true(tab_present)
-
-  app$stop()
 })
 
 test_that("first IR plot tab is Clonal UMAP", {
@@ -49,18 +76,13 @@ test_that("first IR plot tab is Clonal UMAP", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   first_tab <- app$get_js(
     "document.querySelector('#ir_tabs > li > a').textContent.trim();"
   )
   expect_identical(first_tab, "Clonal UMAP")
-
-  app$stop()
 })
 
 test_that("Group by is visible on plots whose grouping it drives", {
@@ -76,11 +98,8 @@ test_that("Group by is visible on plots whose grouping it drives", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   # Global controls are now rendered server-side per tab (no conditionalPanel),
   # so visibility = the control element exists and is laid out.
@@ -141,8 +160,6 @@ test_that("Group by is visible on plots whose grouping it drives", {
   )
   expect_gte(as.numeric(n_options("ir_pair_x_group")), 2)
   expect_gte(as.numeric(n_options("ir_pair_y_group")), 2)
-
-  app$stop()
 })
 
 test_that("Chain is visible on plots whose scRepertoire API accepts it", {
@@ -154,11 +171,8 @@ test_that("Chain is visible on plots whose scRepertoire API accepts it", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   chain_visible <- function() {
     app$wait_for_js(
@@ -175,8 +189,6 @@ test_that("Chain is visible on plots whose scRepertoire API accepts it", {
   app$set_inputs(ir_tabs = "SizeDist", wait_ = FALSE)
   app$wait_for_idle(timeout = 15000)
   expect_true(isTRUE(chain_visible()))
-
-  app$stop()
 })
 
 test_that("changing 'Group by' keeps the current plot tab", {
@@ -190,11 +202,8 @@ test_that("changing 'Group by' keeps the current plot tab", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   active_tab <- function() {
     app$get_js(
@@ -211,8 +220,6 @@ test_that("changing 'Group by' keeps the current plot tab", {
   app$set_inputs(ir_groupBy = "cell_type", wait_ = FALSE)
   app$wait_for_idle(timeout = 20000)
   expect_identical(active_tab(), "Diversity")
-
-  app$stop()
 })
 
 test_that("settings dropdowns render all their options (not just selected)", {
@@ -228,11 +235,8 @@ test_that("settings dropdowns render all their options (not just selected)", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   n_options <- function(id) {
     app$wait_for_js(
@@ -259,8 +263,6 @@ test_that("settings dropdowns render all their options (not just selected)", {
   expect_gte(as.numeric(n_options("ir_chain")), 2)
   # Clone call: gene/nt/aa/strict
   expect_gte(as.numeric(n_options("ir_cloneCall")), 2)
-
-  app$stop()
 })
 
 test_that("immune_repertoire tab can be opened and renders settings", {
@@ -272,13 +274,8 @@ test_that("immune_repertoire tab can be opened and renders settings", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-
-  # select the tab
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   # Chain is hidden on the default Clonal UMAP tab; move to one that shows it.
   app$set_inputs(ir_tabs = "Abundance", wait_ = FALSE)
@@ -293,8 +290,6 @@ test_that("immune_repertoire tab can be opened and renders settings", {
     'document.querySelector("#ir_chain") !== null;'
   )
   expect_true(chain_present)
-
-  app$stop()
 })
 
 test_that("immune_repertoire module loads without breaking main app", {
@@ -306,13 +301,12 @@ test_that("immune_repertoire module loads without breaking main app", {
     width = 1619,
     load_timeout = 60000
   )
+  withr::defer(app$stop())
   app$wait_for_idle(timeout = 20000)
 
   # Data info tab should still render normally (1476 cells in the new example)
   cells_box <- app$get_value(output = "load_data_number_of_cells")
   expect_true(grepl("1,?476", cells_box$html))
-
-  app$stop()
 })
 
 test_that("Clonal UMAP tab renders with receptor + projection selectors", {
@@ -324,11 +318,8 @@ test_that("Clonal UMAP tab renders with receptor + projection selectors", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   # The Clonal UMAP tab should exist among the visualization tabs.
   has_umap_tab <- app$get_js(
@@ -373,8 +364,6 @@ test_that("Clonal UMAP tab renders with receptor + projection selectors", {
     "document.querySelector('#ir_clonalUMAP_projection .plotly') !== null;"
   )
   expect_true(isTRUE(has_plotly))
-
-  app$stop()
 })
 
 test_that("Display options panel exposes scatter params on scatter-type tabs", {
@@ -386,11 +375,8 @@ test_that("Display options panel exposes scatter params on scatter-type tabs", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   control_exists <- function(id) {
     app$get_js(sprintf(
@@ -418,8 +404,6 @@ test_that("Display options panel exposes scatter params on scatter-type tabs", {
   )
   expect_true(isTRUE(control_exists("ir_d_point_size")))
   expect_true(isTRUE(control_exists("ir_d_alpha")))
-
-  app$stop()
 })
 
 test_that("IR page uses the Main-tab layout (Main/Additional/Group boxes)", {
@@ -431,11 +415,8 @@ test_that("IR page uses the Main-tab layout (Main/Additional/Group boxes)", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   # The three left-column parameter boxes (by their info buttons) and the
   # right-column visualization tab strip should all be present.
@@ -446,8 +427,6 @@ test_that("IR page uses the Main-tab layout (Main/Additional/Group boxes)", {
   expect_true(isTRUE(exists_el("#ir_additional_parameters_info")))
   expect_true(isTRUE(exists_el("#ir_group_filters_info")))
   expect_true(isTRUE(exists_el("#ir_tabs")))
-
-  app$stop()
 })
 
 test_that("Clonal UMAP has Show-all toggle and group filters", {
@@ -459,11 +438,8 @@ test_that("Clonal UMAP has Show-all toggle and group filters", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   exists_el <- function(sel) {
     app$get_js(sprintf("document.querySelector('%s') !== null;", sel))
@@ -487,8 +463,6 @@ test_that("Clonal UMAP has Show-all toggle and group filters", {
     "document.querySelector('#ir_clonalUMAP_projection .plotly') !== null;"
   )
   expect_true(isTRUE(has_plotly))
-
-  app$stop()
 })
 
 test_that("Clonal UMAP switches to static facets only when grouped", {
@@ -500,11 +474,8 @@ test_that("Clonal UMAP switches to static facets only when grouped", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   exists_el <- function(sel) {
     app$get_js(sprintf("document.querySelector('%s') !== null;", sel))
@@ -548,8 +519,6 @@ test_that("Clonal UMAP switches to static facets only when grouped", {
   expect_gte(as.numeric(static_size$h), 300)
   expect_gte(as.numeric(static_size$imgW), as.numeric(static_size$w) * 0.9)
   expect_gte(as.numeric(static_size$imgH), 300)
-
-  app$stop()
 })
 
 test_that("Clone call is hidden on the Clonal UMAP tab", {
@@ -561,11 +530,8 @@ test_that("Clone call is hidden on the Clonal UMAP tab", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   exists_el <- function(sel) {
     app$get_js(sprintf("document.querySelector('%s') !== null;", sel))
@@ -582,8 +548,6 @@ test_that("Clone call is hidden on the Clonal UMAP tab", {
     timeout = 15000
   )
   expect_true(isTRUE(exists_el("#ir_cloneCall")))
-
-  app$stop()
 })
 
 test_that("Main parameters info button opens a help dialog", {
@@ -595,11 +559,8 @@ test_that("Main parameters info button opens a help dialog", {
     width = 1619,
     load_timeout = 60000
   )
-  app$wait_for_idle(timeout = 20000)
-  app$run_js(
-    'document.querySelector(\'a[href="#shiny-tab-immune_repertoire"]\').click();'
-  )
-  app$wait_for_idle(timeout = 20000)
+  withr::defer(app$stop())
+  activate_ir_tab(app)
 
   # Move to a tab with several controls, then click the Main parameters info.
   app$set_inputs(ir_tabs = "Diversity", wait_ = FALSE)
@@ -617,6 +578,4 @@ test_that("Main parameters info button opens a help dialog", {
   )
   expect_true(grepl("ir-help-card", modal_html))
   expect_true(grepl("Metric|Clone call|Bootstrap", modal_html))
-
-  app$stop()
 })

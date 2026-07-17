@@ -174,6 +174,43 @@ test_that("createShinyApp bundles real spatial demos with mixed image paths", {
   expect_true(any(grepl("xenium", bundled, ignore.case = TRUE)))
 })
 
+test_that("the generated app remains self-contained at runtime", {
+  app <- build_real_app()
+  skip_if(is.null(app), "bundled real spatial demos not available")
+
+  app_source <- paste(
+    readLines(file.path(app$app_dir, "app.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  bundled_source <- paste(
+    unlist(lapply(
+      list.files(
+        file.path(app$app_dir, "shiny"),
+        pattern = "\\.[Rr]$",
+        recursive = TRUE,
+        full.names = TRUE
+      ),
+      readLines,
+      warn = FALSE
+    )),
+    collapse = "\n"
+  )
+
+  ## createShinyApp() copies the complete UI/server implementation. The bundle
+  ## must therefore boot without resolving the package that created it.
+  expect_false(grepl(
+    'requireNamespace("cerebroAppLite"',
+    app_source,
+    fixed = TRUE
+  ))
+  expect_false(grepl("cerebroAppLite::", bundled_source, fixed = TRUE))
+  expect_false(grepl(
+    "asNamespace(\"cerebroAppLite\"",
+    bundled_source,
+    fixed = TRUE
+  ))
+})
+
 test_that("the generated real-data app boots with the Spatial tab", {
   skip_if_not_installed("shinytest2")
   skip_on_cran()
