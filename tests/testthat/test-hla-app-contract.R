@@ -155,6 +155,14 @@ test_that("source-tree core shim does not require a freshly installed package", 
     app_root,
     "shiny/v1.4/hla_tcr_motifs/core_shim.R"
   )
+  # This test asserts a SOURCE-TREE property (the shim runs without a fresh
+  # install). Under R CMD check the package is copied into <pkg>.Rcheck and the
+  # source `inst/` tree is not at this path, so there is nothing to test -- skip
+  # rather than fail on the missing file.
+  testthat::skip_if_not(
+    file.exists(shim_path),
+    "source tree not present (installed-package layout)"
+  )
   expression <- paste0(
     "e <- new.env(parent = globalenv()); ",
     "e$Cerebro.options <- list(cerebro_root = ",
