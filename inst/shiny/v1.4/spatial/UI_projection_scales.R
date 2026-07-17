@@ -2,6 +2,12 @@
 ## UI elements to select X and Y limits in projection.
 ##----------------------------------------------------------------------------##
 output[["spatial_projection_scales_UI"]] <- renderUI({
+  ## suspendWhenHidden = FALSE makes this evaluate even on non-spatial data
+  ## sets (e.g. PBMC), where availableSpatial() is empty. Stand down there:
+  ## otherwise projection_to_display becomes NA, getSpatialData()$coordinates
+  ## below is empty, and range() warns ("no non-missing arguments to min/max")
+  ## then feeds Inf / -Inf into the axis sliders.
+  req(availableSpatial())
   if (
     is.null(input[["spatial_projection_to_display"]]) ||
       is.na(input[["spatial_projection_to_display"]]) ||
@@ -14,6 +20,9 @@ output[["spatial_projection_scales_UI"]] <- renderUI({
   ##
   spatial_data <- getSpatialData(projection_to_display)
   co <- spatial_data$coordinates
+  ## Guard a present-but-empty coordinate table too, so range() never runs on
+  ## an empty vector even for a spatial data set mid-load.
+  req(NROW(co) > 0)
   ## Spatial coordinates are large positive values (pixels / microns), so the
   ## generic getXYranges() multiplicative padding (min*0.9, max*1.1) produces a
   ## badly ASYMMETRIC frame — the top/right whitespace ends up many times the
