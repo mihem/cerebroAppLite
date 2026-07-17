@@ -90,6 +90,13 @@ compatibility with older .crb files).}
 compatibility with older .crb files).}
 
 \item{\code{spatial}}{\code{list} that contains spatial data (coordinates and expression).}
+
+\item{\code{trekker}}{\code{list} with Trekker single-cell spatial-mapping
+content: canonical and variant (transposed / y-mirrored) coordinates,
+UMAP coordinates, per-nucleus cluster/cell-type, positioning QC in the
+vendor's original field names, the upstream (vendor) Moran's I table,
+and per-nucleus positioning-evidence images (base64 \code{data:} URIs).
+Consumed by the Trekker page. Optional; older .crb files simply lack it.}
 }
 \if{html}{\out{</div>}}
 }
@@ -159,6 +166,8 @@ compatibility with older .crb files).}
 \item \href{#method-Cerebro_v1.3-addSpatialData}{\code{Cerebro_v1.3$addSpatialData()}}
 \item \href{#method-Cerebro_v1.3-getSpatialData}{\code{Cerebro_v1.3$getSpatialData()}}
 \item \href{#method-Cerebro_v1.3-availableSpatial}{\code{Cerebro_v1.3$availableSpatial()}}
+\item \href{#method-Cerebro_v1.3-getTrekker}{\code{Cerebro_v1.3$getTrekker()}}
+\item \href{#method-Cerebro_v1.3-addTrekker}{\code{Cerebro_v1.3$addTrekker()}}
 \item \href{#method-Cerebro_v1.3-addExtraMaterial}{\code{Cerebro_v1.3$addExtraMaterial()}}
 \item \href{#method-Cerebro_v1.3-addExtraTable}{\code{Cerebro_v1.3$addExtraTable()}}
 \item \href{#method-Cerebro_v1.3-addExtraPlot}{\code{Cerebro_v1.3$addExtraPlot()}}
@@ -1325,6 +1334,40 @@ Get list of available spatial data entries.
 
 \subsection{Returns}{
 \code{vector} of spatial data entries that are available.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-getTrekker"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-getTrekker}{}}}
+\subsection{Method \code{getTrekker()}}{
+Get Trekker single-cell spatial-mapping data, or \code{NULL} when none is
+stored. Safe on older objects that predate the field (the slot is read
+through a \code{tryCatch} so the getter never errors on a legacy .crb).
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$getTrekker()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A \code{list} with the Trekker page's content, or \code{NULL}.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Cerebro_v1.3-addTrekker"></a>}}
+\if{latex}{\out{\hypertarget{method-Cerebro_v1.3-addTrekker}{}}}
+\subsection{Method \code{addTrekker()}}{
+Set Trekker single-cell spatial-mapping data.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Cerebro_v1.3$addTrekker(data)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{data}}{\code{list} carrying the Trekker page content (coordinates,
+cell metadata, positioning QC, upstream Moran's I, and positioning
+evidence). See the Trekker page module for the expected structure.}
+}
+\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}

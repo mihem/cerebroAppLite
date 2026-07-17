@@ -603,6 +603,17 @@ server <- function(input, output, session) {
     "map-pin",
     function() availableSpatial()
   )
+  ## Trekker single-cell spatial mapping: its own bespoke page (not the generic
+  ## Spatial tab). Shown only when the loaded .crb carries a `trekker` slot.
+  insertConditionalTab(
+    "Trekker",
+    "trekker",
+    "map-marked-alt",
+    function() {
+      tk <- tryCatch(data_set()$getTrekker(), error = function(e) NULL)
+      !is.null(tk)
+    }
+  )
 
   ## Cleanup snapshot artifacts that may have been left by test runs.
   snapshot_dir <- file.path(
@@ -656,6 +667,13 @@ server <- function(input, output, session) {
     paste0(
       Cerebro.options[["cerebro_root"]],
       "/shiny/v1.4/spatial/server.R"
+    ),
+    local = TRUE
+  )
+  source(
+    paste0(
+      Cerebro.options[["cerebro_root"]],
+      "/shiny/v1.4/trekker/server.R"
     ),
     local = TRUE
   )
