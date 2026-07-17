@@ -643,6 +643,17 @@ server <- function(input, output, session) {
     "map-pin",
     function() availableSpatial()
   )
+  ## Trekker single-cell spatial mapping: its own bespoke page (not the generic
+  ## Spatial tab). Shown only when the loaded .crb carries a `trekker` slot.
+  insertConditionalTab(
+    "Trekker",
+    "trekker",
+    "map-marked-alt",
+    function() {
+      tk <- tryCatch(data_set()$getTrekker(), error = function(e) NULL)
+      !is.null(tk)
+    }
+  )
 
   ## Cleanup snapshot artifacts that may have been left by test runs.
   snapshot_dir <- file.path(
@@ -670,6 +681,7 @@ server <- function(input, output, session) {
   try_source("hla_tcr_motifs/server.R")
   try_source("trajectory/server.R")
   try_source("spatial/server.R")
+  try_source("trekker/server.R")
 
   ##--------------------------------------------------------------------------##
   ## Export reactive values for testing (shinytest2).

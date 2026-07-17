@@ -125,6 +125,14 @@ Cerebro_v1.3 <- R6::R6Class(
     #' @field spatial \code{list} that contains spatial data (coordinates and expression).
     spatial = list(),
 
+    #' @field trekker \code{list} with Trekker single-cell spatial-mapping
+    #'   content: canonical and variant (transposed / y-mirrored) coordinates,
+    #'   UMAP coordinates, per-nucleus cluster/cell-type, positioning QC in the
+    #'   vendor's original field names, the upstream (vendor) Moran's I table,
+    #'   and per-nucleus positioning-evidence images (base64 \code{data:} URIs).
+    #'   Consumed by the Trekker page. Optional; older .crb files simply lack it.
+    trekker = NULL,
+
     ##------------------------------------------------------------------------##
     ## methods to interact with the object
     ##------------------------------------------------------------------------##
@@ -1195,6 +1203,30 @@ Cerebro_v1.3 <- R6::R6Class(
     #' \code{vector} of spatial data entries that are available.
     availableSpatial = function() {
       return(names(self$spatial))
+    },
+
+    #' @description
+    #' Get Trekker single-cell spatial-mapping data, or \code{NULL} when none is
+    #' stored. Safe on older objects that predate the field (the slot is read
+    #' through a \code{tryCatch} so the getter never errors on a legacy .crb).
+    #'
+    #' @return A \code{list} with the Trekker page's content, or \code{NULL}.
+    getTrekker = function() {
+      tryCatch(self$trekker, error = function(e) NULL)
+    },
+
+    #' @description
+    #' Set Trekker single-cell spatial-mapping data.
+    #'
+    #' @param data \code{list} carrying the Trekker page content (coordinates,
+    #'   cell metadata, positioning QC, upstream Moran's I, and positioning
+    #'   evidence). See the Trekker page module for the expected structure.
+    addTrekker = function(data) {
+      if (!is.list(data)) {
+        stop("Trekker data must be a list.", call. = FALSE)
+      }
+      self$trekker <- data
+      invisible(self)
     },
 
     #' @description

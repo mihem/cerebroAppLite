@@ -1,0 +1,152 @@
+/*----------------------------------------------------------------------------*
+ * Trekker page styles.
+ *
+ * Only the bespoke bits are styled here (the dual scatter panes, the inspector,
+ * the QC / evidence / Moran readouts). The controls and the card chrome are
+ * standard app widgets (cerebroBox / selectInput / sliderInput / ...), so they
+ * inherit the Console theme untouched.
+ *
+ * Everything is scoped under `.trekker-page` and every class is `tk-`-prefixed,
+ * so nothing here restyles the app's generic elements. Colours reference the
+ * global design tokens defined in custom.css (`:root`), so the page stays in
+ * lock-step with the rest of the interface — no local palette, no stray accents.
+ *----------------------------------------------------------------------------*/
+.trekker-page {
+  color: var(--c-text);
+  font-family: var(--font-sans);
+
+  /* ---- dataset metadata strip ---- */
+  .tk-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .tk-badge {
+    display: inline-block; padding: 2px 9px; border-radius: var(--r-pill);
+    font-size: 11px; font-weight: 600; background: var(--c-blue-50);
+    color: var(--c-blue-700); border: 1px solid var(--c-blue-100);
+  }
+  .tk-badge-gray {
+    background: var(--c-surface-2); color: var(--c-text-2); border-color: var(--c-border-2);
+  }
+  .tk-badge-soft {
+    background: var(--c-amber-50); color: var(--c-amber-700); border-color: var(--c-amber-100);
+  }
+  .tk-sub { flex: 1 1 100%; color: var(--c-text-2); font-size: 12.5px; margin-top: 2px; }
+  .tk-note { font-weight: 400; color: var(--c-text-3); font-size: 11.5px; margin-left: 8px; }
+  .tk-muted { color: var(--c-text-3); }
+  .tk-sub-h { font-size: 12px; font-weight: 650; margin: 0 0 8px; color: var(--c-text); }
+  .tk-hint { font-size: 11.5px; color: var(--c-text-3); margin-top: 9px; line-height: 1.5; }
+  .tk-link { color: var(--c-blue); text-decoration: none; }
+  .tk-link:hover { color: var(--c-blue-700); text-decoration: underline; }
+  code {
+    font-family: var(--font-mono); font-size: 11.5px; background: var(--c-surface-2);
+    padding: 1px 5px; border-radius: var(--r-xs); color: var(--c-text-2);
+  }
+
+  /* ---- scatter panes ---- */
+  .tk-panes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tk-panes.single { grid-template-columns: 1fr; }
+  .tk-pane { position: relative; }
+  .tk-pane-h {
+    font-size: 11.5px; font-weight: 650; color: var(--c-text-2);
+    margin: 0 0 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .tk-pane-h .tk-u { font-weight: 400; color: var(--c-text-3); margin-left: auto; font-size: 11px; }
+  canvas {
+    display: block; width: 100%; background: var(--c-surface);
+    border-radius: var(--r-sm); cursor: crosshair; border: 1px solid var(--c-border);
+  }
+  .tk-tip {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: rgba(28, 28, 30, .94); color: #fff; padding: 7px 9px;
+    border-radius: var(--r-xs); font-size: 11.5px; line-height: 1.5;
+    white-space: nowrap; z-index: 5; font-variant-numeric: tabular-nums;
+  }
+  .tk-tip b { color: var(--c-amber-300); }
+
+  /* ---- selection bar + legend + colour bar ---- */
+  .tk-selbar {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px;
+    background: var(--c-blue-50); border: 1px solid var(--c-blue-100);
+    border-radius: var(--r-sm); padding: 7px 11px; color: var(--c-blue-700);
+  }
+  .tk-linkbtn {
+    margin-left: auto; border: 1px solid var(--c-border-2); background: var(--c-surface);
+    color: var(--c-text-2); border-radius: var(--r-xs); padding: 3px 10px;
+    font-size: 11px; cursor: pointer; font-family: inherit;
+  }
+  .tk-linkbtn:hover { background: var(--c-surface-2); color: var(--c-text); }
+  .tk-legend { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 10px; font-size: 11.5px; }
+  .tk-lg {
+    display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;
+    padding: 1px 3px; border-radius: var(--r-xs);
+  }
+  .tk-lg:hover { background: var(--c-surface-2); }
+  .tk-lg.off { opacity: .3; }
+  .tk-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .tk-cbar { margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--c-text-2); }
+  .tk-cbar .tk-grad { flex: 1; height: 9px; border-radius: 5px; }
+  .tk-cbar-note { color: var(--c-text-3); }
+
+  /* ---- cell inspector ---- */
+  .tk-insp { display: grid; grid-template-columns: 200px 1fr 1.3fr; gap: 16px; }
+  .tk-kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; }
+  .tk-kv dt { color: var(--c-text-2); }
+  .tk-kv dd { font-weight: 550; text-align: right; font-variant-numeric: tabular-nums; margin: 0; }
+  .tk-bars { font-size: 12px; }
+  .tk-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .tk-bar .tk-nm { width: 58px; flex: none; font-weight: 600; }
+  .tk-bar .tk-tr { flex: 1; background: var(--c-surface-2); border-radius: var(--r-xs); height: 14px; overflow: hidden; }
+  .tk-bar .tk-fl { display: block; height: 100%; border-radius: var(--r-xs); min-width: 2px; }
+  .tk-bar .tk-ct { width: 34px; flex: none; text-align: right; color: var(--c-text-2); font-variant-numeric: tabular-nums; }
+  .tk-evimg { width: 100%; border: 1px solid var(--c-border); border-radius: var(--r-sm); background: var(--c-surface); }
+  .tk-empty {
+    color: var(--c-text-3); font-size: 12px; text-align: center; padding: 26px 10px;
+    border: 1px dashed var(--c-border-2); border-radius: var(--r-sm);
+  }
+
+  /* ---- Data & QC ---- */
+  .tk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tk-stat { background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 10px 11px; }
+  .tk-stat .tk-k { font-size: 10.5px; color: var(--c-text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .tk-stat .tk-v { font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; letter-spacing: -.02em; }
+  .tk-stat .tk-m { font-size: 11px; color: var(--c-text-2); margin-top: 1px; }
+  .tk-stat.warn { background: var(--c-amber-50); border-color: var(--c-amber-100); }
+  .tk-stat.warn .tk-v { color: var(--c-warning); }
+  .tk-stat.ok .tk-v { color: var(--c-success); }
+  .tk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+  .tk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tk-table th, .tk-table td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--c-border); }
+  .tk-table th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--c-text-3); font-weight: 650; }
+  .tk-table tbody tr:last-child td { border-bottom: 0; }
+  .tk-table tbody tr:hover { background: var(--c-surface-2); }
+  .tk-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tk-flag {
+    background: var(--c-amber-50); border: 1px solid var(--c-amber-100); border-radius: var(--r-sm);
+    padding: 9px 11px; font-size: 11.5px; color: var(--c-amber-700); margin-top: 11px;
+  }
+
+  /* ---- positioning-evidence grid ---- */
+  .tk-exgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .tk-exgrid figure { font-size: 11.5px; margin: 0; }
+  .tk-exgrid img { width: 100%; border: 1px solid var(--c-border); border-radius: var(--r-sm); cursor: zoom-in; }
+  .tk-exgrid figcaption { color: var(--c-text-2); margin-top: 5px; }
+
+  @media (max-width: 1000px) {
+    .tk-panes { grid-template-columns: 1fr; }
+    .tk-insp { grid-template-columns: 1fr; }
+    .tk-two { grid-template-columns: 1fr; }
+    .tk-exgrid { grid-template-columns: 1fr; }
+  }
+}
+
+/* Zoom dialog lives at <body> level (dialog::backdrop needs the top layer), so
+   it is scoped by its own id rather than nested under .trekker-page. */
+#tk-zoom {
+  border: 0; border-radius: var(--r-md); padding: 0; max-width: 94vw;
+  box-shadow: var(--shadow-4);
+}
+#tk-zoom::backdrop { background: rgba(0, 0, 0, .55); }
+#tk-zoom img { display: block; max-width: min(1100px, 92vw); width: 100%; }
+#tk-zoom .tk-zoom-x {
+  position: absolute; top: 8px; right: 10px; background: rgba(0, 0, 0, .6);
+  color: #fff; border: 0; border-radius: var(--r-xs); padding: 3px 9px;
+  cursor: pointer; font-size: 12px;
+}

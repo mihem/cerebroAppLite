@@ -144,6 +144,10 @@ source(
   paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/hla_tcr_motifs/UI.R"),
   local = TRUE
 )
+source(
+  paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/trekker/UI.R"),
+  local = TRUE
+)
 
 ##----------------------------------------------------------------------------##
 ## Create dashboard with different tabs.
@@ -226,6 +230,7 @@ ui <- dashboardPage(
       div(id = "sidebar_item_hla_tcr_motifs_placeholder"),
       div(id = "sidebar_item_trajectory_placeholder"),
       div(id = "sidebar_item_spatial_placeholder"),
+      div(id = "sidebar_item_trekker_placeholder"),
       ## Also conditional: a data set with no genes measured (bulk repertoire)
       ## has nothing for this tab to show.
       div(id = "sidebar_item_geneExpression_placeholder"),
@@ -259,6 +264,16 @@ ui <- dashboardPage(
         "shiny/v1.4/www/fill_height.js"
       )
     ),
+    ## Trekker page assets (scoped under .trekker-page / tk- ids so they do not
+    ## affect any other tab). Loaded app-wide like the theme above so the tab —
+    ## which is registered in tabItems() but conditionally shown — is styled and
+    ## wired whenever a Trekker .crb is loaded.
+    includeCSS(
+      file.path(Cerebro.options[["cerebro_root"]], "shiny/v1.4/www/trekker.css")
+    ),
+    includeScript(
+      file.path(Cerebro.options[["cerebro_root"]], "shiny/v1.4/www/trekker.js")
+    ),
     tags$script(HTML('$("body").addClass("fixed");')),
     tabItems(
       tab_load_data,
@@ -272,6 +287,7 @@ ui <- dashboardPage(
       tab_hla_tcr_motifs,
       tab_trajectory,
       tab_spatial,
+      tab_trekker,
       tab_gene_expression,
       tab_gene_id_conversion,
       tab_color_management,

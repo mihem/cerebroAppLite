@@ -1,3 +1,43 @@
+# cerebroAppLite 2.3.0
+
+## Trekker single-cell spatial mapping
+
+- **New page: Trekker.** A standalone top-level tab (peer of Spatial) for Curio
+  Bioscience / Takara Bio Trekker single-cell spatial-mapping output — real single
+  nuclei × whole transcriptome, with positions inferred from bead spatial barcodes
+  and (usually) no matched histology image. It appears conditionally, only when the
+  loaded `.crb` carries a `trekker` slot.
+- **Physical space and transcriptome space, linked.** Because every nucleus has
+  both a spatial and a UMAP position, the two scatterplots are shown side by side
+  and cross-linked: a lasso in one pane highlights the same nuclei in the other. A
+  Morph view interpolates each nucleus between its UMAP and its spatial position.
+  Colour by cell type, cluster, or any of the whole-transcriptome genes.
+- **Positioning evidence is auditable.** Trekker positions are inferred, so the page
+  surfaces the vendor's per-nucleus positioning-evidence images (the bead-barcode
+  cloud plus a UMI knee plot) for the sampled nuclei, and a Cell inspector reports
+  each nucleus's identity together with the **real** physical-neighbour cell-type
+  counts within a chosen radius (not a deconvolution estimate).
+- **Three coordinate orientations, made visible.** The vendor's Location CSV is the
+  canonical coordinate authority; the `@images` slot (what the generic extractor
+  reads) is axis-transposed, and the `SPATIAL` reduction is y-mirrored. A control
+  switches between all three so the discrepancy is visible rather than silently
+  drawn 90° wrong.
+- **Honest QC.** Positioning QC is shown in the vendor's own field names (a missing
+  metric stays missing); "confidently positioned" is disclosed as including
+  vendor-salvaged multi-location nuclei (labelled `vendor_confidently_positioned`);
+  values below the vendor's reference range are flagged without adjudicating sample
+  usability; and Moran's I is the upstream vendor value, labelled and never mixed
+  with Cerebro's own.
+- **Data class.** `Cerebro_v1.3` gained an optional `trekker` slot with
+  `addTrekker()` / `getTrekker()`; the getter is backward-compatible with older
+  `.crb` files that predate the field.
+- **Demo data and vignette.** A real, down-sampled demo `.crb`
+  (`demo_trekker.crb`, from the smallest official Trekker bundle: 2,532 nuclei ×
+  all 21,374 genes, with positioning-evidence images embedded) and a runnable
+  vignette, *"Trekker single-cell spatial mapping: from a vendor bundle to an
+  interactive app"*, covering the registration-gated download, the bundle
+  contents, and the reproducible build (`data-raw/build_trekker_demo.R`).
+
 # cerebroAppLite 2.2.0
 
 ## HLA & TCR Motifs

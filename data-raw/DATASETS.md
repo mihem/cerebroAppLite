@@ -26,7 +26,7 @@ When adding a dataset (spatial, trajectory, or otherwise), **copy the template a
 
 | Field | Meaning |
 |-------|---------|
-| **type** | `immune_repertoire` \| `spatial` \| `trajectory` |
+| **type** | `immune_repertoire` \| `spatial` \| `trajectory` \| `trekker` |
 | **technology** | assay/platform (e.g. `10x Visium`, `Slide-seq v2`, `Monocle3`) |
 | **dropdown label** | exact string shown in the app's dataset switcher |
 | **organism / tissue** | species + tissue of origin |
@@ -283,3 +283,38 @@ Built by `data-raw/build_trajectory_demo.R` (see [`trajectory.md`](trajectory.md
 - **output**: no new file — overwrites the trajectory slot inside `inst/extdata/v1.4/demo_full_tcr_bcr.crb`
 
 **Honest scope**: these are peripheral-blood B cells, not a bone-marrow developmental lineage — the trajectory is **illustrative** of the pseudotime feature, not a biological claim about B-cell ontogeny.
+
+---
+
+## Trekker
+
+Real, measured, down-sampled Trekker single-cell spatial-mapping output (Curio
+Bioscience / Takara Bio). Drives the bespoke **Trekker** tab, not the generic
+Spatial tab: real single nuclei × whole transcriptome, positions inferred from
+bead spatial barcodes, no histology image. Built by
+`data-raw/build_trekker_demo.R` (see [`trekker.md`](trekker.md) for the full
+download → extract → subsample → build walk-through).
+
+### demo_trekker.crb
+- **type**: trekker
+- **technology**: Trekker Single-Cell Spatial Mapping (TrekkerU; snRNA + bead spatial barcodes; Slide-tags foundational tech)
+- **dropdown label**: `Mouse brain (Trekker)`
+- **organism / tissue**: mouse (mm) / brain, coronal section (single reaction `TrekkerU_C`, tile `U0016_004`)
+- **source**: official Curio/Takara Trekker example bundle `Mouse_Brain_TrekkerU_C_Sept2025` (~1.3 GB `.tar.gz`), the smallest of the 9 example bundles. **Registration required, not a public download** — obtained through a Curio/Takara account after requesting access to the Trekker example data. **Not redistributable here**; only the derived, down-sampled `.crb` ships (the raw bundle is gitignored).
+- **acquire**:
+  ```
+  # 1. Register / request access to the Trekker example data (Curio / Takara account).
+  # 2. Download Mouse_Brain_TrekkerU_C_Sept2025.tar.gz and extract:
+  tar -xzf Mouse_Brain_TrekkerU_C_Sept2025.tar.gz
+  # 3. Point the builder at the bundle's output/ dir (see trekker.md):
+  export TREKKER_OUTPUT_DIR=/path/to/Mouse_Brain_TrekkerU_C_Sept2025/output
+  ```
+- **object type**: vendor Seurat v5 RDS (`..._ConfPositioned_seurat_spatial.rds`, `SCT` assay, `umap`/`pca`/`SPATIAL` reductions, a legacy `SlideSeq` @images entry). Coordinates are taken from the vendor **Location CSV** (`..._Location_ConfPositionedNuclei.csv`), the coordinate authority — never from `@images` (which is transposed) or the `SPATIAL` reduction (which is y-mirrored). The three orientations are surfaced side by side on the page's "坐标来源" switch.
+- **sampling**: `set.seed(42)`; 2,532 nuclei stratified by Louvain cluster (`SCT_snn_res.0.2`) out of 7,420 confidently-positioned, **plus the 50 nuclei that carry official positioning-evidence images force-included**. Whole transcriptome kept (**all 21,374 genes** — "single cell × whole transcriptome" is the platform's differentiator); nuclei are down-sampled rather than genes, so the embedded `data` matrix stays under budget (measured: ~3.8 MB at 2,500 nuclei, all genes).
+- **cell-type field**: `celltype` (18 Louvain clusters labelled once by marker z-score argmax: Snap25/Slc17a7→ExN, Gad1→InN, Plp1/Mbp→Oligo, Aqp4/Gfap→Astro, Cx3cr1/C1qa/Csf1r→Micro, Pdgfra→OPC, Prox1→DG; ambiguous clusters honestly left `Neuron`) plus `cluster`
+- **embedded image**: **none — Trekker carries no matched histology image** (positions come from bead barcodes, not a tissue photo). Instead the `.crb` embeds, in its `trekker` slot, the 50 official per-nucleus positioning-evidence JPEGs + 3 excluded-class example JPEGs as base64 `data:` URIs (down-scaled to 620 px, quality 68), so the whole demo — expression + evidence — is self-contained in one file.
+- **license**: Curio/Takara example data, access-gated (registration). Raw bundle **not redistributable**; the shipped `.crb` is a small derived subset for demonstration.
+- **build**: `data-raw/build_trekker_demo.R` (needs `magick` + `base64enc` at build time only, not a package Import)
+- **output**: `inst/extdata/v1.4/demo_trekker.crb` (~4.7 MB, self-contained incl. evidence images)
+
+**Honest scope**: `ConfPositioned` ≠ "exactly one location" — 264 of the 7,420 (3.56%) are vendor-salvaged multi-location nuclei, and the RDS's `number_clusters` is all `1` (the salvage trace is erased), so the page labels the set `vendor_confidently_positioned`. The vendor's own 2+-location rate (22.56%) exceeds its own manual's `<20%` guideline; the page shows "below vendor reference range" and does **not** adjudicate sample usability. Moran's I is the **upstream** vendor value (`..._variable_features_spatial_moransi.txt`), computed differently from Cerebro's own — labelled `Upstream` and never mixed.

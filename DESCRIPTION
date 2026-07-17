@@ -1,6 +1,6 @@
 Package: cerebroAppLite
 Title: Interactive visualization of single cell transcriptomics
-Version: 2.2.0
+Version: 2.3.0
 Authors@R: c(
   person("Michael", "Heming", email = "mihem@mailbox.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9568-2790")),
   person("Roman", "Hillje", email = "roman.hillje@googlemail.com", role = c("aut")),
@@ -8,7 +8,7 @@ Authors@R: c(
   )
 Author: Michael Heming, Roman Hillje, Xuesong Wang
 Maintainer: Michael Heming <mihem@mailbox.org>
-Description: cerebroAppLite is a Shiny application that allows to interactively visualize scRNA-seq data. Data must be exported from a Seurat object. It also includes modules for immune-repertoire, spatial-transcriptomics, trajectory, and HLA & TCR-motif analysis (a CDR3 Hamming-distance-1 motif network with donor-level HLA context).
+Description: cerebroAppLite is a Shiny application that allows to interactively visualize scRNA-seq data. Data must be exported from a Seurat object. It also includes modules for immune-repertoire, spatial-transcriptomics, trajectory, HLA & TCR-motif analysis (a CDR3 Hamming-distance-1 motif network with donor-level HLA context), and Trekker single-cell spatial mapping (real single nuclei with spatial positions inferred from bead barcodes).
 URL: https://mihem.github.io/cerebroAppLite/, https://github.com/mihem/cerebroAppLite
 BugReports: https://github.com/mihem/cerebroAppLite/issues
 License: MIT + file LICENSE

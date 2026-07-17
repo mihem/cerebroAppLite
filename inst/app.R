@@ -56,7 +56,16 @@ Cerebro.options <<- list(
     "Mouse brain (Visium)" = "extdata/v1.4/demo_spatial_visium.crb",
     "Mouse hippocampus (Slide-seq v2)" = "extdata/v1.4/demo_spatial_slideseq.crb",
     "Mouse ileum (MERFISH)" = "extdata/v1.4/demo_spatial_merfish.crb",
-    "Mouse brain (Xenium)" = "extdata/v1.4/demo_spatial_xenium.crb"
+    "Mouse brain (Xenium)" = "extdata/v1.4/demo_spatial_xenium.crb",
+    ## REAL Trekker single-cell spatial-mapping output (Curio / Takara), down-
+    ## sampled from the smallest official bundle (Mouse_Brain_TrekkerU_C). Unlike
+    ## the spatial demos above it drives the bespoke **Trekker** tab, not the
+    ## generic Spatial tab: real single nuclei x whole transcriptome, positions
+    ## inferred from bead spatial barcodes, no histology image. Carries a
+    ## `trekker` slot (three coordinate orientations, positioning QC, upstream
+    ## Moran's I, embedded per-nucleus positioning-evidence images).
+    ## Rebuild with data-raw/build_trekker_demo.R (see data-raw/trekker.md).
+    "Mouse brain (Trekker)" = "extdata/v1.4/demo_trekker.crb"
   ),
   "crb_pick_smallest_file" = FALSE,
   ## Visium loads its real H&E background from an EXTERNAL image file (rather than

@@ -16,3 +16,4 @@ TODO.md
 ^tests/smoke$
 ^data-raw$
 ^tmp$
+^tmp/
