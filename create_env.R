@@ -82,6 +82,8 @@ rix(
     "rlang",
     "scales",
     "scRepertoire",
+    "stringdist",
+    "visNetwork",
     "shiny",
     "shinycssloaders",
     "shinydashboard",
