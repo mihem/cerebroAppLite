@@ -37,17 +37,28 @@ jobs:
       - name: Install R package dependencies
         run: nix-shell default.nix --run "echo 'R package dependencies installed'"
 
-      ## Run all tests — load package from source, then run every test_*.R.
+      ## Run all tests. The package is INSTALLED first (into a repo-local library
+      ## the nix store lib is read-only) because the shinytest2 app tests launch a
+      ## bundled app in a fresh subprocess that resolves the cerebroAppLite
+      ## namespace at runtime -- load_all() alone is not visible to that
+      ## subprocess. R_LIBS_USER is exported so both the test process and the
+      ## shinytest2 subprocesses find the installed package. load_all() is still
+      ## used for the in-process test code.
       - name: Run all unit/integration tests
         run: |
-          nix-shell default.nix --run "Rscript -e \"
-            devtools::load_all('.')
-            testthat::test_dir(
-              path = 'tests/testthat',
-              reporter = testthat::default_reporter(),
-              stop_on_failure = TRUE
-            )
-          \""
+          nix-shell default.nix --run '
+            export R_LIBS_USER="$PWD/.ci-rlib"
+            mkdir -p "$R_LIBS_USER"
+            R CMD INSTALL --no-multiarch --no-docs --library="$R_LIBS_USER" .
+            Rscript -e "
+              devtools::load_all(\".\")
+              testthat::test_dir(
+                path = \"tests/testthat\",
+                reporter = testthat::default_reporter(),
+                stop_on_failure = TRUE
+              )
+            "
+          '
 
       ## Upload shinytest2 failure artifacts (PNG diffs, logs) — unit test failures are in the log
       - name: Upload test artifacts on failure

@@ -97,12 +97,14 @@ let
       shinytest2
       shinyvalidate
       shinyWidgets
+      stringdist
       stringr
       testthat
       tibble
       tidyr
       tidyselect
-      viridis;
+      viridis
+      visNetwork;
   };
  
     BPCells-src = pkgs.fetchgit {
