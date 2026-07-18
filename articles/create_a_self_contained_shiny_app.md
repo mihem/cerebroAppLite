@@ -139,9 +139,9 @@ createShinyApp(
 )
 ```
 
-`mode`, `crb_file_to_load`, and `cerebro_root` are filled in by the
-function itself — anything you supply for those keys will be
-overwritten.
+`mode`, `cerebro_version`, `crb_file_to_load`, and `cerebro_root` are
+filled in by the function itself — anything you supply for those keys
+will be overwritten.
 
 ## Deploying the bundle
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,9 +65,29 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/v2.1.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.1.1" id="cerebroapplite-211">cerebroAppLite 2.1.1<a class="anchor" aria-label="anchor" href="#cerebroapplite-211"></a></h2>
+<div class="section level3">
+<h3 id="robustness-and-interface-2-1-1">Robustness and interface<a class="anchor" aria-label="anchor" href="#robustness-and-interface-2-1-1"></a></h3>
+<ul><li>
+<strong>Plots fill the viewport.</strong> Projection and other plot panels grow to fit the available height through a single shared mechanism, so tall screens no longer leave large empty bands.</li>
+<li>
+<strong>Unified info buttons and tidier styling.</strong> The per-tab info buttons were consolidated onto one shared component and assorted inline CSS moved into the stylesheet.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="fixes-2-1-1">Fixes<a class="anchor" aria-label="anchor" href="#fixes-2-1-1"></a></h3>
+<ul><li>
+<strong>Spatial axis sliders.</strong> Guard against empty coordinate ranges so the axis range sliders no longer emit <code>Inf</code>/<code>-Inf</code> warnings on data sets without spatial coordinates.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="testing--ci-2-1-1">Testing / CI<a class="anchor" aria-label="anchor" href="#testing--ci-2-1-1"></a></h3>
+<ul><li>Raise the default shinytest2 <code>load_timeout</code> to 60s and wait for asynchronously inserted tabs before navigating, de-flaking the app tests on slower runners.</li>
+<li>Preserve the last shinytest2 output error when a retry times out, so failures report their original cause instead of an unexplained <code>NULL</code> value.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.1.0" id="cerebroapplite-210">cerebroAppLite 2.1.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-210"></a></h2>
 <div class="section level3">
