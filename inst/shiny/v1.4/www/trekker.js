@@ -336,7 +336,12 @@
           p.tx += mx - p.panLast[0]; p.ty += my - p.panLast[1];
           p.panLast = m; p.moved = true; applyTransform(p); draw(p);
         } else if (tool === "box") {
-          p.rect[2] = mx; p.rect[3] = my; p.moved = true; draw(p);
+          p.rect[2] = mx; p.rect[3] = my;
+          // Only count it as a drag past a small threshold, so a click that
+          // jitters a pixel or two still opens the Cell inspector instead of
+          // becoming a degenerate box-select that selects nothing.
+          if (Math.hypot(mx - p.rect[0], my - p.rect[1]) > 4) p.moved = true;
+          draw(p);
         } else {
           var last = p.lasso[p.lasso.length - 1];
           if (Math.hypot(mx - last[0], my - last[1]) > 3) {
@@ -758,6 +763,7 @@
     var sc = $("tk-selclear"); if (sc && !sc._wired) { sc.onclick = function () { sel = null; renderSel(); drawAll(); }; sc._wired = true; }
     sel = null; pick = null; hover = null; hidden.clear();
     gfCT = null; gfCL = null;
+    cancelTransitionPlay();
     Object.values(P).forEach(function (p) { p.k = 1; p.tx = 0; p.ty = 0; });
     buildToolbar();
     setTool(tool);
@@ -783,11 +789,43 @@
     irs._tkHooked = true;
     irs.update({
       onChange: function (data) {
+        // A real drag fires this (programmatic irs.update does not) — so it also
+        // interrupts the auto-demo below.
+        cancelTransitionPlay();
         morphT = +data.from;
         if (view === "morph" && P) { project(P.sp); draw(P.sp); }
         updateSpUnitLabel();
       }
     });
+  }
+
+  // Auto-demo: on entering the Transition view, sweep morph 0 → 1 → 0 once so the
+  // user sees the blend play out without having to drag. The slider handle moves
+  // with it (irs.update, which doesn't re-fire onChange). Any real drag cancels it.
+  var morphRaf = null;
+  function setMorphFrame(v, irs) {
+    morphT = v;
+    if (P) { project(P.sp); draw(P.sp); }
+    updateSpUnitLabel();
+    if (irs) irs.update({ from: Math.round(v * 100) / 100 });
+  }
+  function cancelTransitionPlay() {
+    if (morphRaf) { cancelAnimationFrame(morphRaf); morphRaf = null; }
+  }
+  function playTransition() {
+    if (view !== "morph" || !P) return;
+    cancelTransitionPlay();
+    var irs = window.jQuery ? window.jQuery("#trekker_morph").data("ionRangeSlider") : null;
+    var dur = 2800, t0 = performance.now();
+    function frame(now) {
+      var e = Math.min(1, (now - t0) / dur);
+      var tri = e < 0.5 ? e * 2 : 2 - e * 2; // 0 → 1 → 0
+      var eased = tri < 0.5 ? 2 * tri * tri : 1 - Math.pow(-2 * tri + 2, 2) / 2;
+      setMorphFrame(eased, irs);
+      if (e < 1) { morphRaf = requestAnimationFrame(frame); }
+      else { morphRaf = null; setMorphFrame(0, irs); } // settle back at the UMAP end
+    }
+    morphRaf = requestAnimationFrame(frame);
   }
 
   // In the Transition view the single pane interpolates between UMAP (morph = 0)
@@ -816,6 +854,8 @@
         if (t) t.textContent = view === "morph" ? "UMAP → Spatial" : "Spatial";
         updateSpUnitLabel();
         resize();
+        if (view === "morph") setTimeout(playTransition, 150);
+        else cancelTransitionPlay();
         break;
       case "trekker_group_filter_celltype":
         gfCT = toFilterSet(value); afterFilterChange();
