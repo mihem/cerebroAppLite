@@ -131,6 +131,15 @@ A new `Cerebro_v1.3` object.
 
   `list` that contains spatial data (coordinates and expression).
 
+- `trekker`:
+
+  `list` with Trekker single-cell spatial-mapping content: canonical and
+  variant (transposed / y-mirrored) coordinates, UMAP coordinates,
+  per-nucleus cluster/cell-type, positioning QC in the vendor's original
+  field names, the upstream (vendor) Moran's I table, and per-nucleus
+  positioning-evidence images (base64 `data:` URIs). Consumed by the
+  Trekker page. Optional; older .crb files simply lack it.
+
 ## Methods
 
 ### Public methods
@@ -260,6 +269,10 @@ A new `Cerebro_v1.3` object.
 - [`Cerebro_v1.3$getSpatialData()`](#method-Cerebro_v1.3-getSpatialData)
 
 - [`Cerebro_v1.3$availableSpatial()`](#method-Cerebro_v1.3-availableSpatial)
+
+- [`Cerebro_v1.3$getTrekker()`](#method-Cerebro_v1.3-getTrekker)
+
+- [`Cerebro_v1.3$addTrekker()`](#method-Cerebro_v1.3-addTrekker)
 
 - [`Cerebro_v1.3$addExtraMaterial()`](#method-Cerebro_v1.3-addExtraMaterial)
 
@@ -1476,6 +1489,40 @@ Get list of available spatial data entries.
 #### Returns
 
 `vector` of spatial data entries that are available.
+
+------------------------------------------------------------------------
+
+### Method `getTrekker()`
+
+Get Trekker single-cell spatial-mapping data, or `NULL` when none is
+stored. Safe on older objects that predate the field (the slot is read
+through a `tryCatch` so the getter never errors on a legacy .crb).
+
+#### Usage
+
+    Cerebro_v1.3$getTrekker()
+
+#### Returns
+
+A `list` with the Trekker page's content, or `NULL`.
+
+------------------------------------------------------------------------
+
+### Method `addTrekker()`
+
+Set Trekker single-cell spatial-mapping data.
+
+#### Usage
+
+    Cerebro_v1.3$addTrekker(data)
+
+#### Arguments
+
+- `data`:
+
+  `list` carrying the Trekker page content (coordinates, cell metadata,
+  positioning QC, upstream Moran's I, and positioning evidence). See the
+  Trekker page module for the expected structure.
 
 ------------------------------------------------------------------------
 

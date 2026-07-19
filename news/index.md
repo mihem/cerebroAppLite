@@ -1,5 +1,71 @@
 # Changelog
 
+## cerebroAppLite 2.2.0
+
+### Trekker single-cell spatial mapping
+
+- **New page: Trekker.** A standalone top-level tab (peer of Spatial)
+  for Curio Bioscience / Takara Bio Trekker single-cell spatial-mapping
+  output — real single nuclei × whole transcriptome, with positions
+  inferred from bead spatial barcodes and (usually) no matched histology
+  image. It appears conditionally, only when the loaded `.crb` carries a
+  `trekker` slot.
+- **Physical space and transcriptome space, linked.** Because every
+  nucleus has both a spatial and a UMAP position, the two scatterplots
+  are shown side by side and cross-linked: a box- or lasso-select in one
+  pane highlights the same nuclei in the other, and hovering a nucleus
+  rings the same cell in both panes so its location reads off instantly.
+  A toolbar matching the app’s plotly modebar (box / lasso select, pan,
+  zoom, reset, download) sits over the panes. The View control switches
+  between side-by-side, a single enlarged Spatial-only or UMAP-only
+  pane, and a Transition view that animates each nucleus from its UMAP
+  position to its physical position. Colour by cell type, cluster, or
+  any of the whole-transcriptome genes, and use the **Group filters**
+  panel (the same per-grouping pickers as the projection tabs) to
+  restrict the view to selected cell types or clusters.
+- **Positioning evidence is auditable.** Trekker positions are inferred,
+  so the page surfaces the vendor’s per-nucleus positioning-evidence
+  images (the bead-barcode cloud plus a UMI knee plot) for the sampled
+  nuclei, and a Cell inspector reports each nucleus’s identity together
+  with the **real** physical-neighbour cell-type counts within a chosen
+  radius (not a deconvolution estimate).
+- **Colour the physical map by any per-cell value — analysis, not just a
+  view.** Beyond cell type / cluster / gene, the page colours by
+  **cross-space metrics** computed on the full positioned set —
+  spatial-neighbourhood purity and expression-vs-physical neighbourhood
+  concordance (who forms tight anatomical domains vs. who is dispersed
+  or infiltrating, with a per-cell-type summary and the honest reminder
+  that in a healthy brain low microglial purity is baseline tiling, not
+  activation) — and by **any numeric per-cell meta column** the object
+  carries (pseudotime, a signature/module score, velocity magnitude, a
+  signaling score), so an existing single-cell analysis result gains a
+  physical-space projection with no page change. The demo ships a
+  myelination signature score as a worked example. Only Trekker can do
+  this: it needs true single-cell identity and true physical position
+  for the same nuclei.
+- **Canonical coordinates.** The panes use the vendor’s Location CSV,
+  the canonical coordinate authority. The generic `@images` slot is
+  axis-transposed and the `SPATIAL` reduction is y-mirrored relative to
+  it; the vignette documents that discrepancy so the tissue is never
+  silently drawn rotated.
+- **Honest QC.** Positioning QC is shown in the vendor’s own field names
+  (a missing metric stays missing); “confidently positioned” is
+  disclosed as including vendor-salvaged multi-location nuclei (labelled
+  `vendor_confidently_positioned`); values below the vendor’s reference
+  range are flagged without adjudicating sample usability; and Moran’s I
+  is the upstream vendor value, labelled and never mixed with Cerebro’s
+  own.
+- **Data class.** `Cerebro_v1.3` gained an optional `trekker` slot with
+  `addTrekker()` / `getTrekker()`; the getter is backward-compatible
+  with older `.crb` files that predate the field.
+- **Demo data and vignette.** A real, down-sampled demo `.crb`
+  (`demo_trekker.crb`, from the smallest official Trekker bundle: 2,532
+  nuclei × all 21,374 genes, with positioning-evidence images embedded)
+  and a runnable vignette, *“Trekker single-cell spatial mapping: from a
+  vendor bundle to an interactive app”*, covering the registration-gated
+  download, the bundle contents, and the reproducible build
+  (`data-raw/build_trekker_demo.R`).
+
 ## cerebroAppLite 2.1.1
 
 ### Robustness and interface

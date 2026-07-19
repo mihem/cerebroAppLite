@@ -362,3 +362,6 @@ Original cerebroApp © Roman Hillje; cerebroAppLite fork by
   Analysis](https://mihem.github.io/cerebroAppLite/articles/trajectory_analysis.md):
 - [Spatial Transcriptomics
   Analysis](https://mihem.github.io/cerebroAppLite/articles/spatial_analysis.md):
+- [Trekker single-cell spatial mapping: from a vendor bundle to an
+  interactive
+  app](https://mihem.github.io/cerebroAppLite/articles/trekker_spatial_mapping.md):
