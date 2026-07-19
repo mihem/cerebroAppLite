@@ -9,9 +9,16 @@
   loaded `.crb` carries a `trekker` slot.
 - **Physical space and transcriptome space, linked.** Because every nucleus has
   both a spatial and a UMAP position, the two scatterplots are shown side by side
-  and cross-linked: a lasso in one pane highlights the same nuclei in the other. A
-  Morph view interpolates each nucleus between its UMAP and its spatial position.
-  Colour by cell type, cluster, or any of the whole-transcriptome genes.
+  and cross-linked: a box- or lasso-select in one pane highlights the same nuclei
+  in the other, and hovering a nucleus rings the same cell in both panes so its
+  location reads off instantly. A toolbar matching the app's plotly modebar
+  (box / lasso select, pan, zoom, reset, download) sits over the panes. The View
+  control switches between side-by-side, a single enlarged Spatial-only or
+  UMAP-only pane, and a Morph view that interpolates each nucleus between its UMAP
+  and its spatial position. Colour by cell type, cluster, or any
+  of the whole-transcriptome genes, and use the **Group filters** panel (the same
+  per-grouping pickers as the projection tabs) to restrict the view to selected
+  cell types or clusters.
 - **Positioning evidence is auditable.** Trekker positions are inferred, so the page
   surfaces the vendor's per-nucleus positioning-evidence images (the bead-barcode
   cloud plus a UMI knee plot) for the sampled nuclei, and a Cell inspector reports
@@ -29,11 +36,10 @@
   projection with no page change. The demo ships a myelination signature score as
   a worked example. Only Trekker can do this: it needs true single-cell identity
   and true physical position for the same nuclei.
-- **Three coordinate orientations, made visible.** The vendor's Location CSV is the
-  canonical coordinate authority; the `@images` slot (what the generic extractor
-  reads) is axis-transposed, and the `SPATIAL` reduction is y-mirrored. A control
-  switches between all three so the discrepancy is visible rather than silently
-  drawn 90° wrong.
+- **Canonical coordinates.** The panes use the vendor's Location CSV, the canonical
+  coordinate authority. The generic `@images` slot is axis-transposed and the
+  `SPATIAL` reduction is y-mirrored relative to it; the vignette documents that
+  discrepancy so the tissue is never silently drawn rotated.
 - **Honest QC.** Positioning QC is shown in the vendor's own field names (a missing
   metric stays missing); "confidently positioned" is disclosed as including
   vendor-salvaged multi-location nuclei (labelled `vendor_confidently_positioned`);

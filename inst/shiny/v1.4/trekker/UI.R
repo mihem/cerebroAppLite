@@ -4,13 +4,14 @@
 ## Layout mirrors the other module pages: a left column of parameter boxes
 ## (cerebroBox) and a right column with the visualization boxes. All controls are
 ## standard app widgets (selectInput / sliderInput / materialSwitch / selectize),
-## rendered server-side in `trekker_parameters_ui` / `trekker_coordsource_ui`, so
-## the page uses exactly the same components and theme as every other tab.
+## rendered server-side in `trekker_parameters_ui` / `trekker_group_filters_ui`,
+## so the page uses exactly the same components and theme as every other tab.
 ##
 ## The two dual-linked scatter panes are the only bespoke element (a WebGL-free
-## canvas pair with morphing + lassoing); their DOM is filled by www/trekker.js
-## from the `trekker_data` message. Every custom id is `tk-`-prefixed and every
-## custom style rule is scoped under `.trekker-page` (www/trekker.css).
+## canvas pair with a modebar-style toolbar — pan / zoom / box + lasso select —
+## and morphing); their DOM is filled by www/trekker.js from the `trekker_data`
+## message. Every custom id is `tk-`-prefixed and every custom style rule is
+## scoped under `.trekker-page` (www/trekker.css).
 ##----------------------------------------------------------------------------##
 
 tab_trekker <- tabItem(
@@ -21,8 +22,6 @@ tab_trekker <- tabItem(
     div(
       class = "tk-meta",
       tags$span(class = "tk-badge", id = "tk-b-assay", "Trekker"),
-      tags$span(class = "tk-badge tk-badge-gray", id = "tk-b-tile", "Tile —"),
-      tags$span(class = "tk-badge tk-badge-soft", "No histology image"),
       div(class = "tk-sub", id = "tk-subline", "—")
     )
   ),
@@ -42,10 +41,10 @@ tab_trekker <- tabItem(
       ),
       cerebroBox(
         title = tagList(
-          "Coordinate source",
-          cerebroInfoButton("trekker_coordsource_info")
+          "Group filters",
+          cerebroInfoButton("trekker_group_filters_info")
         ),
-        content = uiOutput("trekker_coordsource_ui")
+        content = uiOutput("trekker_group_filters_ui")
       )
     ),
     ## ---- Right column: visualization boxes ------------------------------- ##
@@ -66,29 +65,33 @@ tab_trekker <- tabItem(
         content = div(
           class = "trekker-page",
           div(
-            class = "tk-panes",
-            id = "tk-panes",
+            class = "tk-plot-wrap",
+            div(class = "tk-modebar", id = "tk-modebar"),
             div(
-              class = "tk-pane",
-              id = "tk-pane-sp",
-              tags$h4(
-                class = "tk-pane-h",
-                tags$span("Spatial"),
-                tags$span(class = "tk-u", id = "tk-u-sp", "µm · Location CSV")
+              class = "tk-panes",
+              id = "tk-panes",
+              div(
+                class = "tk-pane",
+                id = "tk-pane-sp",
+                tags$h4(
+                  class = "tk-pane-h",
+                  tags$span("Spatial"),
+                  tags$span(class = "tk-u", id = "tk-u-sp", "µm · Location CSV")
+                ),
+                tags$canvas(id = "tk-cv-sp"),
+                div(class = "tk-tip", id = "tk-tip-sp")
               ),
-              tags$canvas(id = "tk-cv-sp"),
-              div(class = "tk-tip", id = "tk-tip-sp")
-            ),
-            div(
-              class = "tk-pane",
-              id = "tk-pane-um",
-              tags$h4(
-                class = "tk-pane-h",
-                tags$span("UMAP"),
-                tags$span(class = "tk-u", "whole transcriptome")
-              ),
-              tags$canvas(id = "tk-cv-um"),
-              div(class = "tk-tip", id = "tk-tip-um")
+              div(
+                class = "tk-pane",
+                id = "tk-pane-um",
+                tags$h4(
+                  class = "tk-pane-h",
+                  tags$span("UMAP"),
+                  tags$span(class = "tk-u", "whole transcriptome")
+                ),
+                tags$canvas(id = "tk-cv-um"),
+                div(class = "tk-tip", id = "tk-tip-um")
+              )
             )
           ),
           div(
@@ -120,8 +123,10 @@ tab_trekker <- tabItem(
           div(
             class = "tk-hint",
             HTML(
-              "Drag to lasso-select in either pane and the other highlights in ",
-              "sync. Click a single nucleus to open the Cell inspector below."
+              "Use the toolbar (top-right) to box- or lasso-select, pan, or zoom ",
+              "(the scroll wheel zooms too); a selection in either pane highlights ",
+              "the same nuclei in the other. Click a single nucleus to open the ",
+              "Cell inspector below."
             )
           )
         )
@@ -148,6 +153,7 @@ tab_trekker <- tabItem(
           "Data and QC",
           cerebroInfoButton("trekker_qc_info")
         ),
+        collapsed = TRUE,
         content = div(
           class = "trekker-page",
           div(class = "tk-grid", id = "tk-stats"),
@@ -171,25 +177,6 @@ tab_trekker <- tabItem(
               tags$h4(class = "tk-sub-h", "Provenance"),
               tags$dl(class = "tk-kv", id = "tk-prov"),
               div(class = "tk-flag", id = "tk-rangeflag")
-            )
-          )
-        )
-      ),
-      cerebroBox(
-        title = tagList(
-          "Positioning evidence",
-          cerebroInfoButton("trekker_evidence_info")
-        ),
-        content = div(
-          class = "trekker-page",
-          div(class = "tk-exgrid", id = "tk-exgrid"),
-          div(
-            class = "tk-hint",
-            HTML(
-              "Left = every bead barcode associated with the nucleus (coloured by nUMI); ",
-              "<code>*</code> marks the adopted centroid, <code>-</code> a rejected candidate. ",
-              "Right = the bead barcodes as a UMI knee plot. \"Why is this nucleus here\" is a ",
-              "question the other spatial platforms never face — their positions are not inferred."
             )
           )
         )

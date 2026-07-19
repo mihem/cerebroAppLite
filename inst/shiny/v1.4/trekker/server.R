@@ -17,34 +17,18 @@
 ## matrix), so that one path is a request/response.
 ##----------------------------------------------------------------------------##
 
+## Pure helpers (trekker_gene_suggest, trekker_numeric_meta_cols) live in a
+## side-effect-free file so they can be unit-tested; source it here so the
+## bare-name calls below resolve at runtime (packaged or via runApp('inst')).
+source(
+  paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/trekker/helpers.R"),
+  local = TRUE
+)
+
 trekker_slot <- reactive({
   req(data_set())
   tryCatch(data_set()$getTrekker(), error = function(e) NULL)
 })
-
-## Genes offered first in the picker: the upstream Moran's I top genes plus
-## canonical mouse-brain markers, restricted to genes actually measured. The full
-## ~21k measured genes remain selectable (the picker searches the whole list).
-trekker_gene_suggest <- function(tk, gene_names) {
-  markers <- c(
-    "Snap25",
-    "Slc17a7",
-    "Gad1",
-    "Gad2",
-    "Plp1",
-    "Mbp",
-    "Aqp4",
-    "Gfap",
-    "Cx3cr1",
-    "C1qa",
-    "Csf1r",
-    "Pdgfra",
-    "Prox1"
-  )
-  moran_genes <- vapply(tk$moran, function(m) m$gene, character(1))
-  cand <- unique(c(moran_genes, markers))
-  cand[cand %in% gene_names]
-}
 
 trekker_gene_names <- reactive({
   tryCatch(rownames(data_set()$expression), error = function(e) character(0))
@@ -56,14 +40,7 @@ trekker_gene_names <- reactive({
 ## score -- can colour the physical map with no page change.
 trekker_meta_cols <- reactive({
   md <- tryCatch(data_set()$getMetaData(), error = function(e) NULL)
-  if (is.null(md)) {
-    return(character(0))
-  }
-  names(md)[vapply(
-    md,
-    function(x) is.numeric(x) && length(unique(x[!is.na(x)])) > 1,
-    logical(1)
-  )]
+  trekker_numeric_meta_cols(md)
 })
 
 ##----------------------------------------------------------------------------##
@@ -102,7 +79,12 @@ output[["trekker_parameters_ui"]] <- renderUI({
     selectInput(
       "trekker_view",
       label = "View",
-      choices = c("Side by side" = "pair", "Morph" = "morph")
+      choices = c(
+        "Side by side" = "pair",
+        "Spatial only" = "sp",
+        "UMAP only" = "um",
+        "Morph" = "morph"
+      )
     ),
     selectInput(
       "trekker_mode",
@@ -187,26 +169,38 @@ output[["trekker_parameters_ui"]] <- renderUI({
   )
 })
 
-output[["trekker_coordsource_ui"]] <- renderUI({
-  req(trekker_slot())
+## Group filters (same widget family as the projection tabs): one pickerInput per
+## categorical grouping variable, all levels selected by default. www/trekker.js
+## reads the selections and hides nuclei outside them, so you can isolate a cell
+## type or cluster without having to colour by it.
+output[["trekker_group_filters_ui"]] <- renderUI({
+  tk <- req(trekker_slot())
+  celltypes <- sort(unique(as.character(tk$celltype)))
+  clusters <- sort(unique(tk$clusters))
   tagList(
-    selectInput(
-      "trekker_src",
-      label = NULL,
-      choices = c(
-        "Location CSV (canonical)" = "csv",
-        "@images (current extractor)" = "img",
-        "SPATIAL reduction" = "red"
-      )
+    shinyWidgets::pickerInput(
+      "trekker_group_filter_celltype",
+      label = "Cell type",
+      choices = celltypes,
+      selected = celltypes,
+      options = list("actions-box" = TRUE),
+      multiple = TRUE
     ),
-    div(class = "trekker-page", div(class = "tk-hint", id = "tk-srchint"))
+    shinyWidgets::pickerInput(
+      "trekker_group_filter_cluster",
+      label = "Cluster",
+      choices = clusters,
+      selected = clusters,
+      options = list("actions-box" = TRUE),
+      multiple = TRUE
+    )
   )
 })
 
 ## Render the controls eagerly (not only when the tab is shown) so they exist and
 ## stay in sync with the canvas as soon as a Trekker data set is loaded.
 outputOptions(output, "trekker_parameters_ui", suspendWhenHidden = FALSE)
-outputOptions(output, "trekker_coordsource_ui", suspendWhenHidden = FALSE)
+outputOptions(output, "trekker_group_filters_ui", suspendWhenHidden = FALSE)
 
 ##----------------------------------------------------------------------------##
 ## Push the slot to the client on (re)connect or data-set change
@@ -342,8 +336,9 @@ observeEvent(input[["trekker_parameters_info"]], {
     HTML(
       "<ul>
         <li><b>View:</b> <i>Side by side</i> shows the spatial and UMAP scatter
-          together; <i>Morph</i> interpolates each nucleus between its UMAP and
-          its spatial position.</li>
+          together; <i>Spatial only</i> / <i>UMAP only</i> show a single enlarged
+          pane; <i>Morph</i> interpolates each nucleus between its UMAP and its
+          spatial position.</li>
         <li><b>Colour by:</b> cell type, cluster, or a single gene's expression
           (any of the whole-transcriptome genes).</li>
         <li><b>Point size / Niche radius:</b> display size, and the radius (in um)
@@ -355,19 +350,19 @@ observeEvent(input[["trekker_parameters_info"]], {
   ))
 })
 
-observeEvent(input[["trekker_coordsource_info"]], {
+observeEvent(input[["trekker_group_filters_info"]], {
   showModal(modalDialog(
-    title = "Coordinate source",
+    title = "Group filters",
     easyClose = TRUE,
     footer = NULL,
     size = "l",
     HTML(
-      "The same nuclei appear in three orientations. <b>Location CSV</b> is the
-      vendor's canonical coordinate authority. <b>@images</b> is what the generic
-      spatial extractor reads — and it is <b>transposed</b> relative to canonical
-      (it would silently draw the tissue rotated). The <b>SPATIAL reduction</b> is
-      <b>y-mirrored</b>. Only the canonical coordinates are stored; the other two
-      are derived so the discrepancy is visible rather than hidden."
+      "Choose which cells are shown, by the group(s) they belong to. For each
+      grouping variable (cell type, cluster) you can activate or deactivate
+      levels; only nuclei that pass every filter are drawn in both panes, counted
+      in the selection, and inspected. This isolates a population without having
+      to colour by it. Use the box's <i>Select all / Deselect all</i> actions to
+      toggle a whole variable at once."
     )
   ))
 })
@@ -623,100 +618,6 @@ observeEvent(input[["trekker_inspector_info"]], {
         " — if this nucleus is one of the vendor's evidence set, its ",
         "bead-barcode cloud and UMI knee plot are shown: the auditable answer to ",
         "“why is this nucleus here?”."
-      )
-    )
-  ))
-})
-
-## Bead-cloud schematic: noise beads, the adopted centroid (*), a rejected
-## candidate (-) -- the auditable "why is this nucleus here".
-trekker_evidence_figure <- function() {
-  set.seed(7)
-  noise <- paste0(
-    vapply(
-      seq_len(38),
-      function(i) {
-        paste0(
-          "<circle cx='",
-          round(stats::runif(1, 20, 282)),
-          "' cy='",
-          round(stats::runif(1, 28, 176)),
-          "' r='2.3' fill='#d2d2d6'/>"
-        )
-      },
-      character(1)
-    ),
-    collapse = ""
-  )
-  clus <- paste0(
-    vapply(
-      list(
-        c(104, 88),
-        c(116, 96),
-        c(98, 100),
-        c(112, 108),
-        c(122, 86),
-        c(108, 80)
-      ),
-      function(p) {
-        paste0("<circle cx='", p[1], "' cy='", p[2], "' r='4' fill='#2f6fd6'/>")
-      },
-      character(1)
-    ),
-    collapse = ""
-  )
-  HTML(paste0(
-    "<svg viewBox='0 0 300 200' role='img' ",
-    "style='width:100%;max-width:300px;height:auto;display:block;",
-    "margin:2px auto 16px' xmlns='http://www.w3.org/2000/svg'>",
-    "<style>.tg-ann{font:600 11px system-ui,sans-serif;fill:#c2410c}",
-    ".tg-star{font:800 18px system-ui,sans-serif;fill:#111;text-anchor:middle}",
-    "</style>",
-    noise,
-    clus,
-    "<text class='tg-star' x='110' y='99'>*</text>",
-    "<circle cx='214' cy='134' r='4' fill='#9aa0aa'/>",
-    "<circle cx='226' cy='140' r='4' fill='#9aa0aa'/>",
-    "<text class='tg-star' x='220' y='124'>-</text>",
-    "<text class='tg-ann' x='110' y='150' text-anchor='middle'>adopted centroid *</text>",
-    "<text class='tg-ann' x='222' y='168' text-anchor='middle'>rejected candidate -</text>",
-    "</svg>"
-  ))
-}
-
-observeEvent(input[["trekker_evidence_info"]], {
-  showModal(modalDialog(
-    title = "Positioning evidence",
-    easyClose = TRUE,
-    footer = NULL,
-    size = "l",
-    tagList(
-      trekker_evidence_figure(),
-      tags$p(
-        "A Trekker nucleus's position is ",
-        tags$b("inferred"),
-        " from the beads whose spatial barcodes it captured — unlike Visium ",
-        "or Xenium, where the position is simply given. So the vendor ships an ",
-        "evidence image for a sample of nuclei."
-      ),
-      tags$p(
-        tags$b("Left panel"),
-        " — every bead barcode associated with the nucleus, coloured by ",
-        "nUMI. ",
-        tags$code("*"),
-        " marks the adopted centroid; ",
-        tags$code("-"),
-        " a rejected candidate."
-      ),
-      tags$p(
-        tags$b("Right panel"),
-        " — the bead barcodes as a UMI knee plot."
-      ),
-      tags$p(
-        "The vendor ships 50 images per positioning class. Shown here is one ",
-        "excluded example per class (0 / 2 / 3 locations); the confidently ",
-        "positioned nuclei are the ringed points in the plot above. Click any ",
-        "image to enlarge."
       )
     )
   ))

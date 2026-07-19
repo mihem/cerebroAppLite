@@ -123,17 +123,30 @@
     padding: 9px 11px; font-size: 11.5px; color: var(--c-amber-700); margin-top: 11px;
   }
 
-  /* ---- positioning-evidence grid ---- */
-  .tk-exgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .tk-exgrid figure { font-size: 11.5px; margin: 0; }
-  .tk-exgrid img { width: 100%; border: 1px solid var(--c-border); border-radius: var(--r-sm); cursor: zoom-in; }
-  .tk-exgrid figcaption { color: var(--c-text-2); margin-top: 5px; }
+  /* ---- toolbar: a canvas-native modebar styled like the app's plotly one ---- */
+  .tk-plot-wrap { position: relative; }
+  .tk-modebar {
+    position: absolute; top: 24px; right: 8px; z-index: 6;
+    display: flex; align-items: center; gap: 1px; padding: 2px 3px;
+    background: var(--c-surface); border: 1px solid var(--c-border);
+    border-radius: var(--r-sm); box-shadow: 0 1px 4px rgba(0, 0, 0, .10);
+    opacity: 0; transition: opacity .15s; pointer-events: none;
+  }
+  .tk-plot-wrap:hover .tk-modebar { opacity: .96; pointer-events: auto; }
+  .tk-mb-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; cursor: pointer; border-radius: var(--r-xs);
+    color: var(--c-text-3);
+  }
+  .tk-mb-btn svg { width: 15px; height: 15px; fill: currentColor; }
+  .tk-mb-btn:hover { color: var(--c-text); background: var(--c-surface-2); }
+  .tk-mb-btn.active { color: var(--c-blue); }
+  .tk-mb-sep { width: 1px; height: 15px; background: var(--c-border-2); margin: 0 2px; }
 
   @media (max-width: 1000px) {
     .tk-panes { grid-template-columns: 1fr; }
     .tk-insp { grid-template-columns: 1fr; }
     .tk-two { grid-template-columns: 1fr; }
-    .tk-exgrid { grid-template-columns: 1fr; }
   }
 }
 

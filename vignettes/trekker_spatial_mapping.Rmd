@@ -35,11 +35,10 @@ recipe (it lives in `data-raw/build_trekker_demo.R`); it is shown with
 `eval = FALSE` because the raw input is a multi-gigabyte, access-gated vendor
 bundle, not something a vignette can fetch.
 
-Unlike the synthetic HLA fixture, **the Trekker demo is real measured data** —
-down-sampled, but not invented. So this guide is also, unavoidably, a guide to
-reading it honestly: where the coordinates really live, what "confidently
-positioned" does and does not mean, and which numbers are the vendor's rather
-than Cerebro's.
+**The Trekker demo is real measured data** — down-sampled, but not invented. So
+this guide is also, unavoidably, a guide to reading it honestly: where the
+coordinates really live, what "confidently positioned" does and does not mean,
+and which numbers are the vendor's rather than Cerebro's.
 
 # What Trekker is
 

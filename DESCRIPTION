@@ -8,7 +8,7 @@ Authors@R: c(
   )
 Author: Michael Heming, Roman Hillje, Xuesong Wang
 Maintainer: Michael Heming <mihem@mailbox.org>
-Description: cerebroAppLite is a Shiny application that allows to interactively visualize scRNA-seq data. Data must be exported from a Seurat object. It also includes a Trekker single-cell spatial mapping module (real single nuclei with whole-transcriptome expression and spatial positions inferred from bead barcodes).
+Description: cerebroAppLite is a Shiny application that allows to interactively visualize scRNA-seq data. Data must be exported from a Seurat object.
 URL: https://mihem.github.io/cerebroAppLite/, https://github.com/mihem/cerebroAppLite
 BugReports: https://github.com/mihem/cerebroAppLite/issues
 License: MIT + file LICENSE
