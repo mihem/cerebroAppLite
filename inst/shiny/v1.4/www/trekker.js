@@ -767,6 +767,17 @@
     resize();
   }
 
+  // In the Transition view the single pane interpolates between UMAP (morph = 0)
+  // and spatial (morph = 1), so the corner label must follow the slider rather
+  // than stay fixed on the spatial coordinate source.
+  function updateSpUnitLabel() {
+    var el = $("tk-u-sp"); if (!el) return;
+    if (view !== "morph") { el.textContent = "µm · Location CSV"; return; }
+    el.textContent = morphT <= 0.001 ? "UMAP (transcriptome)"
+      : morphT >= 0.999 ? "µm · Location CSV (spatial)"
+        : "UMAP → Spatial · " + Math.round(morphT * 100) + "%";
+  }
+
   /* ---- control changes: driven by the Shiny inputs ----------------------- */
   function onInput(name, value) {
     if (!D) return;
@@ -779,6 +790,7 @@
         $("tk-pane-um").style.display = (view === "pair" || view === "um") ? "" : "none";
         var t = document.querySelector("#tk-pane-sp .tk-pane-h span:first-child");
         if (t) t.textContent = view === "morph" ? "UMAP → Spatial" : "Spatial";
+        updateSpUnitLabel();
         resize();
         break;
       case "trekker_group_filter_celltype":
@@ -797,6 +809,7 @@
         break;
       case "trekker_morph":
         morphT = +value; if (P) { project(P.sp); draw(P.sp); }
+        updateSpUnitLabel();
         break;
       case "trekker_evtoggle": showEv = !!value; drawAll(); break;
       case "trekker_conf": setConfPct(+value); drawAll(); break;

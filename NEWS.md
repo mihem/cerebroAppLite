@@ -14,8 +14,8 @@
   location reads off instantly. A toolbar matching the app's plotly modebar
   (box / lasso select, pan, zoom, reset, download) sits over the panes. The View
   control switches between side-by-side, a single enlarged Spatial-only or
-  UMAP-only pane, and a Morph view that interpolates each nucleus between its UMAP
-  and its spatial position. Colour by cell type, cluster, or any
+  UMAP-only pane, and a Transition view that animates each nucleus from its UMAP
+  position to its physical position. Colour by cell type, cluster, or any
   of the whole-transcriptome genes, and use the **Group filters** panel (the same
   per-grouping pickers as the projection tabs) to restrict the view to selected
   cell types or clusters.

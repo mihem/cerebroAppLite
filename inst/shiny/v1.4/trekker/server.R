@@ -83,7 +83,7 @@ output[["trekker_parameters_ui"]] <- renderUI({
         "Side by side" = "pair",
         "Spatial only" = "sp",
         "UMAP only" = "um",
-        "Morph" = "morph"
+        "Transition" = "morph"
       )
     ),
     selectInput(
@@ -125,7 +125,7 @@ output[["trekker_parameters_ui"]] <- renderUI({
       condition = "input.trekker_view == 'morph'",
       sliderInput(
         "trekker_morph",
-        label = "Morph (UMAP to Spatial)",
+        label = "Transition (UMAP → Spatial)",
         min = 0,
         max = 1,
         value = 0,
@@ -337,8 +337,9 @@ observeEvent(input[["trekker_parameters_info"]], {
       "<ul>
         <li><b>View:</b> <i>Side by side</i> shows the spatial and UMAP scatter
           together; <i>Spatial only</i> / <i>UMAP only</i> show a single enlarged
-          pane; <i>Morph</i> interpolates each nucleus between its UMAP and its
-          spatial position.</li>
+          pane; <i>Transition</i> animates each nucleus along the slider from its
+          UMAP position to its physical position (it is a visual blend between the
+          two spaces, not a morphology view).</li>
         <li><b>Colour by:</b> cell type, cluster, or a single gene's expression
           (any of the whole-transcriptome genes).</li>
         <li><b>Point size / Niche radius:</b> display size, and the radius (in um)
@@ -510,9 +511,10 @@ observeEvent(input[["trekker_viz_info"]], {
         "see where in the tissue it sits."
       ),
       tags$p(
-        tags$b("Morph"),
-        " — the View control interpolates each nucleus between its UMAP and ",
-        "its spatial position, so you can watch transcriptomic neighbourhoods ",
+        tags$b("Transition"),
+        " — the slider animates each nucleus from its UMAP position to its ",
+        "physical position (a visual blend between the two spaces, not a ",
+        "morphology view), so you can watch transcriptomic neighbourhoods ",
         "resolve into (or disperse across) physical space."
       ),
       tags$p(
