@@ -487,6 +487,107 @@ Uploads never modify the `.crb`, and "Download CSV template" gives you the exact
 | Show unconnected CDR3s | also draw singleton dots (off by default) |
 | Feature type (Associations) | lock a whole motif or a single CDR3 |
 
+# Bringing your own single-cell data
+
+The walkthrough above *invented* every input so it would run with no downloads.
+In real work you already have these pieces from your own pipeline — you only need to reshape them into the three `@misc` slots and export.
+Nothing here is HLA-specific magic; it is the ordinary Cerebro export plus three assignments.
+
+You are typically starting from:
+
+| You have | From | Becomes |
+|---|---|---|
+| a Seurat object (clusters, a UMAP, cell types) | your scRNA-seq pipeline | the `.crb` itself, via `exportFromSeurat()` |
+| paired TCR / VDJ | Cell Ranger `filtered_contig_annotations.csv` → scRepertoire `combineTCR()` | `@misc$immune_repertoire` |
+| each donor's HLA genotype | a genotyping lab report, or HLA imputed from the same reads | `@misc$hla_typing` |
+
+## 1 — your Seurat object
+
+Whatever produced the object is fine.
+The HLA page needs only that it has cells with barcodes, a `sample` (donor) column in `@meta.data`, and ideally a `cell_type` column and a UMAP.
+If you can already export it to Cerebro today, you are set; the two slots below are the only additions.
+
+```{r, eval = FALSE}
+seurat # e.g. 20,000 cells, an RNA/SCT assay, a umap reduction
+head(seurat@meta.data[, c("sample", "cell_type")])
+```
+
+The column that matters for HLA counting is `sample`: it is the key that joins a cell to its donor's genotype, so **the `sample` values in `@meta.data` must match the `sample` values in your HLA table.**
+If one donor contributed several 10x lanes, collapse them to one `sample` / `donor_id` per person — otherwise carrier counts double-count that donor.
+
+## 2 — receptors from Cell Ranger + scRepertoire
+
+If you ran 10x 5' VDJ, Cell Ranger writes one `filtered_contig_annotations.csv` per sample.
+scRepertoire's `combineTCR()` turns those into exactly the per-sample list of `CTgene` / `CTaa` / `CTnt` / `CTstrict` tables Cerebro stores — so its output *is* the `immune_repertoire` slot, with no reshaping:
+
+```{r, eval = FALSE}
+library(scRepertoire)
+contig_list <- lapply(sample_dirs, function(d) {
+  read.csv(file.path(d, "filtered_contig_annotations.csv"))
+})
+combined <- combineTCR(contig_list, samples = donor_ids) # a list named by donor
+
+seurat@misc$immune_repertoire <- combined
+```
+
+The page reads two things out of each row: the V gene (the first dot-separated token of `CTgene`) and the CDR3 amino acids (`CTaa`).
+Everything else is carried through untouched.
+Watch the barcodes: if `combineTCR(samples =)` prefixes them (`donorA_AACCTGA-1`), the same prefix must be on the `@meta.data` barcodes (via `RenameCells`) or the receptor–cell join silently misses.
+The companion *Immune Repertoire Analysis* vignette walks the full scRepertoire path.
+
+## 3 — HLA typing: genotyped or imputed
+
+Your genotypes come from one of two honest sources, and the app asks you to say which — this is what stamps `source_type` and keeps a prediction from being mistaken for a lab call:
+
+- **`genotyped`** — a real HLA typing assay (sequence-based typing, NGS typing, or an array the lab called into alleles). Only this source is eligible for confirmatory downstream claims.
+- **`imputed`** — alleles predicted from data: `arcasHLA` / `OptiType` / `HLA-HD` run on the same RNA or exome reads, or SNP-array imputation. Fine for exploration; the app labels it so the uncertainty travels with the result.
+
+The table can be the **wide** shape a spreadsheet exports (one row per donor, two columns per gene) …
+
+```{r, eval = FALSE}
+hla_wide <- read.csv("my_hla_typing.csv", check.names = FALSE) # check.names is mandatory
+head(hla_wide)
+#>   sample HLA-A_1 HLA-A_2 HLA-B_1 HLA-B_2 HLA-C_1 HLA-C_2 HLA-DRB1_1 HLA-DRB1_2
+#>   donorA A*02:01 A*01:01 B*07:02 B*44:02 C*07:01 C*05:01 DRB1*15:01 DRB1*03:01
+#>   donorB A*03:01 A*24:02 B*08:01 B*35:01 C*04:01 C*06:02 DRB1*04:01 DRB1*07:01
+```
+
+… or the **long** shape (one row per donor × gene × copy) if that is what your lab delivers.
+Either is accepted.
+Attach it and record where it came from:
+
+```{r, eval = FALSE}
+seurat@misc$hla_typing             <- hla_wide
+seurat@misc$hla_typing_source_type <- "genotyped" # or "imputed"
+```
+
+`check.names = FALSE` is mandatory: R's default renames `HLA-A_1` to `HLA.A_1`, and the reader matches on the literal `HLA-`, so the rename makes every allele vanish silently.
+Only `HLA-A`, `-B`, `-C`, `-DRB1` are shown in the allele pickers (DQ / DP need heterodimer pairing and are stored but not interpreted).
+Allele spelling is normalised for you — `A*02:01`, `HLA-A*02:01`, and `A0201`-style strings all resolve to the same allele.
+
+## 4 — export
+
+The same call as any Cerebro export; the three slots ride along:
+
+```{r, eval = FALSE}
+exportFromSeurat(
+  seurat,
+  file            = "my_study.crb",
+  experiment_name = "my_study",
+  organism        = "hg",
+  groups          = c("sample", "cell_type")
+)
+```
+
+Then `launchCerebro(crb_file_to_load = "my_study.crb")`, or wrap a shareable bundle with `createShinyApp()`.
+The **HLA & TCR Motifs** item appears whenever the object carries a TRA/TRB chain; HLA typing is optional.
+
+<div style="border-left: 4px solid #2b7bb9; background: #eef5fb; padding: 0.6em 1em; margin: 1em 0;">
+**No genotypes yet?**
+Ship the `.crb` with just the receptors.
+The page still draws the motif network, and a collaborator can upload an HLA CSV/TSV in the **Data & QC** tab for their session — no rebuild, and the `.crb` is never modified.
+</div>
+
 # Common questions
 
 **My motif network is almost empty on real data — is that a bug?**
@@ -508,6 +609,7 @@ Cells from one donor share that genotype, so they are not independent observatio
 
 # See also
 
+- **Introduction to the cerebroApp workflow (Seurat)** — the general Seurat → `.crb` export basics, if this is your first Cerebro export; the HLA slots above just ride along with it.
 - **HLA Associations on bulk TCRβ with real donor HLA** — the companion workflow for bulk immunosequencing: real genotypes, no single cells, and the positive-control caveat that comes with them.
 - **Immune Repertoire Analysis in cerebroAppLite** — the scRepertoire-based module that produces the same `@misc$immune_repertoire` slot from real 10x data.
 - `?exportFromSeurat`, `?createShinyApp`, and `?Cerebro_v1.3` (see `addHLATyping` / `getHLATyping`).

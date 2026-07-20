@@ -95,6 +95,29 @@ tar xzf data-raw/pubtcrs/pubtcrs_data_v1.tgz -C data-raw/pubtcrs
 # then: Rscript data-raw/build_hla_tcr_bulk_demo.R
 ```
 
+### What the raw data looks like
+
+The build (`data-raw/build_hla_tcr_bulk_demo.R`) reads three plain-text files out of `pubtcrs_data/`. Seeing their shape makes clear where each field of the `.crb` comes from.
+
+`HLA_features.txt` — one line per allele, listing the *indices* of the donors who carry it. The build inverts this into donor → alleles, so a donor's genotype is the set of alleles whose lists contain that donor's index:
+
+```
+feature: HLA-A*02:01 num_positives: 311 positives: 0 2 5 6 9 12 ... num_negatives: 319 negatives: 1 3 4 7 8 ...
+feature: HLA-DRB1*15:01 num_positives: 176 positives: 3 8 11 ... num_negatives: 454 negatives: 0 1 2 ...
+```
+
+`HLA_associated_TCRs.tsv` — the paper's own table of receptors that show a significant donor-level HLA association. The demo restricts to these, both to stay inside the graph-size guards and because this is the table you can check the page's descriptive overlap against:
+
+```
+tcr                    hla_allele      pvalue
+TRBV19,CASSIRSSYEQYF   HLA-A*02:01     1.2e-14
+TRBV27,CASSLGQAYEQYF   HLA-B*07:02     3.4e-11
+```
+
+`pubtcrs_info.tsv` holds the ~11 million public TCRβ chains as **V family + CDR3 amino acids only** — Adaptive's immunoSEQ assay does not report a J gene. That single fact is why the shipped `.crb` declares `receptor_key = "v_gene+cdr3"`: a receptor is a V family plus its CDR3, not the CDR3 alone.
+
+Each row of the built `.crb` is therefore a *(donor, associated-TCR)* pair: the TCR's V + CDR3 from `pubtcrs_info.tsv`, the donor's real genotype from `HLA_features.txt`, and the real observed fact that this donor's repertoire contains this TCR.
+
 That needs a large download, so the rest of this guide uses a small **synthetic** stand-in that produces a structurally identical `.crb` you can run right now.
 The provenance differs (synthetic vs. real), but the object layout, the contracts, and the Associations tab behave the same.
 
@@ -285,6 +308,55 @@ The Motif Network tab still works on bulk data, but remember its "cells" are ana
 | `tcr_selection` | `"association-conditioned"` | raises the positive-control warning above every contrast |
 
 Provenance is separate from selection: `addHLATyping(..., source_type = "genotyped")` records that the *genotypes* are real, independent of how the *receptors* were chosen.
+
+# Bringing your own bulk cohort
+
+Option B built `ir` and `hla_long` from random generators.
+With your own data you build the *same two objects* from real files, then run Option B's assembly block unchanged — there is no Seurat object (bulk has no cells), so you set the `Cerebro_v1.3` slots by hand exactly as shown above.
+
+## Receptors from immunoSEQ / MiXCR
+
+Bulk TCRβ usually arrives as one table per donor — Adaptive immunoSEQ sample exports, or MiXCR / other clonotype tables.
+You need only two fields per clonotype, the V family and the CDR3 amino-acid string, one row per *(donor, clonotype)*.
+Map them into the same five-column frame Cerebro stores, leaving `CTnt` / `CTstrict` as `NA` (bulk reports neither reliably):
+
+```{r, eval = FALSE}
+read_donor <- function(path, donor) {
+  x <- read.delim(path) # one immunoSEQ / MiXCR export
+  data.frame(
+    barcode  = sprintf("%s_%05d", donor, seq_len(nrow(x))),
+    CTgene   = x$vGeneName, # V family, e.g. "TRBV19"
+    CTnt     = NA_character_,
+    CTaa     = x$aminoAcid, # the CDR3, e.g. "CASSIRSSYEQYF"
+    CTstrict = NA_character_,
+    stringsAsFactors = FALSE
+  )
+}
+ir <- Map(read_donor, sample_files, donor_ids) # a list named by donor
+```
+
+Column names differ by vendor (`aminoAcid` / `cdr3aa` / `CDR3.aa`; `vGeneName` / `bestVGene`); rename to `CTgene` / `CTaa` and the rest follows.
+Keep only productive, in-frame CDR3s — filter upstream as your assay recommends.
+
+## Genotypes from your HLA report
+
+A typing lab returns each donor's alleles.
+Reshape into the wide `sample` + `HLA-*_1/_2` table (or the long table Option B wrote) and attach with an honest `source_type`:
+
+```{r, eval = FALSE}
+hla_wide <- read.csv("cohort_hla.csv", check.names = FALSE) # sample, HLA-A_1, HLA-A_2, ...
+crb$addHLATyping(hla_wide,
+  source_type = "genotyped",
+  typing_method = "NGS typing", source_reference = "MyLab 2025"
+)
+```
+
+## The one contract that is yours to set honestly
+
+Option B declared `tcr_selection = "association-conditioned"` because its receptors were chosen *using* an HLA association — a positive control.
+**If your receptors were collected independently of any HLA hypothesis, do not copy that flag.**
+Set it to describe how you actually chose the receptors (e.g. `"unbiased repertoire"`) so the page does not raise a positive-control warning where none is warranted.
+Provenance (`source_type`) and selection (`tcr_selection`) are independent: real genotypes on *independently* collected receptors is exactly the case where the Associations tab carries real weight.
 
 # Common questions
 
