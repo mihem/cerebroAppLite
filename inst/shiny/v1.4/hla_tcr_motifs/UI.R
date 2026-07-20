@@ -102,6 +102,36 @@ tab_hla_tcr_motifs <- tabItem(
             )
           ),
           tabPanel(
+            "Network data",
+            br(),
+            radioButtons(
+              "hla_table_grain",
+              "Rows:",
+              choices = c(
+                "By motif (node)" = "node",
+                "By cell" = "cell"
+              ),
+              selected = "node",
+              inline = TRUE
+            ),
+            tags$p(
+              class = "text-muted",
+              style = "font-size: 12px;",
+              paste(
+                "The rows behind the network shown on Motif Network, under the",
+                "current chain / scope / allele / min-size filters. 'By motif' is",
+                "one row per CDR3 node; 'By cell' is one row per cell."
+              )
+            ),
+            DT::dataTableOutput("hla_network_table"),
+            br(),
+            downloadButton(
+              "hla_network_download",
+              "Download CSV",
+              class = "btn-sm"
+            )
+          ),
+          tabPanel(
             "HLA Associations",
             br(),
             uiOutput("hla_associations_ui")

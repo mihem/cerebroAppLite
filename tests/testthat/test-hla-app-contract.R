@@ -1060,3 +1060,102 @@ test_that("the pair scope is offered only when both classes can be picked", {
     perl = TRUE
   )
 })
+
+test_that("the Network data tab exposes grain radio, table and download", {
+  ui_src <- paste(
+    readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/UI.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  expect_match(ui_src, "tabPanel\\([\\s\\S]{0,40}\"Network data\"", perl = TRUE)
+  expect_match(
+    ui_src,
+    "radioButtons\\([\\s\\S]{0,40}\"hla_table_grain\"",
+    perl = TRUE
+  )
+  expect_match(
+    ui_src,
+    "dataTableOutput\\([\\s\\S]{0,20}\"hla_network_table\"",
+    perl = TRUE
+  )
+  expect_match(
+    ui_src,
+    "downloadButton\\([\\s\\S]{0,20}\"hla_network_download\"",
+    perl = TRUE
+  )
+})
+
+test_that("the network table reads the graph and the segments, not the render cap", {
+  src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/network_table.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  # node view from the SAME graph object the network draws
+  expect_match(src, "hla_network_table_data <- reactive\\(", perl = TRUE)
+  expect_match(src, "hla_motif_graph\\(\\)", perl = TRUE)
+  expect_match(src, "as_data_frame\\([\\s\\S]{0,40}\"vertices\"", perl = TRUE)
+  # cell view from the scoped per-cell rows
+  expect_match(src, "hla_scoped_segments\\(\\)", perl = TRUE)
+  # ...but filtered to the cells BEHIND the graph's nodes, not every scoped
+  # cell: the graph drops singletons / sub-min-size motifs, so scoped segments
+  # are a superset. Keep only rows whose node is a vertex of the current graph.
+  expect_match(src, "V\\(g\\)\\$name", perl = TRUE)
+  # switched by the grain input
+  expect_match(src, "input\\$hla_table_grain", perl = TRUE)
+  # NOT bound by the render cap (this is data, not canvas)
+  expect_no_match(src, "HLA_MOTIF_MAX_RENDER", perl = TRUE)
+  # sourced into the module
+  server_src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/server.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  expect_match(server_src, "network_table\\.R", perl = TRUE)
+})
+
+test_that("the network table renders and downloads the current view", {
+  src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/network_table.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  expect_match(
+    src,
+    "output\\$hla_network_table <- DT::renderDataTable",
+    perl = TRUE
+  )
+  expect_match(
+    src,
+    "output\\$hla_network_download <- downloadHandler",
+    perl = TRUE
+  )
+  # the download writes the SAME reactive the table renders
+  expect_match(
+    src,
+    "downloadHandler\\([\\s\\S]{0,400}hla_network_table_data\\(\\)",
+    perl = TRUE
+  )
+})
+
+test_that("the network table is nowrap-scrollable and truncates samples on hover", {
+  src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/network_table.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  # cells never wrap; the table scrolls horizontally instead
+  expect_match(src, "nowrap", perl = TRUE)
+  expect_match(src, "scrollX = TRUE", perl = TRUE)
+  # the multi-value samples column is truncated to the first value in DISPLAY
+  # only (a DataTables render), so search / sort / CSV keep the full list
+  expect_match(src, "columnDefs", perl = TRUE)
+  expect_match(src, "parts\\[0\\]", perl = TRUE)
+})

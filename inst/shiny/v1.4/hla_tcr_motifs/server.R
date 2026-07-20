@@ -39,6 +39,13 @@ source(
 source(
   paste0(
     Cerebro.options[["cerebro_root"]],
+    "/shiny/v1.4/hla_tcr_motifs/network_table.R"
+  ),
+  local = TRUE
+)
+source(
+  paste0(
+    Cerebro.options[["cerebro_root"]],
     "/shiny/v1.4/hla_tcr_motifs/data_qc.R"
   ),
   local = TRUE
