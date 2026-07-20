@@ -1123,10 +1123,41 @@ Cerebro_v1.3 <- R6::R6Class(
       # `hla_typing` may be absent on objects deserialized from older .crb
       # files; guard with a tryCatch so the getter never errors.
       ht <- tryCatch(self$hla_typing, error = function(e) NULL)
-      if (is.null(ht)) {
-        return(hla_normalize_typing(list(), source_type = "unknown"))
+      if (is.data.frame(ht)) {
+        return(ht)
       }
-      ht
+      # Nothing stored (or an older object predating the field): return a
+      # canonical EMPTY table built with base R only.
+      #
+      # This must NOT call a package-internal helper (e.g. hla_normalize_typing)
+      # to synthesise the empty table. A .crb is an R6 object whose methods are
+      # serialized with an enclosing environment that references the
+      # cerebroAppLite namespace; a createShinyApp() bundle never loads that
+      # namespace, so a method reaching into it fails at runtime with
+      # "could not find function". The object's own print() calls this getter,
+      # so the failure cascades and the app never reaches a stable state.
+      # test-hla-class-slot.R pins this empty table against
+      # hla_normalize_typing(list()) so the two schemas cannot drift apart.
+      empty <- data.frame(
+        sample = character(0),
+        donor_id = character(0),
+        locus = character(0),
+        copy = integer(0),
+        allele = character(0),
+        resolution = character(0),
+        source_type = character(0),
+        typing_method = character(0),
+        source_reference = character(0),
+        confidence = numeric(0),
+        stringsAsFactors = FALSE
+      )
+      attr(empty, "qc") <- data.frame(
+        sample = character(0),
+        value = character(0),
+        issue = character(0),
+        stringsAsFactors = FALSE
+      )
+      empty
     },
 
     #' @description

@@ -69,6 +69,10 @@ test_that("getHLATyping returns an empty canonical table when none is set", {
   t <- crb$getHLATyping()
   expect_true(hla_is_typing_table(t))
   expect_equal(nrow(t), 0L)
+  # The R6 getter builds this empty table with base R (not hla_normalize_typing)
+  # so it survives a package-free createShinyApp() bundle where the namespace is
+  # absent. Pin it to the canonical empty table so the two cannot drift apart.
+  expect_equal(t, hla_normalize_typing(list(), source_type = "unknown"))
 })
 
 test_that("an object predating the field still returns an empty table", {
