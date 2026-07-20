@@ -67,6 +67,7 @@ Imports:
   visNetwork
 Suggests:
   BPCells,
+  callr,
   DelayedArray,
   formattable (>= 0.2.0.1),
   ggtree,
@@ -74,6 +75,7 @@ Suggests:
   jsonlite,
   knitr,
   monocle,
+  png,
   reshape2,
   rmarkdown,
   scRepertoire (>= 2.0.0),
@@ -82,7 +84,8 @@ Suggests:
   SingleCellExperiment,
   SummarizedExperiment,
   testthat (>= 3.0.0),
-  shinytest2 (>= 0.2.0)
+  shinytest2 (>= 0.2.0),
+  withr
 Remotes:
   bnprks/BPCells/r
 VignetteBuilder: knitr
