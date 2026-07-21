@@ -4,11 +4,17 @@
 \alias{hla_node_radius}
 \title{Node radius whose AREA is proportional to the clone count}
 \usage{
-hla_node_radius(clone_count)
+hla_node_radius(clone_count, scale = 1)
 }
 \arguments{
 \item{clone_count}{Numeric vector of per-node clone sizes. NA and values
 below 1 are floored to 1 (a drawn node stands for at least one unit).}
+
+\item{scale}{Display multiplier applied to every radius, clamped to
+`[HLA_NODE_SCALE_MIN, HLA_NODE_SCALE_MAX]`. It scales the cap by the same
+factor, so the area-proportional reading is unchanged -- only how much of
+the canvas the network occupies. Invalid or non-positive values fall back
+to 1.}
 }
 \value{
 Numeric vector of radii in px.

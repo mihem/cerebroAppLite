@@ -7,7 +7,7 @@
 # named-list and wide inputs are accepted only as adapters that normalize INTO
 # this long table.
 #
-# See tmp/DESIGN-hla-motif-network.md §6 for the rationale (provenance,
+# See tmp/DESIGN-hla-motif-network.md section 6 for the rationale (provenance,
 # donor != cell, "context not restriction").
 #
 # These functions are Shiny-independent, installed and unit-testable.
@@ -33,7 +33,7 @@ HLA_TYPING_COLUMNS <- c(
 HLA_SOURCE_TYPES <- c("genotyped", "imputed", "synthetic", "unknown")
 
 ## MVP-interpretable loci. Others may be stored but are flagged "stored, not
-## interpreted" — DQ/DP need heterodimer pairing rules; HLA-E is non-classical.
+## interpreted" -- DQ/DP need heterodimer pairing rules; HLA-E is non-classical.
 HLA_MVP_LOCI <- c("HLA-A", "HLA-B", "HLA-C", "HLA-DRB1")
 HLA_CLASS_I_LOCI <- c("HLA-A", "HLA-B", "HLA-C")
 HLA_CLASS_II_LOCI <- c(
@@ -131,7 +131,7 @@ hla_locus_class <- function(locus) {
 
 ## ---- Long-table normalization ------------------------------------------ ##
 
-# Turn a named list (sample -> allele vector, à la 57.R hla_by_patient) into a
+# Turn a named list (sample -> allele vector, a la 57.R hla_by_patient) into a
 # long data.frame of (sample, locus, allele) before canonicalisation.
 .hla_named_list_to_long <- function(x) {
   do.call(
@@ -150,7 +150,7 @@ hla_locus_class <- function(locus) {
   )
 }
 
-# Turn a wide table (sample column + one column per HLA-*_1 / HLA-*_2 slot, à la
+# Turn a wide table (sample column + one column per HLA-*_1 / HLA-*_2 slot, a la
 # 57.R HLA_typing_v3.xlsx) into long (sample, locus, allele_raw).
 .hla_wide_to_long <- function(df) {
   sample_col <- intersect(c("sample", "sample_ID", "patient_id"), colnames(df))
@@ -191,7 +191,7 @@ hla_locus_class <- function(locus) {
 #'
 #' `check.names = FALSE` is the entire reason this is a function. R's default
 #' rewrites any column name that is not a syntactic identifier, which turns the
-#' documented wide format's `HLA-A_1` into `HLA.A_1` — and [.hla_wide_to_long]
+#' documented wide format's `HLA-A_1` into `HLA.A_1` -- and [.hla_wide_to_long]
 #' matches columns on `^HLA-`. With the default, the wide upload the Data & QC
 #' tab advertises cannot survive its own read: every real wide file dies as
 #' "no valid HLA alleles found", pointing the user at their data instead of at
@@ -224,7 +224,7 @@ hla_read_typing_file <- function(path, name = path) {
 #' Output columns are exactly [HLA_TYPING_COLUMNS]. `copy` (1/2) is assigned per
 #' (sample, locus) in input order. Unrecognisable alleles are dropped from the
 #' table but reported via attribute "qc" (a data.frame of warnings). Provenance
-#' defaults to `source_type = "unknown"` with a blocking warning when absent —
+#' defaults to `source_type = "unknown"` with a blocking warning when absent --
 #' allele format is never used to guess `genotyped`.
 #'
 #' @param x One of the accepted inputs.
@@ -568,9 +568,9 @@ hla_carriers_of <- function(typing, allele) {
 #'
 #' A negative call ("this donor does not carry X") is only valid once BOTH
 #' copies of the locus are known: a donor typed `A*01:01` at one copy may still
-#' carry `A*02:01` at the other. Sources differ here — the synthetic fixture
+#' carry `A*02:01` at the other. Sources differ here -- the synthetic fixture
 #' writes a homozygote as two identical rows, while published carrier calls
-#' (e.g. DeWitt) list positives only and never repeat a homozygote — and the
+#' (e.g. DeWitt) list positives only and never repeat a homozygote -- and the
 #' `copy` column is re-numbered by row order on import, so it cannot tell the
 #' two apart. Row count per sample x locus is therefore the only honest signal,
 #' and one row has to read as "unknown second copy", not "homozygous".
@@ -643,7 +643,7 @@ hla_lineage_context <- function(cell_type) {
 ## column unless they are excluded explicitly.
 HLA_CONDITION_PATTERNS <- c(
   "(^|[^a-z])anti[-_ .]?cd", # anti-CD4, anti CD8, antiCD8
-  "α[-_ .]?cd", # the same written with a Greek alpha
+  "\u03b1[-_ .]?cd", # the same written with a Greek alpha (escaped: ASCII source)
   "treated|treatment|untreated|vehicle|mock",
   "stimulat|blockade|deplet",
   "(^|[-_ .])(case|control|ctrl)([-_ .]|$)"
@@ -723,7 +723,7 @@ HLA_PAIR_MIXED_LABEL <- "Both classes"
 #' In a Class I x Class II pair scope every cell carries the allele its lineage
 #' would present on ([hla_scope_segments_by_allele_pair]). A CDR3 node pools
 #' cells, so it can span both compartments: that is the observation the pair
-#' network exists to show, and it must not be averaged away — taking the modal
+#' network exists to show, and it must not be averaged away -- taking the modal
 #' allele would silently report such a node as whichever compartment happened to
 #' contribute more cells.
 #'

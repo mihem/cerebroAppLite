@@ -31,6 +31,6 @@ Accepts:
 Output columns are exactly [HLA_TYPING_COLUMNS]. `copy` (1/2) is assigned per
 (sample, locus) in input order. Unrecognisable alleles are dropped from the
 table but reported via attribute "qc" (a data.frame of warnings). Provenance
-defaults to `source_type = "unknown"` with a blocking warning when absent —
+defaults to `source_type = "unknown"` with a blocking warning when absent --
 allele format is never used to guess `genotyped`.
 }

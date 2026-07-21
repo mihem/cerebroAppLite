@@ -23,7 +23,7 @@ a Shiny fileInput.
 \details{
 `check.names = FALSE` is the entire reason this is a function. R's default
 rewrites any column name that is not a syntactic identifier, which turns the
-documented wide format's `HLA-A_1` into `HLA.A_1` — and [.hla_wide_to_long]
+documented wide format's `HLA-A_1` into `HLA.A_1` -- and [.hla_wide_to_long]
 matches columns on `^HLA-`. With the default, the wide upload the Data & QC
 tab advertises cannot survive its own read: every real wide file dies as
 "no valid HLA alleles found", pointing the user at their data instead of at

@@ -20,9 +20,9 @@ data.frame(sample, n_copies, call_state) where call_state is
 \description{
 A negative call ("this donor does not carry X") is only valid once BOTH
 copies of the locus are known: a donor typed `A*01:01` at one copy may still
-carry `A*02:01` at the other. Sources differ here — the synthetic fixture
+carry `A*02:01` at the other. Sources differ here -- the synthetic fixture
 writes a homozygote as two identical rows, while published carrier calls
-(e.g. DeWitt) list positives only and never repeat a homozygote — and the
+(e.g. DeWitt) list positives only and never repeat a homozygote -- and the
 `copy` column is re-numbered by row order on import, so it cannot tell the
 two apart. Row count per sample x locus is therefore the only honest signal,
 and one row has to read as "unknown second copy", not "homozygous".
