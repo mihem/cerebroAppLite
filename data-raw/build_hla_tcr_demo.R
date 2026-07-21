@@ -2,7 +2,7 @@
 # ============================================================================
 # Build the HLA & TCR Motifs demo (.crb) — A FULLY SYNTHETIC FIXTURE
 # ============================================================================
-# Produces `inst/extdata/v1.4/demo_hla_tcr.crb`.
+# Produces `inst/extdata/v1.4/demo_hla_tcr_synthetic.crb`.
 #
 # WHAT THIS IS
 # ------------
@@ -56,7 +56,10 @@ suppressMessages(library(stringdist))
 
 set.seed(20260715)
 
-out <- Sys.getenv("OUT_CRB", unset = "inst/extdata/v1.4/demo_hla_tcr.crb")
+out <- Sys.getenv(
+  "OUT_CRB",
+  unset = "inst/extdata/v1.4/demo_hla_tcr_synthetic.crb"
+)
 ## Gene-symbol vocabulary is borrowed from the base PBMC object rather than this
 ## script's own output, so re-running the build is never self-referential.
 symbol_src <- Sys.getenv(

@@ -44,3 +44,13 @@ createShinyApp(
 ```
 
 The Immune Repertoire tab appears because the `.crb` carries clonotypes; the same demo also carries the monocle2 trajectory (see [`trajectory.md`](trajectory.md)).
+
+## Why these stay three separate files
+
+`demo_full_tcr_bcr.crb` / `demo_healthy_t.crb` / `demo_bcell_rich.crb` are deliberately not merged.
+Their whole point is to *differ* — cell composition, UMAP and TCR/BCR content all change when you switch — so the multi-`.crb` switching feature has something to demonstrate.
+A single merged file would remove the only demonstration of that feature.
+
+This is worth stating because "too many datasets" comes up periodically: the objection is about isolated one-feature datasets, not about this intra-family variation, which exists to exercise dataset switching itself.
+
+(Recorded here from the 2026-07-07 trajectory-demo consolidation, whose other outcome — folding the pseudotime trajectory into `demo_full_tcr_bcr.crb` and deleting the standalone `demo_trajectory.crb` — is described in [`trajectory.md`](trajectory.md).)

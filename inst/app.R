@@ -62,14 +62,14 @@ Cerebro.options <<- list(
     ## technical_info$tcr_selection = "synthetic", the page's hardest disclosure.
     ## Use it to see the page work, never to read biology off it.
     ## Rebuild with data-raw/build_hla_tcr_demo.R.
-    "Synthetic cohort - HLA & TCR motifs (fixture)" = "extdata/v1.4/demo_hla_tcr.crb",
+    "HLA & TCR - SYNTHETIC fixture (fabricated, not measurement)" = "extdata/v1.4/demo_hla_tcr_synthetic.crb",
     ## The real-HLA counterpart: real public TCRb chains, real donor-to-TCR
     ## occurrence, and each donor's REAL HLA genotype (Emerson 2017 cohort).
     ## Bulk, so it has no cells, no expression and no projection: each row is a
     ## (donor, clonotype) analysis unit, and the lineage MHC context is Unknown
     ## by design. Use it for HLA Associations on genuine genotypes.
     ## Rebuild with data-raw/build_hla_tcr_bulk_demo.R.
-    "TCRb cohort - real donor HLA (bulk)" = "extdata/v1.4/demo_hla_tcr_bulk.crb",
+    "HLA & TCR - real bulk TCRb + real donor HLA" = "extdata/v1.4/demo_hla_tcr_bulk.crb",
     ## The third corner, and the one that answers "does this work on real data?":
     ## REAL single cells with REAL paired TCR, from 10x's dextramer cohort. The
     ## repertoire is ANTIGEN-SELECTED (cells were sorted for binding a pMHC
@@ -78,8 +78,8 @@ Cerebro.options <<- list(
     ## motifs on measured sequences. Donor genotypes are INFERRED from which
     ## dextramers each donor bound, so its HLA Associations are circular by
     ## construction and say so; use the bulk demo above for association work.
-    ## Rebuild with data-raw/build_hla_tcr_10x_demo.R.
-    "CD8 dextramer cohort - real antigen-selected cells" = "extdata/v1.4/demo_hla_tcr_10x.crb"
+    ## Rebuild with data-raw/build_hla_tcr_dextramer_demo.R.
+    "HLA & TCR - real single cells, antigen-selected" = "extdata/v1.4/demo_hla_tcr_dextramer.crb"
   ),
   "crb_pick_smallest_file" = FALSE,
   ## Visium loads its real H&E background from an EXTERNAL image file (rather than

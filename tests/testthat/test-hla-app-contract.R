@@ -207,7 +207,11 @@ test_that("bundled HLA demo is disclosed as fully fabricated", {
     expect_match(datasets, "fully synthetic", ignore.case = TRUE)
   }
   expect_match(app, "FULLY FABRICATED", ignore.case = TRUE)
-  expect_match(app, "Synthetic cohort[\\s\\S]{0,40}fixture", perl = TRUE)
+  expect_match(
+    app,
+    "SYNTHETIC fixture[\\s\\S]{0,40}not measurement",
+    perl = TRUE
+  )
 })
 
 ## ---- single-cell fixture contracts ------------------------------------ ##
@@ -216,7 +220,7 @@ test_that("bundled HLA demo is disclosed as fully fabricated", {
 ## that, the page silently reverts to the near-empty scatter this replaced.
 
 hla_sc_demo <- function() {
-  path <- hla_inst_file("extdata/v1.4/demo_hla_tcr.crb")
+  path <- hla_inst_file("extdata/v1.4/demo_hla_tcr_synthetic.crb")
   testthat::skip_if_not(file.exists(path), "single-cell demo not built")
   readRDS(path)
 }

@@ -11,8 +11,8 @@
 #   * Linkage: which donor carries which TCR is the real observed occurrence
 #              pattern, not a simulation.
 #
-# This is the companion to `demo_hla_tcr.crb`. They divide the work:
-#   demo_hla_tcr.crb      real single cells + real TCR + SYNTHETIC HLA
+# This is the companion to `demo_hla_tcr_synthetic.crb`. They divide the work:
+#   demo_hla_tcr_synthetic.crb      real single cells + real TCR + SYNTHETIC HLA
 #                         -> motif network and lineage MHC context (needs cells)
 #   demo_hla_tcr_bulk.crb real TCR + REAL donor HLA, but bulk (no cells)
 #                         -> HLA Associations on genuine genotypes

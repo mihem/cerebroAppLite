@@ -1,17 +1,17 @@
 #!/usr/bin/env Rscript
 # ============================================================================
 # Build the REAL single-cell antigen-selected TCR demo (.crb)
-#   -> inst/extdata/v1.4/demo_hla_tcr_10x.crb
+#   -> inst/extdata/v1.4/demo_hla_tcr_dextramer.crb
 # ============================================================================
 # This is the third HLA demo. It ADDS to the other two, it does not replace
 # them -- each answers a different question and none of them answers all three:
 #
-#   demo_hla_tcr.crb       fully synthetic single cells
+#   demo_hla_tcr_synthetic.crb       fully synthetic single cells
 #                          -> shows what a dense motif network looks like, but
 #                             proves nothing about real data
 #   demo_hla_tcr_bulk.crb  real bulk TCRb + REAL donor genotypes (Emerson 2017)
 #                          -> HLA Associations on genuine HLA typing, no cells
-#   demo_hla_tcr_10x.crb   REAL single cells + REAL TCR + antigen selection
+#   demo_hla_tcr_dextramer.crb   REAL single cells + REAL TCR + antigen selection
 #     (this file)          -> the motif network on measured sequences
 #
 # WHY THIS DATA SET EXISTS
@@ -75,7 +75,7 @@
 # changes, and the circularity note below can then be dropped.
 #
 # USAGE
-#   Rscript data-raw/build_hla_tcr_10x_demo.R
+#   Rscript data-raw/build_hla_tcr_dextramer_demo.R
 # Raw downloads are cached in data-raw/vdj_10x_dextramer/ (gitignored, ~1.6 GB). Only the
 # built .crb ships.
 # ============================================================================
@@ -92,7 +92,7 @@ set.seed(20260721)
 ## ---- Configuration ------------------------------------------------------ ##
 DONORS <- 1:4
 CACHE <- "data-raw/vdj_10x_dextramer"
-OUT <- "inst/extdata/v1.4/demo_hla_tcr_10x.crb"
+OUT <- "inst/extdata/v1.4/demo_hla_tcr_dextramer.crb"
 BASE <- "https://cf.10xgenomics.com/samples/cell-vdj/3.0.2"
 
 ## A donor is called a carrier of an allele only if a real SHARE of their

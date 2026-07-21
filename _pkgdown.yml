@@ -71,4 +71,4 @@ articles:
       - trekker_spatial_mapping
       - hla_tcr_motifs
       - hla_bulk_tcr_associations
-      - hla_tcr_10x_antigen_selected
+      - hla_tcr_antigen_selected

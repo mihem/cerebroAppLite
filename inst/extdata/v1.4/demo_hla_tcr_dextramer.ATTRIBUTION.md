@@ -1,7 +1,7 @@
-# Attribution — demo_hla_tcr_10x.crb
+# Attribution — demo_hla_tcr_dextramer.crb
 
 The single cells, paired αβ TCR sequences, transcriptomes and pMHC dextramer
-calls bundled in `demo_hla_tcr_10x.crb` are derived from the public 10x Genomics
+calls bundled in `demo_hla_tcr_dextramer.crb` are derived from the public 10x Genomics
 data sets *CD8+ T cells of Healthy Donor 1–4* (2019):
 
 - <https://www.10xgenomics.com/datasets/cd-8-plus-t-cells-of-healthy-donor-1-1-standard-3-0-2>
@@ -31,5 +31,5 @@ data set is circular by construction — see `technical_info$tcr_selection`.
 
 This file accompanies the installed demo so the CC-BY 4.0 attribution travels
 with the data (the full provenance and build steps live in `data-raw/DATASETS.md`
-and `vignettes/hla_tcr_10x_antigen_selected.Rmd` in the source repository, which
+and `vignettes/hla_tcr_antigen_selected.Rmd` in the source repository, which
 are not part of the installed package).

@@ -24,10 +24,10 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 
 # What this guide does
 
-It records, step by step, how `demo_hla_tcr_10x.crb` is built from public 10x
+It records, step by step, how `demo_hla_tcr_dextramer.crb` is built from public 10x
 Genomics data: what is downloaded, what each processing step changes, and what
 the object finally declares. Every code chunk is the real pipeline, taken from
-`data-raw/build_hla_tcr_10x_demo.R`; the chunks are not evaluated when the
+`data-raw/build_hla_tcr_dextramer_demo.R`; the chunks are not evaluated when the
 vignette builds, because the raw inputs are ~1.6 GB.
 
 The emphasis is on the two parts that decide whether the HLA & TCR Motifs page
@@ -40,9 +40,9 @@ The package ships three HLA demos because no single one answers everything:
 
 | demo | cells | TCR | HLA | what it is for |
 |---|---|---|---|---|
-| `demo_hla_tcr.crb` | synthetic | synthetic | synthetic | shows a dense motif network; proves nothing about real data |
+| `demo_hla_tcr_synthetic.crb` | synthetic | synthetic | synthetic | shows a dense motif network; proves nothing about real data |
 | `demo_hla_tcr_bulk.crb` | none (bulk) | **real** | **real genotypes** | HLA Associations on genuine typing |
-| **`demo_hla_tcr_10x.crb`** | **real** | **real** | inferred (see §6) | the motif network on measured sequences |
+| **`demo_hla_tcr_dextramer.crb`** | **real** | **real** | inferred (see §6) | the motif network on measured sequences |
 
 The gap the third one fills is a fair objection: *if the motif network is only
 legible on synthetic data, what is the feature for?*
@@ -112,7 +112,7 @@ for (d in 1:4) {
 Or in one line:
 
 ```bash
-Rscript data-raw/build_hla_tcr_10x_demo.R
+Rscript data-raw/build_hla_tcr_dextramer_demo.R
 ```
 
 # The TCR, step by step
@@ -332,7 +332,7 @@ crb$technical_info <- list(
   lineage_column = "cell_type"   # declared, so the app never has to guess
 )
 crb$addHLATyping(donor_typing, source_type = "imputed", ...)
-saveRDS(crb, "inst/extdata/v1.4/demo_hla_tcr_10x.crb", compress = "xz")
+saveRDS(crb, "inst/extdata/v1.4/demo_hla_tcr_dextramer.crb", compress = "xz")
 ```
 
 ## The declared contracts, and why each one

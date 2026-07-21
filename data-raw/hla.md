@@ -7,9 +7,9 @@ Three demos ship. None of them is sufficient alone, and that is deliberate: the 
 
 | demo | cells | TCR | HLA genotype | what it is for | build script |
 |---|---|---|---|---|---|
-| `demo_hla_tcr.crb` | synthetic | synthetic | synthetic | shows the page working on a dense network; proves nothing about real data | `build_hla_tcr_demo.R` |
+| `demo_hla_tcr_synthetic.crb` | synthetic | synthetic | synthetic | shows the page working on a dense network; proves nothing about real data | `build_hla_tcr_demo.R` |
 | `demo_hla_tcr_bulk.crb` | none (bulk) | **real** | **real, independently measured** | HLA Associations on genuine genotypes | `build_hla_tcr_bulk_demo.R` |
-| `demo_hla_tcr_10x.crb` | **real** | **real** | inferred (see below) | the motif network on measured sequences | `build_hla_tcr_10x_demo.R` |
+| `demo_hla_tcr_dextramer.crb` | **real** | **real** | inferred (see below) | the motif network on measured sequences | `build_hla_tcr_dextramer_demo.R` |
 
 ---
 
@@ -35,7 +35,7 @@ Same code, different kind of repertoire.
 
 ---
 
-# 2. `demo_hla_tcr_10x.crb` — the real antigen-selected demo
+# 2. `demo_hla_tcr_dextramer.crb` — the real antigen-selected demo
 
 ## 2.1 Source
 
@@ -45,7 +45,7 @@ Same code, different kind of repertoire.
 > *A framework for highly multiplexed dextramer mapping and prediction of T cell receptor sequences to antigen specificity.*
 > **Science Advances** 7(20):eabf5835 (2021). <https://doi.org/10.1126/sciadv.abf5835>
 
-Licence: **CC BY 4.0**. The attribution ships beside the data as `inst/extdata/v1.4/demo_hla_tcr_10x.ATTRIBUTION.md`.
+Licence: **CC BY 4.0**. The attribution ships beside the data as `inst/extdata/v1.4/demo_hla_tcr_dextramer.ATTRIBUTION.md`.
 
 Dataset landing pages (one per donor):
 
@@ -159,7 +159,7 @@ Declared contracts:
 
 ---
 
-# 3. Known problems with `demo_hla_tcr_10x.crb`
+# 3. Known problems with `demo_hla_tcr_dextramer.crb`
 
 Recorded here so nobody has to rediscover them.
 
@@ -219,11 +219,11 @@ It is used instead as an **independent check on the genotype inference** (§3.1)
 # 4. Rebuilding
 
 ```bash
-Rscript data-raw/build_hla_tcr_10x_demo.R      # real antigen-selected single-cell demo
+Rscript data-raw/build_hla_tcr_dextramer_demo.R      # real antigen-selected single-cell demo
 Rscript data-raw/build_hla_tcr_demo.R          # synthetic fixture
 Rscript data-raw/build_hla_tcr_bulk_demo.R     # real bulk + real genotypes
 ```
 
 Each script is self-verifying: it re-reads the `.crb` it wrote and re-derives the motif network with the package's own core, so a drifted build fails loudly rather than shipping an empty network.
 
-The step-by-step walkthrough of the 10x pipeline, with the data shown before and after each transformation, is `vignettes/hla_tcr_10x_antigen_selected.Rmd`.
+The step-by-step walkthrough of the 10x pipeline, with the data shown before and after each transformation, is `vignettes/hla_tcr_antigen_selected.Rmd`.

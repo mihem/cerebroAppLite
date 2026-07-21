@@ -25,7 +25,7 @@
   the page states honestly when rows are analysis units rather than cells, when a
   receptor is keyed by V gene + CDR3, and when a carrier contrast is a positive
   control rather than independent evidence.
-- **Two demo data sets.** `demo_hla_tcr.crb` (single cells, synthetic HLA and
+- **Two demo data sets.** `demo_hla_tcr_synthetic.crb` (single cells, synthetic HLA and
   designed motif families) and `demo_hla_tcr_bulk.crb` (bulk TCRβ with real donor
   HLA from the Emerson 2017 cohort).
 - **Two new vignettes.** *"HLA & TCR Motifs: from synthetic data to an
