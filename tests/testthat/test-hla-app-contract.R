@@ -267,6 +267,72 @@ test_that("shipped demo measures real genes for every cell", {
   expect_equal(ncol(crb$expression), nrow(crb$meta_data))
 })
 
+test_that("shipped demo keeps its expression block sparse", {
+  # Normalized single-cell expression is ~90% zeros, and every other demo this
+  # package ships is a dgCMatrix. A dense block here cost 184 MiB of session
+  # memory and 4.5 MiB of installed package for nothing, so it is a size
+  # regression worth failing on rather than a style preference.
+  crb <- hla_sc_demo()
+  expect_s4_class(crb$expression, "CsparseMatrix")
+})
+
+test_that("every shipped observation is paired alpha/beta", {
+  # The vignette and NEWS both call this demo paired ab. combineTCR() writes
+  # CTaa as "<alpha>_<beta>" and puts the literal string NA on a side it could
+  # not resolve, so a non-empty CTaa is NOT evidence of pairing -- an earlier
+  # build filtered on nzchar() alone and shipped 1,493 single-chain cells under
+  # a "paired" label.
+  ir <- hla_sc_demo()$getImmuneRepertoire()
+  ctaa <- unlist(lapply(ir, function(x) x$CTaa), use.names = FALSE)
+  parts <- strsplit(ifelse(is.na(ctaa), "", ctaa), "_", fixed = TRUE)
+  paired <- vapply(
+    parts,
+    function(p) {
+      length(p) == 2L && all(nzchar(p)) && !any(p %in% c("NA", "None"))
+    },
+    logical(1)
+  )
+  expect_true(all(paired))
+})
+
+test_that("shipped demo labels dextramer calls as reagent calls, not specificity", {
+  # 10x's binarized flags are RAW BINDER CALLS. Naming them `antigen` /
+  # `restricting_allele` asserts a validated peptide specificity and a presenting
+  # allele that this data does not establish -- for most cells the bound
+  # reagent's restriction is not even in the donor's published genotype.
+  md <- hla_sc_demo()$getMetaData()
+  expect_true(all(
+    c(
+      "dextramer_antigen",
+      "dextramer_peptide",
+      "dextramer_allele",
+      "restriction_in_genotype"
+    ) %in%
+      colnames(md)
+  ))
+  # The over-claiming names must not come back.
+  expect_false(any(c("antigen", "restricting_allele") %in% colnames(md)))
+})
+
+test_that("shipped demo exposes its cross-reactivity instead of describing it", {
+  # restriction_in_genotype is the evidence column that keeps the binder calls
+  # honest INSIDE the app: colour the projection by it and the noise is visible.
+  # It is also declared as a group, so it reaches the network and its table.
+  crb <- hla_sc_demo()
+  md <- crb$getMetaData()
+  expect_setequal(unique(md$restriction_in_genotype), c("yes", "no"))
+  # If this ever came out clean, the calls would have stopped being raw 10x
+  # calls and the documentation would need rewriting -- so assert the caveat.
+  expect_gt(sum(md$restriction_in_genotype == "no"), 0L)
+  expect_true("restriction_in_genotype" %in% crb$getGroups())
+  # And the caveat travels with the object, not only in the vignette.
+  expect_match(
+    crb$technical_info$tcr_selection_detail,
+    "RAW BINDER CALLS",
+    fixed = TRUE
+  )
+})
+
 test_that("the shipped demo ships its CC-BY attribution beside the data", {
   # data-raw/DATASETS.md holds the provenance but is .Rbuildignore'd, so an
   # installed user would otherwise receive the CC-BY data with no licensing

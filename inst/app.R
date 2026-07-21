@@ -65,6 +65,10 @@ Cerebro.options <<- list(
     ## receptors are present. Class I only (sorted CD8+ T cells), so the
     ## Class I x Class II pair scope stays hidden here -- it appears when a data
     ## set carries Class II typing and a lineage column.
+    ## The per-cell dextramer_* columns are 10x's RAW BINDER CALLS for a reagent,
+    ## NOT validated peptide specificity: staining is heavily cross-reactive
+    ## here, which is what the restriction_in_genotype column makes visible.
+    ## Nothing on the Associations tab uses them.
     ## Rebuild with data-raw/build_hla_tcr_dextramer_demo.R.
     "HLA & TCR - real single cells, antigen-selected" = "extdata/v1.4/demo_hla_tcr_dextramer.crb"
   ),

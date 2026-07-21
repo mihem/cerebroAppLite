@@ -58,6 +58,23 @@
 #       They were measured independently of these cells, so they can carry an
 #       association claim.
 #
+#   NOT established -- and this is the important one:
+#     * that a cell which bound a reagent is genuinely SPECIFIC for that
+#       reagent's peptide, or that the reagent's allele is the one presenting
+#       it in that donor. 10x's binarized flags are raw binder calls, and
+#       dextramer staining is famously cross-reactive at this scale. Measured
+#       on the shipped cells: the bound reagent's restriction is ABSENT from
+#       the donor's published genotype for a majority of them (the exact
+#       per-donor counts are asserted and printed by the verification block).
+#       donor3 is the extreme case -- nearly all of its cells bind reagents
+#       restricted by alleles it does not carry.
+#       Therefore the per-cell columns are named `dextramer_*`, never
+#       "antigen-specific", and a `restriction_in_genotype` column ships beside
+#       them so the noise is visible in the app rather than described in a
+#       footnote. These calls must NOT be read as peptide-level specificity,
+#       and no HLA-association claim rests on them: the associations use the
+#       published genotypes, which are independent of binding.
+#
 # WHY THE GENOTYPES ARE NOT INFERRED FROM BINDING
 # -----------------------------------------------
 # An earlier version of this script derived each donor's alleles from which
@@ -258,12 +275,16 @@ cat(sprintf(
   )
 ))
 
-## ---- 3. Antigen specificity and the HLA it is restricted by -------------- ##
+## ---- 3. Dextramer binder calls (NOT validated specificity) --------------- ##
 ## Every dextramer column is named <allele>_<peptide>_<antigen>_binder, e.g.
 ## A0201_GILGFVFTL_Flu-MP_Influenza_binder. The allele prefix is the reagent's
-## own HLA restriction -- real, published, and independent of these cells.
+## own HLA restriction -- a real, published property OF THE REAGENT. What is
+## real here is therefore "this cell was called a binder of this reagent", not
+## "this cell is specific for this peptide, presented by this allele in this
+## donor". The distinction is not pedantic: see the cross-reactivity numbers in
+## the header. Everything below is named `dextramer_*` for that reason.
 ## Columns containing "NR(" are 10x's negative controls and are never evidence.
-cat("== 3. dextramer specificity ==\n")
+cat("== 3. dextramer binder calls ==\n")
 
 allele_of <- function(col) {
   a <- sub("^([ABC])([0-9]{2})([0-9]{2})_.*", "\\1*\\2:\\3", col)
@@ -295,30 +316,30 @@ dex_by_donor <- lapply(DONORS, function(d) {
   data.frame(
     barcode_raw = b$barcode,
     donor = sprintf("donor%d", d),
-    specific = keep,
+    single_binder = keep,
     dextramer = ifelse(keep, dex[idx], NA_character_),
     stringsAsFactors = FALSE
   )
 })
 dex_all <- do.call(rbind, dex_by_donor)
-dex_all$antigen <- ifelse(
+dex_all$dextramer_antigen <- ifelse(
   is.na(dex_all$dextramer),
   NA_character_,
   antigen_of(dex_all$dextramer)
 )
-dex_all$peptide <- ifelse(
+dex_all$dextramer_peptide <- ifelse(
   is.na(dex_all$dextramer),
   NA_character_,
   peptide_of(dex_all$dextramer)
 )
-dex_all$restricting_allele <- ifelse(
+dex_all$dextramer_allele <- ifelse(
   is.na(dex_all$dextramer),
   NA_character_,
   allele_of(dex_all$dextramer)
 )
 cat(sprintf(
-  "   cells with exactly one specificity: %d of %d\n",
-  sum(dex_all$specific),
+  "   cells binding exactly one dextramer: %d of %d\n",
+  sum(dex_all$single_binder),
   nrow(dex_all)
 ))
 
@@ -343,10 +364,12 @@ for (dn in unique(donor_typing$sample)) {
   ))
 }
 
-## ---- 4. Cell selection: the antigen-selected repertoire ------------------ ##
-## Only cells that (a) have a productive clonotype and (b) bound exactly one
-## dextramer. This IS the selection that makes the motif network legible, and
-## it is the data set's defining property, not a convenience.
+## ---- 4. Cell selection: the dextramer-selected repertoire ---------------- ##
+## Only cells that (a) carry a clonotype with BOTH chains, and (b) bound exactly
+## one dextramer. The dextramer sort IS the selection that makes the motif
+## network legible, and it is the data set's defining property, not a
+## convenience. The paired requirement is stricter than "has a CTaa": the
+## documentation calls this demo paired alpha/beta, so the data has to be.
 cat("== 4. cell selection ==\n")
 tcr_all <- do.call(
   rbind,
@@ -365,27 +388,45 @@ tcr_all <- do.call(
 sel <- merge(
   tcr_all,
   dex_all[
-    dex_all$specific,
+    dex_all$single_binder,
     c(
       "barcode_raw",
       "donor",
       "dextramer",
-      "antigen",
-      "peptide",
-      "restricting_allele"
+      "dextramer_antigen",
+      "dextramer_peptide",
+      "dextramer_allele"
     )
   ],
   by = c("barcode_raw", "donor")
 )
-sel <- sel[!is.na(sel$CTaa) & nzchar(sel$CTaa), , drop = FALSE]
 
-# Subsample per donor, deterministically.
-keep_rows <- unlist(lapply(split(seq_len(nrow(sel)), sel$donor), function(ix) {
-  if (length(ix) <= CELLS_PER_DONOR) ix else sort(sample(ix, CELLS_PER_DONOR))
-}))
-sel <- sel[sort(keep_rows), , drop = FALSE]
+## scRepertoire writes CTaa as "<alpha>_<beta>" and puts the literal string NA
+## on a side it could not resolve, so "has a CTaa" is NOT "is paired". Require
+## two non-empty, non-NA sides. This runs BEFORE the per-donor subsample (which
+## is deferred to S5, after the expression join), so dropping the half-chain
+## cells costs no donor balance while enough paired cells remain.
+is_paired <- function(ctaa) {
+  parts <- strsplit(ifelse(is.na(ctaa), "", ctaa), "_", fixed = TRUE)
+  vapply(
+    parts,
+    function(p) {
+      length(p) == 2L && all(nzchar(p)) && !any(p %in% c("NA", "None"))
+    },
+    logical(1)
+  )
+}
+n_before <- nrow(sel)
+sel <- sel[is_paired(sel$CTaa), , drop = FALSE]
 cat(sprintf(
-  "   kept %d antigen-selected cells (%s)\n",
+  "   paired alpha/beta: %d of %d clonotypes (%d dropped for a missing chain)\n",
+  nrow(sel),
+  n_before,
+  n_before - nrow(sel)
+))
+
+cat(sprintf(
+  "   eligible dextramer-selected cells: %d (%s)\n",
   nrow(sel),
   paste(
     sprintf(
@@ -400,7 +441,9 @@ cat(sprintf(
 ## ---- 5. Expression + projection ----------------------------------------- ##
 ## Real measured transcriptomes for exactly the kept cells. Subset FIRST, then
 ## run the standard Seurat pipeline, so nothing is computed on cells that are
-## thrown away.
+## thrown away. The per-donor subsample happens HERE, after the expression join,
+## so the shipped object is exactly CELLS_PER_DONOR per donor -- balance the
+## verification gate asserts. Subsampling before the join left it to chance.
 cat("== 5. expression + UMAP ==\n")
 mats <- lapply(DONORS, function(d) {
   f <- donor_files(d)
@@ -421,8 +464,26 @@ mats <- lapply(DONORS, function(d) {
 genes <- Reduce(intersect, lapply(mats, rownames))
 expr <- do.call(cbind, lapply(mats, function(m) m[genes, , drop = FALSE]))
 sel <- sel[sel$barcode %in% colnames(expr), , drop = FALSE]
+
+## Subsample per donor, deterministically, now that every remaining cell is
+## known to have both a paired clonotype and a transcriptome.
+per_donor <- table(sel$donor)
+stopifnot(
+  "a donor has too few eligible cells to ship a balanced demo" = all(
+    per_donor >= CELLS_PER_DONOR
+  )
+)
+keep_rows <- unlist(lapply(split(seq_len(nrow(sel)), sel$donor), function(ix) {
+  sort(sample(ix, CELLS_PER_DONOR))
+}))
+sel <- sel[sort(keep_rows), , drop = FALSE]
 expr <- expr[, sel$barcode, drop = FALSE]
-cat(sprintf("   matrix: %d genes x %d cells\n", nrow(expr), ncol(expr)))
+cat(sprintf(
+  "   matrix: %d genes x %d cells (%d per donor)\n",
+  nrow(expr),
+  ncol(expr),
+  CELLS_PER_DONOR
+))
 
 so <- Seurat::CreateSeuratObject(counts = expr)
 so <- Seurat::NormalizeData(so, verbose = FALSE)
@@ -431,29 +492,63 @@ so <- Seurat::ScaleData(so, verbose = FALSE)
 so <- Seurat::RunPCA(so, npcs = 30, verbose = FALSE)
 so <- Seurat::RunUMAP(so, dims = 1:30, verbose = FALSE)
 
+## Keep the block SPARSE. Normalized single-cell expression is ~90% zeros, and
+## every other demo this package ships is a dgCMatrix; densifying this one cost
+## 184 MiB of session memory and 4.5 MiB of installed package for nothing. The
+## class reads the block through Matrix::rowMeans/colMeans, which are sparse-
+## aware, so no downstream code needs to change.
 hv <- Seurat::VariableFeatures(so)
-expression <- as.matrix(Seurat::GetAssayData(so, layer = "data")[
-  hv,
-  ,
-  drop = FALSE
-])
+expression <- Seurat::GetAssayData(so, layer = "data")[hv, , drop = FALSE]
+expression <- methods::as(expression, "CsparseMatrix")
 umap <- as.data.frame(Seurat::Embeddings(so, "umap"))
 colnames(umap) <- c("UMAP_1", "UMAP_2")
 
 ## ---- 6. Assemble the Cerebro object ------------------------------------- ##
 cat("== 6. assemble .crb ==\n")
+## The evidence column that keeps the binder calls honest inside the app: is the
+## bound reagent's restriction actually one of the alleles this donor carries,
+## per the published table? A "no" is not a data error -- it is dextramer
+## cross-reactivity, and it is common here. Shipping it as a colourable group
+## means a user meets the caveat by looking at the UMAP, not by reading a
+## footnote they will skip.
+genotype_key <- paste(donor_typing$sample, donor_typing$allele)
+restriction_in_genotype <- ifelse(
+  paste(sel$donor, sel$dextramer_allele) %in% genotype_key,
+  "yes",
+  "no"
+)
+
 meta <- data.frame(
   cell_barcode = sel$barcode,
   sample = sel$donor,
   # Every cell here is a sorted CD8+ T cell. Declared, not inferred: see
   # technical_info$lineage_column below.
   cell_type = "CD8 T",
-  antigen = sel$antigen,
-  peptide = sel$peptide,
-  restricting_allele = sel$restricting_allele,
+  # `dextramer_*`, never `antigen`/`restricting_allele`: these are 10x's raw
+  # binder calls for a reagent, not validated peptide specificity. See S3.
+  dextramer_antigen = sel$dextramer_antigen,
+  dextramer_peptide = sel$dextramer_peptide,
+  dextramer_allele = sel$dextramer_allele,
+  restriction_in_genotype = restriction_in_genotype,
   stringsAsFactors = FALSE
 )
 rownames(umap) <- meta$cell_barcode
+
+cat(sprintf(
+  "   reagent restriction present in the donor's published genotype: %d of %d cells (%.1f%%)\n",
+  sum(restriction_in_genotype == "yes"),
+  nrow(meta),
+  100 * mean(restriction_in_genotype == "yes")
+))
+for (dn in sort(unique(meta$sample))) {
+  ix <- meta$sample == dn
+  cat(sprintf(
+    "     %s: %d of %d off-genotype\n",
+    dn,
+    sum(meta$restriction_in_genotype[ix] == "no"),
+    sum(ix)
+  ))
+}
 
 immune_repertoire <- lapply(split(sel, sel$donor), function(x) {
   data.frame(
@@ -473,8 +568,9 @@ crb$projections <- list(umap = umap)
 crb$groups <- list(
   sample = sort(unique(meta$sample)),
   cell_type = sort(unique(meta$cell_type)),
-  antigen = sort(unique(meta$antigen)),
-  restricting_allele = sort(unique(meta$restricting_allele))
+  dextramer_antigen = sort(unique(meta$dextramer_antigen)),
+  dextramer_allele = sort(unique(meta$dextramer_allele)),
+  restriction_in_genotype = sort(unique(meta$restriction_in_genotype))
 )
 crb$immune_repertoire <- immune_repertoire
 crb$experiment <- list(
@@ -494,7 +590,14 @@ crb$technical_info <- list(
     "unbiased sample of the donors' repertoires: which receptors are present",
     "was decided by the panel. The donor HLA genotypes are the published ones",
     "(table S1 of the source paper), measured independently of these cells, so",
-    "they are not circular with the selection."
+    "they are not circular with the selection.",
+    "IMPORTANT: the per-cell dextramer_* columns are 10x's RAW BINDER CALLS for",
+    "a reagent, not validated peptide specificity. Dextramer staining is",
+    "strongly cross-reactive here -- for most cells the bound reagent's HLA",
+    "restriction is not even among the alleles that donor carries (see the",
+    "restriction_in_genotype column, and colour the projection by it). Treat",
+    "them as a reagent label, not as biology, and do not read the HLA",
+    "associations as being driven by them."
   ),
   # Declared, so the app never has to guess which column holds the lineage.
   lineage_column = "cell_type"
@@ -506,45 +609,164 @@ crb$addHLATyping(
   source_reference = "10x Genomics CD8+ T cells of Healthy Donor 1-4; Zhang et al., Sci Adv 2021, eabf5835"
 )
 
+## Write to a STAGING path first. Section 7 below is a gate, not a report: if
+## anything it asserts fails, the script stops and the shipped .crb is left
+## exactly as it was. Publishing before verifying would mean a drifted source or
+## a broken input silently replaces a good demo and still exits 0.
 dir.create(dirname(OUT), showWarnings = FALSE, recursive = TRUE)
-saveRDS(crb, OUT, compress = "xz")
-cat(sprintf("   wrote %s (%.1f MB)\n", OUT, file.info(OUT)$size / 1024^2))
+staged <- paste0(OUT, ".staged")
+on.exit(unlink(staged), add = TRUE)
+saveRDS(crb, staged, compress = "xz")
+cat(sprintf("   staged %.1f MB\n", file.info(staged)$size / 1024^2))
 
-## ---- 7. Verify with the package's OWN motif core ------------------------- ##
-## Everything above is intent. What matters is what the shipped object actually
-## produces, so these numbers are measured on the file that was just written.
-cat("== 7. verification (measured on the shipped object) ==\n")
-check <- readRDS(OUT)
-ir <- check$getImmuneRepertoire()
-cat(
-  "   chains:",
-  paste(cerebroAppLite:::hla_detect_chains(ir), collapse = ", "),
-  "\n"
+## ---- 7. Verification gate (measured on the object about to ship) --------- ##
+## Everything above is intent. What matters is what the object actually
+## produces, so these numbers are re-measured on the staged file with the
+## package's OWN core, and every one of them is an assertion. Thresholds are set
+## meaningfully below the measured values: they are drift detectors, not a
+## transcript of today's run.
+cat("== 7. verification gate (measured on the staged object) ==\n")
+check <- readRDS(staged)
+
+## -- shape and donor balance
+m <- check$getMetaData()
+stopifnot(
+  "meta data lost rows" = nrow(m) == nrow(meta),
+  "expected 4 donors" = length(unique(m$sample)) == length(DONORS),
+  "donors are not balanced" = all(table(m$sample) == CELLS_PER_DONOR),
+  "projection is not aligned to the cells" = identical(
+    rownames(check$projections$umap),
+    m$cell_barcode
+  )
 )
+cat(sprintf("   cells: %d in %d donors, balanced\n", nrow(m), length(DONORS)))
+
+## -- the expression block must stay sparse (a dense one is a 25x size regression)
+stopifnot(
+  # methods::is(), not inherits(): the block is an S4 dgCMatrix.
+  "expression block is not sparse" = methods::is(
+    check$expression,
+    "CsparseMatrix"
+  ),
+  "expression is not aligned to the cells" = identical(
+    colnames(check$expression),
+    m$cell_barcode
+  )
+)
+cat(sprintf(
+  "   expression: %s %dx%d, %.1f MiB in memory\n",
+  class(check$expression)[1],
+  nrow(check$expression),
+  ncol(check$expression),
+  as.numeric(utils::object.size(check$expression)) / 1024^2
+))
+
+## -- every observation is paired alpha/beta, because the docs say so
+ir <- check$getImmuneRepertoire()
+ctaa <- unlist(lapply(ir, function(x) x$CTaa), use.names = FALSE)
+stopifnot(
+  "repertoire lost or gained observations" = length(ctaa) == nrow(m),
+  "not every observation is paired alpha/beta" = all(is_paired(ctaa))
+)
+chains <- cerebroAppLite:::hla_detect_chains(ir)
+stopifnot(
+  "both TRA and TRB must be detectable" = all(c("TRA", "TRB") %in% chains)
+)
+cat(sprintf(
+  "   repertoire: %d observations, all paired; chains %s\n",
+  length(ctaa),
+  paste(chains, collapse = ", ")
+))
+
+## -- the motif network must actually be worth drawing
+motif_counts <- list()
 for (ch in c("TRB", "TRA")) {
   seg <- cerebroAppLite:::hla_parse_ir_segments(ir, ch)
-  if (is.null(seg) || nrow(seg) == 0) {
-    cat(sprintf("   %s: no segments\n", ch))
-    next
-  }
+  stopifnot("no segments parsed" = !is.null(seg) && nrow(seg) > 0)
   g <- cerebroAppLite:::hla_build_motif_graph(seg, by_v = TRUE, min_nodes = 2L)
-  if (!cerebroAppLite:::hla_motif_graph_ok(g)) {
-    cat(sprintf("   %s: no graph (%s)\n", ch, attr(g, "guard") %||% "empty"))
-    next
-  }
+  stopifnot("no usable motif graph" = cerebroAppLite:::hla_motif_graph_ok(g))
+  motif_counts[[ch]] <- c(
+    nodes = igraph::vcount(g),
+    motifs = length(unique(igraph::V(g)$cluster))
+  )
   cat(sprintf(
     "   %s: %d unique CDR3 -> %d nodes in %d motifs\n",
     ch,
     length(unique(seg$cdr3)),
-    igraph::vcount(g),
-    length(unique(igraph::V(g)$cluster))
+    motif_counts[[ch]][["nodes"]],
+    motif_counts[[ch]][["motifs"]]
   ))
 }
+## TRB is the chain the page defaults to and the one the tests assert on.
+stopifnot(
+  "TRB network has collapsed below a useful size" = motif_counts$TRB[[
+    "nodes"
+  ]] >
+    100 &&
+    motif_counts$TRB[["motifs"]] >= 20
+)
+
+## -- HLA: the published genotypes, unmodified, for every donor
 ht <- check$getHLATyping()
+stopifnot(
+  "HLA typing must cover every donor" = setequal(
+    unique(ht$sample),
+    unique(m$sample)
+  ),
+  "HLA typing must be the published genotypes" = identical(
+    unique(ht$source_type),
+    "genotyped"
+  ),
+  "HLA alleles drifted from the published table" = setequal(
+    paste(ht$sample, ht$allele),
+    genotype_key
+  ),
+  "provenance is missing" = nzchar(unique(ht$typing_method)) &&
+    nzchar(unique(ht$source_reference))
+)
 cat(sprintf(
   "   HLA: %d donors, %d alleles, source_type=%s\n",
   length(unique(ht$sample)),
   length(unique(ht$allele)),
   paste(unique(ht$source_type), collapse = ",")
+))
+
+## -- the honesty columns must be present and must still show the cross-reactivity
+stopifnot(
+  "the dextramer_* / restriction_in_genotype columns are missing" = all(
+    c(
+      "dextramer_antigen",
+      "dextramer_peptide",
+      "dextramer_allele",
+      "restriction_in_genotype"
+    ) %in%
+      colnames(m)
+  ),
+  "restriction_in_genotype must be yes/no" = all(
+    m$restriction_in_genotype %in% c("yes", "no")
+  ),
+  ## If this ever came out clean, the binder calls would have stopped being raw
+  ## 10x calls and the documentation would need rewriting -- so assert the
+  ## caveat is still true rather than assuming it.
+  "off-genotype binding vanished; re-check the specificity claims" = any(
+    m$restriction_in_genotype == "no"
+  ),
+  "the caveat must be recorded in the object" = grepl(
+    "RAW BINDER CALLS",
+    check$technical_info$tcr_selection_detail
+  )
+)
+cat(sprintf(
+  "   off-genotype binder calls: %d of %d cells (the documented caveat)\n",
+  sum(m$restriction_in_genotype == "no"),
+  nrow(m)
+))
+
+## -- gate passed: publish
+file.rename(staged, OUT)
+cat(sprintf(
+  "   PUBLISHED %s (%.1f MB)\n",
+  OUT,
+  file.info(OUT)$size / 1024^2
 ))
 cat("done.\n")

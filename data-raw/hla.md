@@ -13,7 +13,7 @@ Every command is meant to be copy-pasted and run from the package root; nothing 
    - [3.2 Download](#32-download)
    - [3.3 What each file contains](#33-what-each-file-contains)
    - [3.4 Step 1 — contigs to one clonotype per cell](#34-step-1--contigs-to-one-clonotype-per-cell)
-   - [3.5 Step 2 — antigen specificity and its HLA restriction](#35-step-2--antigen-specificity-and-its-hla-restriction)
+   - [3.5 Step 2 — dextramer binder calls and the reagent's HLA restriction](#35-step-2--antigen-specificity-and-its-hla-restriction)
    - [3.6 Step 3 — donor genotypes (table S1)](#36-step-3--donor-genotypes-table-s1)
    - [3.7 Step 4 — cell selection](#37-step-4--cell-selection)
    - [3.8 Step 5 — expression and UMAP, and whether Seurat is needed](#38-step-5--expression-and-umap-and-whether-seurat-is-needed)
@@ -206,7 +206,7 @@ after — one row per cell
   donor1_AAACCTGAGAAACCTA-1  TRAV12-2.TRAJ33.TRAC_TRBV19.TRBJ2-7.TRBC2   CAVNVAGKSTF_CASSIRSSYEQYF
 ```
 
-## 3.5 Step 2 — antigen specificity and its HLA restriction
+## 3.5 Step 2 — dextramer binder calls and the reagent's HLA restriction
 
 ```r
 b   <- read.csv(donor_files(d)$binarized, stringsAsFactors = FALSE, check.names = FALSE)
@@ -221,16 +221,18 @@ idx  <- max.col(hits, ties.method = "first")
 data.frame(
   barcode_raw = b$barcode,
   donor       = sprintf("donor%d", d),
-  specific    = keep,
+  single_binder = keep,
   dextramer   = ifelse(keep, dex[idx], NA_character_),
   stringsAsFactors = FALSE
 )
 ```
 
-Cells binding several dextramers are **dropped, not guessed at**: an ambiguous specificity would put a cell in the wrong HLA context, the one error this page must not make.
-Of 189,512 cells, **87,490** have exactly one.
+Cells binding several dextramers are **dropped, not guessed at**: an ambiguous call would put a cell in the wrong HLA context, the one error this page must not make.
+Of 189,512 cells, **87,490** bind exactly one.
 
-The winning column name then parses into three real fields:
+Note what this removes and what it does not: it removes *ambiguity*, not *cross-reactivity*. A cell binding exactly one reagent is unambiguous, which is not the same as being specific for it — see [§4.1](#41-inferring-the-genotypes-from-binding-was-wrong), whose numbers apply per cell just as much as per donor. That is why the fields below ship as `dextramer_*` rather than `antigen` / `restricting_allele`, with a `restriction_in_genotype` (`yes`/`no`) column beside them.
+
+The winning column name then parses into three fields — all three properties of the **reagent**:
 
 ```r
 allele_of  <- function(x) paste0("HLA-", sub("^([ABC])([0-9]{2})([0-9]{2})_.*", "\\1*\\2:\\3", x))
@@ -280,22 +282,31 @@ Because these were measured independently of these cells, a carrier / non-carrie
 
 ## 3.7 Step 4 — cell selection
 
-Keep cells with a productive clonotype **and** exactly one specificity. This *is* the data set's defining property, not a convenience — it is what makes the network legible.
+Keep cells with a **fully paired** clonotype **and** exactly one binder call. The dextramer sort *is* the data set's defining property, not a convenience — it is what makes the network legible.
+
+The paired test is stricter than "has a `CTaa`" on purpose: `combineTCR()` writes `<alpha>_<beta>` and puts the literal string `NA` on a side it could not resolve, so an earlier build shipped 1,493 single-chain cells while the docs called the demo paired αβ.
 
 ```r
 sel <- merge(
   tcr_all,
-  dex_all[dex_all$specific,
-          c("barcode_raw", "donor", "dextramer", "antigen", "peptide", "restricting_allele")],
+  dex_all[dex_all$single_binder,
+          c("barcode_raw", "donor", "dextramer",
+            "dextramer_antigen", "dextramer_peptide", "dextramer_allele")],
   by = c("barcode_raw", "donor")
 )
-sel <- sel[!is.na(sel$CTaa) & nzchar(sel$CTaa), , drop = FALSE]
 
-# deterministic per-donor subsample (set.seed(20260721) at the top of the script)
-keep_rows <- unlist(lapply(split(seq_len(nrow(sel)), sel$donor), function(ix) {
-  if (length(ix) <= CELLS_PER_DONOR) ix else sort(sample(ix, CELLS_PER_DONOR))
-}))
-sel <- sel[sort(keep_rows), , drop = FALSE]     # 3,000 x 4 = 12,000 cells
+is_paired <- function(ctaa) {
+  parts <- strsplit(ifelse(is.na(ctaa), "", ctaa), "_", fixed = TRUE)
+  vapply(parts, function(p) {
+    length(p) == 2L && all(nzchar(p)) && !any(p %in% c("NA", "None"))
+  }, logical(1))
+}
+sel <- sel[is_paired(sel$CTaa), , drop = FALSE]
+
+# The deterministic per-donor subsample (set.seed(20260721) at the top of the
+# script) runs LATER, in step 5, once the expression join is done -- so the
+# shipped object is exactly 3,000 x 4 = 12,000 cells rather than however many
+# survived the join.
 ```
 
 ## 3.8 Step 5 — expression and UMAP, and whether Seurat is needed
@@ -330,7 +341,11 @@ so <- Seurat::RunPCA(so, npcs = 30, verbose = FALSE)
 so <- Seurat::RunUMAP(so, dims = 1:30, verbose = FALSE)
 
 hv         <- Seurat::VariableFeatures(so)
-expression <- as.matrix(Seurat::GetAssayData(so, layer = "data")[hv, , drop = FALSE])
+# SPARSE, like every other demo here: normalized single-cell expression is ~90%
+# zeros, and densifying this block cost 184 MiB of memory and 4.5 MiB of
+# installed package. The class reads it through Matrix::rowMeans/colMeans.
+expression <- Seurat::GetAssayData(so, layer = "data")[hv, , drop = FALSE]
+expression <- methods::as(expression, "CsparseMatrix")
 umap       <- as.data.frame(Seurat::Embeddings(so, "umap"))
 colnames(umap) <- c("UMAP_1", "UMAP_2")
 ```
@@ -401,9 +416,11 @@ The four declared contracts and why each one:
 | `tcr_selection` | `antigen-selected` | the reagent panel decided which receptors are present; the page prints this above the Associations tables |
 | `lineage_column` | `cell_type` | declared, so the app never has to guess which column holds the CD4/CD8 label |
 
-## 3.10 Step 7 — verification
+## 3.10 Step 7 — the verification gate
 
-The script re-reads the file it just wrote and re-derives the network with the package's own motif core, so the numbers it prints are what the shipped object produces — a build that loses the motif structure reports it instead of shipping silently.
+The object is written to a **staging** path. The script then re-reads that file, re-derives the network with the package's own motif core, and **asserts** every number: donor balance, all-paired observations, a sparse expression block aligned to the metadata and the projection, motif thresholds, genotypes equal to table S1, provenance, and the honesty columns. Only then does `file.rename()` publish it.
+
+This is a gate, not a report. An earlier version printed the same numbers *after* saving, so a drifted input still replaced a good demo and still exited 0.
 
 ```r
 check <- readRDS(OUT)
@@ -420,15 +437,20 @@ for (ch in c("TRB", "TRA")) {
 Current output, and what the shipped object contains:
 
 ```
-   chains: TRA, TRB
-   TRA: 3067 unique CDR3 -> 367 nodes in 130 motifs
-   TRB: 3350 unique CDR3 -> 157 nodes in  31 motifs
+   cells: 12000 in 4 donors, balanced
+   expression: dgCMatrix 2000x12000, 40.2 MiB in memory
+   repertoire: 12000 observations, all paired; chains TRA, TRB
+   TRB: 3270 unique CDR3 -> 169 nodes in 39 motifs
+   TRA: 3189 unique CDR3 -> 396 nodes in 141 motifs
    HLA: 4 donors, 12 alleles, source_type=genotyped
+   off-genotype binder calls: 6729 of 12000 cells (the documented caveat)
+   PUBLISHED inst/extdata/v1.4/demo_hla_tcr_dextramer.crb (5.2 MB)
 
-   12,000 cells x 2,000 genes, UMAP projection, 7.8 MB
-   groups:   sample, cell_type, antigen, restricting_allele
-   metadata: cell_barcode, sample, cell_type, antigen, peptide, restricting_allele
-   21 antigens; 6 restricting alleles present on cells
+   groups:   sample, cell_type, dextramer_antigen, dextramer_allele,
+             restriction_in_genotype
+   metadata: cell_barcode, sample, cell_type, dextramer_antigen,
+             dextramer_peptide, dextramer_allele, restriction_in_genotype
+   23 antigens; 6 reagent restrictions present on cells
 ```
 
 A narrated walkthrough of the same pipeline, showing the data before and after each transformation, is `vignettes/hla_tcr_antigen_selected.Rmd`.

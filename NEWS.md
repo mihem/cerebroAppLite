@@ -25,14 +25,20 @@
   the page states honestly when rows are analysis units rather than cells, when a
   receptor is keyed by V gene + CDR3, and when a carrier contrast is a positive
   control rather than independent evidence.
-- **One demo data set.** `demo_hla_tcr_dextramer.crb`: 12,000 real CD8+ T cells
-  with real paired αβ TCR and the donors' published HLA genotypes, from 10x
-  Genomics' dextramer cohort (Zhang et al., *Sci Adv* 2021, CC-BY). The
-  repertoire is antigen-selected, which is what makes its motif network legible
-  — 157 TRB nodes in 31 motifs on measured sequences, where an unselected
-  repertoire gives 4. Class I only (sorted CD8+), so the Class I × Class II pair
-  scope stays hidden on this demo and appears when a data set carries Class II
-  typing plus a lineage column.
+- **One demo data set.** `demo_hla_tcr_dextramer.crb`: 12,000 real CD8+ T cells,
+  every one with a paired αβ clonotype, plus the donors' published HLA
+  genotypes, from 10x Genomics' dextramer cohort (Zhang et al., *Sci Adv* 2021,
+  CC-BY). The repertoire is antigen-selected, which is what makes its motif
+  network legible on measured sequences, where an unselected repertoire gives a
+  handful of disconnected dots. Class I only (sorted CD8+), so the Class I ×
+  Class II pair scope stays hidden on this demo and appears when a data set
+  carries Class II typing plus a lineage column.
+  The per-cell `dextramer_*` columns are 10x's **raw binder calls for a
+  reagent**, not validated peptide specificity: staining is heavily
+  cross-reactive here, and a `restriction_in_genotype` column ships beside them
+  so that is visible in the app rather than only in the vignette. The HLA
+  association contrasts use the published genotypes and do not rest on those
+  calls.
 - **Three new vignettes.** *"HLA & TCR Motifs: from synthetic data to an
   interactive app"* (single-cell, runnable end to end), *"HLA Associations on
   bulk TCRβ with real donor HLA"* (bring your own bulk cohort, with its
