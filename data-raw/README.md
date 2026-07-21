@@ -31,22 +31,21 @@ This directory reproducibly rebuilds every demo `.crb` shipped in `inst/extdata/
 
 ## Directory layout
 
-Only the scripts and the `.md` files are tracked. Every sub-directory that holds raw data is a **download cache**: gitignored, safe to delete, and re-created by the build script that owns it. Deleting one costs only the re-download.
+Only the scripts and the `.md` files are tracked. Every sub-directory here is a **download cache**: gitignored, safe to delete, and re-created by the build script that owns it. Deleting one costs only the re-download, so a missing directory below is normal.
 
 | path | tracked? | owned by | what is in it |
 |------|----------|----------|---------------|
 | `*.R` | yes | — | the build scripts, one per data family |
-| `donor_hla_haplotypes.csv` | yes | `build_hla_tcr_dextramer_demo.R` | the published donor HLA typing (table S1 of the source paper), transcribed by hand; its header carries the citation and the working supplement URL |
 | `DATASETS.md` | yes | — | the provenance registry: source, citation, licence, acquire command, sampling — one entry per shipped `.crb` |
-| `*.md` (`spatial`, `immune_repertoire`, `trajectory`, `hla`, `trekker`) | yes | — | per-family design and rebuild notes; they link back to `DATASETS.md` rather than repeat it |
-| `design/` | yes | — | dated design/plan documents kept for the record of a past restructuring (currently the 2026-07-07 trajectory-demo consolidation). Historical, not part of any build. |
+| `*.md` (`spatial`, `immune_repertoire`, `trajectory`, `hla`, `trekker`) | yes | — | per-family design and rebuild notes: what to download, what each step does, and the code that does it. They link back to `DATASETS.md` rather than repeat it |
 | `vdj_10x/` | **no** (cache) | `build_ir_demos.R` | 10x PBMC VDJ contig CSVs (`pbmc3_t_contig.csv`, `pbmc3_b_contig.csv`) for the immune-repertoire demos |
-| `vdj_10x_dextramer/` | **no** (cache, ~2.7 GB) | `build_hla_tcr_dextramer_demo.R` | the 10x dextramer cohort: per-donor contig annotations, binarized dextramer matrices, expression matrices, plus a local copy of the paper's supplementary PDF (the publisher's file is never committed) |
+| `vdj_10x_dextramer/` | **no** (cache, ~2.7 GB) | `build_hla_tcr_dextramer_demo.R` | the 10x dextramer cohort: per-donor contig annotations, binarized dextramer matrices and expression matrices, plus a local copy of the paper's supplementary PDF (table S1 = the donor genotypes; the publisher's file is never committed — the URL is in [`hla.md`](hla.md#32-download)) |
 | `pubtcrs/` | **no** (cache, ~349 MB) | `build_hla_tcr_bulk_demo.R` | the Emerson/DeWitt cohort archive from Zenodo, plus a cached occurrence scan |
-| `slidetags/` | **no** (cache, ~75 MB) | — | `slidetags_cortex.h5ad`, left over from Slide-tags exploration. **No build script reads it**; it ships nothing and can be deleted. |
-| `xenium/` | **no** (cache) | `build_spatial_demos.R` | the Xenium outs bundle (large; auto-downloaded on first run) |
+| `xenium/` | **no** (cache, ~3.5 GB) | `build_spatial_demos.R` | the Xenium outs bundle (auto-downloaded on first run) |
 
 If a cache directory is missing, the owning script re-downloads into it — no manual step is needed except where `DATASETS.md` says so explicitly.
+
+No raw source is committed. Everything the demos are built from is re-obtainable from the commands in the per-family notes.
 
 ## Environment of record
 
