@@ -55,3 +55,16 @@ test_that("radius grows as the square root, never linearly", {
   expect_equal(hla_node_radius(4) / hla_node_radius(1), 2)
   expect_equal(hla_node_radius(2) / hla_node_radius(1), sqrt(2))
 })
+
+test_that("the node size multiplier scales radii without changing the encoding", {
+  base <- hla_node_radius(c(1, 4, 16))
+  expect_equal(hla_node_radius(c(1, 4, 16), 1), base)
+  expect_equal(hla_node_radius(c(1, 4, 16), 2), base * 2)
+  # the cap scales by the same factor, so "area = count" still reads the same
+  expect_equal(hla_node_radius(1e6, 2), HLA_NODE_R_MAX * 2)
+  # invalid or out-of-range multipliers fall back / clamp rather than distort
+  expect_equal(hla_node_radius(4, 0), hla_node_radius(4, 1))
+  expect_equal(hla_node_radius(4, NA), hla_node_radius(4, 1))
+  expect_equal(hla_node_radius(4, 99), hla_node_radius(4, HLA_NODE_SCALE_MAX))
+  expect_equal(hla_node_radius(numeric(0), 2), numeric(0))
+})

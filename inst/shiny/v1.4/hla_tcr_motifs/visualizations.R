@@ -74,7 +74,8 @@ hla_build_motif_visnet <- function(
   carrier_allele = NULL,
   unit_noun = "cell",
   legend_mode = "auto",
-  lineage_col = NULL
+  lineage_col = NULL,
+  node_scale = 1
 ) {
   if (!hla_motif_graph_ok(graph)) {
     return(NULL)
@@ -316,7 +317,7 @@ hla_build_motif_visnet <- function(
     label = node_label,
     # `size`, not `value`: vis scales `value` linearly onto the radius, which
     # squares the difference the eye reads. See hla_node_radius().
-    size = hla_node_radius(clone_count),
+    size = hla_node_radius(clone_count, node_scale),
     color = node_color,
     title = titles,
     font.size = 16,
@@ -418,7 +419,7 @@ hla_visnet <- reactive({
   if (igraph::vcount(g) > HLA_MOTIF_MAX_RENDER) {
     return(NULL)
   }
-  color_by <- hla_param("hla_color_by", "")
+  color_by <- hla_param("hla_color_by", "cluster")
   # Carrier status is derived HERE, from the cached graph's allele-independent
   # `samples_all` attribute, so switching allele re-colours without recomputing
   # a single Hamming distance.
@@ -447,7 +448,11 @@ hla_visnet <- reactive({
     carrier_allele = allele,
     unit_noun = hla_unit_noun(),
     legend_mode = hla_param("hla_legend_mode", "auto"),
-    lineage_col = hla_celltype_col()
+    lineage_col = hla_celltype_col(),
+    # Display only. Read here so a size change flows through the SAME colour
+    # path: the graph is untouched, so the proxy below pushes the new radii onto
+    # the existing network instead of rebuilding and re-fitting it.
+    node_scale = hla_param("hla_node_scale", 1)
   )
 })
 
@@ -596,9 +601,12 @@ observeEvent(hla_visnet(), ignoreInit = TRUE, {
     return()
   }
   proxy <- visNetwork::visNetworkProxy("hla_plot_motifNetwork")
+  # `size` travels with the colour update: the node-size multiplier is display
+  # only, so it must resize in place exactly like a recolour rather than trigger
+  # a rebuild and re-fit.
   visNetwork::visUpdateNodes(
     proxy,
-    nodes = vn$nodes[, c("id", "color", "title")]
+    nodes = vn$nodes[, c("id", "color", "title", "size")]
   )
 })
 
@@ -838,7 +846,7 @@ output$hla_motif_note <- renderUI({
       HLA_NODE_MAX_EXACT
     ),
     if (
-      identical(hla_param("hla_color_by", ""), "") &&
+      identical(hla_param("hla_color_by", "cluster"), "cluster") &&
         identical(hla_param("hla_legend_mode", "auto"), "auto") &&
         hla_motif_n_clusters() > HLA_MOTIF_MAX_LEGEND_CLUSTERS
     ) {

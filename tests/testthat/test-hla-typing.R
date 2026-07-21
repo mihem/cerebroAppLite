@@ -433,3 +433,42 @@ test_that("validation survives factor-valued canonical columns", {
   expect_true(is.character(out$typing_method))
   expect_true(is.character(out$source_reference))
 })
+
+test_that("lineage inference ignores treatment and study-arm labels", {
+  # These carry a lineage token but name an EXPERIMENT, not a cell. Counting
+  # them would let a treatment or study-arm column take the lineage role and
+  # silently change which cells the Class I / Class II scope keeps.
+  expect_true(all(hla_is_condition_label(c(
+    "anti-CD4",
+    "anti CD8",
+    "antiCD4",
+    "α-CD4",
+    "CD8_case",
+    "CD4-control",
+    "vehicle",
+    "mock",
+    "untreated",
+    "anti-CD4 treated",
+    "CD8 depleted"
+  ))))
+  expect_false(any(hla_is_condition_label(c(
+    "CD8 TEM",
+    "CD4 naive",
+    "Treg",
+    "B cell",
+    "NK",
+    "Monocyte"
+  ))))
+  # a column that is entirely treatments scores zero, so it can never win
+  expect_equal(
+    hla_lineage_column_score(c("anti-CD4", "anti-CD8", "vehicle")),
+    0
+  )
+  # a real lineage column scores on the share it actually resolves
+  expect_gt(
+    hla_lineage_column_score(c("CD8 TEM", "CD4 naive", "B cell", "NK")),
+    0
+  )
+  expect_equal(hla_lineage_column_score(c("CD8 T", "CD4 T")), 1)
+  expect_equal(hla_lineage_column_score(character(0)), 0)
+})

@@ -61,6 +61,18 @@ HLA_NODE_R_MAX <- 40
 #' @keywords internal
 HLA_NODE_MAX_EXACT <- (HLA_NODE_R_MAX / HLA_NODE_R_MIN)^2
 
+#' Bounds of the display-only node size multiplier.
+#'
+#' A dense network can read as one blob at the default radii, and a sparse one
+#' as specks. The multiplier is presentation only: it scales every radius and
+#' the cap by the same factor, so it never changes what a node's area means.
+#' @keywords internal
+HLA_NODE_SCALE_MIN <- 0.3
+
+#' @rdname HLA_NODE_SCALE_MIN
+#' @keywords internal
+HLA_NODE_SCALE_MAX <- 2.5
+
 #' Node radius whose AREA is proportional to the clone count
 #'
 #' `r = R_MIN * sqrt(count)` makes area exactly proportional to `count`, so
@@ -71,13 +83,23 @@ HLA_NODE_MAX_EXACT <- (HLA_NODE_R_MAX / HLA_NODE_R_MIN)^2
 #'
 #' @param clone_count Numeric vector of per-node clone sizes. NA and values
 #'   below 1 are floored to 1 (a drawn node stands for at least one unit).
+#' @param scale Display multiplier applied to every radius, clamped to
+#'   `[HLA_NODE_SCALE_MIN, HLA_NODE_SCALE_MAX]`. It scales the cap by the same
+#'   factor, so the area-proportional reading is unchanged -- only how much of
+#'   the canvas the network occupies. Invalid or non-positive values fall back
+#'   to 1.
 #' @return Numeric vector of radii in px.
 #' @keywords internal
-hla_node_radius <- function(clone_count) {
+hla_node_radius <- function(clone_count, scale = 1) {
   n <- suppressWarnings(as.numeric(clone_count))
   if (length(n) == 0) {
     return(numeric(0))
   }
   n[is.na(n) | n < 1] <- 1
-  pmin(HLA_NODE_R_MIN * sqrt(n), HLA_NODE_R_MAX)
+  s <- suppressWarnings(as.numeric(scale))[1]
+  if (is.na(s) || s <= 0) {
+    s <- 1
+  }
+  s <- max(HLA_NODE_SCALE_MIN, min(HLA_NODE_SCALE_MAX, s))
+  pmin(HLA_NODE_R_MIN * sqrt(n), HLA_NODE_R_MAX) * s
 }

@@ -92,7 +92,7 @@ output$hla_parameters_ui <- renderUI({
       "hla_color_by",
       "Colour nodes by:",
       choices = isolate(hla_color_by_choices()),
-      selected = isolate(hla_param("hla_color_by", "")),
+      selected = isolate(hla_param("hla_color_by", "cluster")),
       options = list(render = HLA_TWO_LINE_RENDER)
     ),
     # The page's single allele. It drives the carrier colouring AND the allele
@@ -172,9 +172,9 @@ observeEvent(
     # "Motif cluster" (""). Downstream tolerates a stale value, but the picker must
     # not display one it no longer lists. isolate(): reading the pick must not make
     # this observer depend on it, or every colour change would re-push the choices.
-    sel <- isolate(hla_param("hla_color_by", ""))
+    sel <- isolate(hla_param("hla_color_by", "cluster"))
     if (!(sel %in% unname(choices))) {
-      sel <- ""
+      sel <- "cluster"
     }
     updateSelectizeInput(
       session,
@@ -218,6 +218,23 @@ output$hla_additional_params_ui <- renderUI({
           "nothing. Every other colouring always keeps its key."
         ),
         HLA_MOTIF_MAX_LEGEND_CLUSTERS
+      )
+    ),
+    sliderInput(
+      "hla_node_scale",
+      "Node size:",
+      min = HLA_NODE_SCALE_MIN,
+      max = HLA_NODE_SCALE_MAX,
+      value = 1,
+      step = 0.1
+    ),
+    tags$p(
+      class = "text-muted",
+      style = "font-size: 11px;",
+      paste(
+        "Display only: it scales every node and the size cap by the same",
+        "factor, so a node's area still reads as its count. A dense network",
+        "can otherwise draw as one blob, a sparse one as specks."
       )
     )
   )
@@ -307,6 +324,28 @@ output$hla_status_ui <- renderUI({
     nrow(hla_session_typing()) > 0
   channel <- if (session_on) "session upload" else "stored .crb"
 
+  ## The lineage column decides each cell's MHC context and gates the Class I x
+  ## Class II scope, so when it was INFERRED rather than declared the page is
+  ## resting on a guess about which column holds the CD4/CD8 label. Say so, and
+  ## name the column, rather than presenting it as a stated fact.
+  lineage_note <- local({
+    col <- hla_celltype_col()
+    if (is.na(col) || isTRUE(hla_celltype_col_declared())) {
+      return(NULL)
+    }
+    tags$p(
+      class = "text-warning",
+      style = "font-size: 12px;",
+      sprintf(
+        paste(
+          "Lineage column inferred: '%s'. MHC context and the Class I x Class II",
+          "scope rest on it. Declare technical_info$lineage_column to pin it."
+        ),
+        col
+      )
+    )
+  })
+
   if (!hla_has_typing()) {
     return(tagList(
       tags$p(tags$b("HLA context: "), "none loaded"),
@@ -317,7 +356,8 @@ output$hla_status_ui <- renderUI({
           "Motif network uses cell-type / sample colouring only. Provide HLA",
           "typing in the Data & QC tab to enable donor-level HLA context."
         )
-      )
+      ),
+      lineage_note
     ))
   }
 
@@ -343,6 +383,7 @@ output$hla_status_ui <- renderUI({
         "Contains synthetic / unknown-provenance typing: descriptive context only."
       )
     },
+    lineage_note,
     ## Typing loaded, nothing to analyse. The controls are gone by now, so this
     ## is the only place the user can learn whether the file was for another
     ## cohort, was DQ/DP-only, or simply holds no contrast.

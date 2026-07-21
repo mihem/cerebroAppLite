@@ -528,7 +528,13 @@ test_that("the renderer sets node size itself, never via vis `value`", {
     )
   )
   expect_length(node_df, 1L)
-  expect_match(node_df, "size = hla_node_radius\\(clone_count\\)", perl = TRUE)
+  # The display-only multiplier rides along; the radius is still set from the
+  # clone count through hla_node_radius(), never from a `value` scaling.
+  expect_match(
+    node_df,
+    "size = hla_node_radius\\(clone_count, node_scale\\)",
+    perl = TRUE
+  )
   expect_no_match(node_df, "\\bvalue\\s*=", perl = TRUE)
   expect_no_match(viz, "scaling = list\\(min", perl = TRUE)
 })
@@ -741,7 +747,9 @@ test_that("node colouring is offered from the declared groupings", {
 test_that("the lineage column is found by its labels, not by its name", {
   # A general-purpose viewer cannot assume the annotation is called cell_type /
   # cell_type_fine: it may be `annotation`, `azimuth_l2`, `predicted.id`. The
-  # labels are what carry the lineage, and hla_lineage_context() reads those.
+  # labels are what carry the lineage, and hla_lineage_column_score() reads
+  # those -- it is hla_lineage_context() plus the exclusion of labels that name
+  # an experimental condition ("anti-CD4"), which is unit-tested in the core.
   src <- paste(
     readLines(hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"), warn = FALSE),
     collapse = "\n"
@@ -749,7 +757,13 @@ test_that("the lineage column is found by its labels, not by its name", {
 
   expect_match(
     src,
-    "hla_celltype_col <- reactive\\(\\{[\\s\\S]{0,1600}hla_lineage_context\\(",
+    "hla_celltype_col <- reactive\\(\\{[\\s\\S]{0,1600}hla_lineage_column_score\\(",
+    perl = TRUE
+  )
+  # ...and a candidate must clear a real share, so one stray "CD4" cannot win.
+  expect_match(
+    src,
+    "hla_celltype_col <- reactive\\(\\{[\\s\\S]{0,1800}HLA_LINEAGE_MIN_SHARE",
     perl = TRUE
   )
   # A data set may still declare it outright, like observation_unit does.

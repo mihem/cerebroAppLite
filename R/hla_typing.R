@@ -637,6 +637,57 @@ hla_lineage_context <- function(cell_type) {
   out
 }
 
+## Labels that name an experimental CONDITION rather than a cell lineage. They
+## routinely carry a lineage token -- "anti-CD4" is a depleting antibody, not a
+## CD4 cell; "CD8_case" is a study arm -- so a column of them scores as a lineage
+## column unless they are excluded explicitly.
+HLA_CONDITION_PATTERNS <- c(
+  "(^|[^a-z])anti[-_ .]?cd", # anti-CD4, anti CD8, antiCD8
+  "α[-_ .]?cd", # the same written with a Greek alpha
+  "treated|treatment|untreated|vehicle|mock",
+  "stimulat|blockade|deplet",
+  "(^|[-_ .])(case|control|ctrl)([-_ .]|$)"
+)
+
+#' Does a label read as an experimental condition rather than a cell lineage?
+#'
+#' @param x A character vector of labels.
+#' @return A logical vector, TRUE where the label reads as a condition.
+#' @keywords internal
+hla_is_condition_label <- function(x) {
+  x <- as.character(x)
+  hits <- lapply(
+    HLA_CONDITION_PATTERNS,
+    function(p) grepl(p, x, ignore.case = TRUE)
+  )
+  Reduce(`|`, hits, init = rep(FALSE, length(x)))
+}
+
+#' Score how well a column's values read as a CD4/CD8 lineage label
+#'
+#' Used to INFER the lineage column when a data set does not declare
+#' `technical_info$lineage_column`. The score is the share of values that resolve
+#' to a real lineage AND do not read as an experimental condition. Counting
+#' conditions would let a treatment or study-arm column win the lineage role and
+#' silently change which cells the Class I / Class II scope keeps.
+#'
+#' @param values A character vector of the column's values.
+#' @return A share in `[0, 1]`; 0 when nothing qualifies.
+#' @keywords internal
+hla_lineage_column_score <- function(values) {
+  v <- as.character(values)
+  v <- v[!is.na(v) & nzchar(v)]
+  if (length(v) == 0) {
+    return(0)
+  }
+  mean((hla_lineage_context(v) != "Unknown") & !hla_is_condition_label(v))
+}
+
+## The share a candidate column must reach before it may be INFERRED as the
+## lineage column. One stray "CD4" among a thousand unrelated values is not
+## evidence; a real lineage column resolves a substantial part of its values.
+HLA_LINEAGE_MIN_SHARE <- 0.1
+
 #' Summarise a distribution of MHC-context labels to one node summary
 #'
 #' A CDR3 node carries cells of possibly mixed lineage. Collapse the per-cell

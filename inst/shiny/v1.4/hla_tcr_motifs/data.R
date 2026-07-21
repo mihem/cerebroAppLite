@@ -413,15 +413,17 @@ hla_celltype_col <- reactive({
       v <- unlist(lapply(data, function(df) {
         if (col %in% colnames(df)) as.character(df[[col]]) else character(0)
       }))
-      v <- v[!is.na(v) & nzchar(v)]
-      if (length(v) == 0) {
-        return(0)
-      }
-      mean(hla_lineage_context(v) != "Unknown")
+      # Scored in the core so the rule is unit-tested: values that read as an
+      # experimental condition ("anti-CD4", "CD8_case") carry a lineage token
+      # but are NOT a lineage, and counting them would let a treatment column
+      # take the role and change which cells the Class I / Class II scope keeps.
+      hla_lineage_column_score(v)
     },
     numeric(1)
   )
-  if (max(score) == 0) {
+  # Below the bar, do not infer at all: the pair scope then stays unavailable
+  # rather than resting on a guess (hla_pair_available() gates on this).
+  if (max(score) < HLA_LINEAGE_MIN_SHARE) {
     return(NA_character_)
   }
   best <- candidates[score == max(score)]
@@ -439,6 +441,19 @@ hla_celltype_col <- reactive({
     integer(1)
   )
   best[which.max(best_levels)]
+})
+
+## ---- Was the lineage column DECLARED, or inferred from its values? ----- ##
+## The Class I / Class II scope filters cells by the lineage read off this
+## column, so an inferred one is a guess that changes what the page analyses. It
+## must say so in the UI rather than read as a stated fact.
+hla_celltype_col_declared <- reactive({
+  cols <- hla_available_cols()
+  declared <- tryCatch(
+    data_set()$technical_info$lineage_column,
+    error = function(e) NULL
+  )
+  is.character(declared) && length(declared) >= 1 && declared[1] %in% cols
 })
 
 ## ---- Parsed segments for the active chain (+ per-cell MHC context) ----- ##
@@ -489,8 +504,13 @@ hla_node_meta_cols <- reactive({
 ## the whole parameter panel down (finding #8).
 hla_color_by_choices <- reactive({
   meta_cols <- hla_usable_color_cols()
+  # "cluster", not "": selectize treats an empty-string value as NO selection,
+  # so the default option was silently dropped from the dropdown -- the picker
+  # showed nothing and, once another colouring was picked, motif cluster could
+  # never be chosen again. "cluster" is the node attribute this colouring reads,
+  # so the graph builder resolves it exactly as the old fallback did.
   choices <- c(
-    "Motif cluster" = "",
+    "Motif cluster" = "cluster",
     stats::setNames(meta_cols, meta_cols)
   )
   # In the pair scope every node already carries its candidate allele, and that
@@ -760,7 +780,7 @@ hla_params_ready <- reactive({
   # parameter under carrier colouring; either way the graph or its colours wait
   # on it.
   needs_allele <- identical(mode, "allele") ||
-    identical(hla_param("hla_color_by", ""), "hla_carrier")
+    identical(hla_param("hla_color_by", "cluster"), "hla_carrier")
   if (needs_allele && is.null(input$hla_color_allele)) {
     return(FALSE)
   }
