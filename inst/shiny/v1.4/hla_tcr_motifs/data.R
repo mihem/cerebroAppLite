@@ -1007,6 +1007,31 @@ HLA_SELECTION_CAVEATS <- list(
       "demonstrates the page and is not evidence of anything."
     ),
     subset_phrase = ", whose receptors are fabricated"
+  ),
+  ## Weaker than "association-conditioned" and easy to mistake for clean: the
+  ## receptors were NOT chosen using an HLA association, so the contrast is not
+  ## circular -- but they were still chosen, by a reagent panel, and that is a
+  ## different problem with the same direction of travel. Independent genotypes
+  ## fix circularity; they do not fix which cells were captured, and a panel is
+  ## itself HLA-biased (its reagents are restricted by particular alleles), so
+  ## carriers of a well-covered allele contribute more receptors than carriers
+  ## of one the panel barely probes. Saying "the genotypes are independent" and
+  ## stopping there would leave that unsaid.
+  ##
+  ## This value used to be unrecognised, which meant the shipped demo declared a
+  ## selection and the page showed NOTHING above the tables.
+  "antigen-selected" = list(
+    headline = "Selected repertoire - read the contrast as suggestive, not as a test.",
+    body = paste(
+      "The receptors here were captured by binding to a reagent panel, not",
+      "sampled from the donors' repertoires. The HLA genotypes come from a",
+      "published table and were measured independently of these cells, so a",
+      "carrier contrast is not circular -- but which receptors exist to compare",
+      "was still decided by the panel, which is itself restricted by particular",
+      "alleles and applied to four donors. Ascertainment and donor/panel",
+      "confounding remain."
+    ),
+    subset_phrase = ", which holds only receptors that bound a reagent in the panel"
   )
 )
 

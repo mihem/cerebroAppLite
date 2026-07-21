@@ -58,6 +58,33 @@ hla_network_table_meta_cols <- reactive({
   stats::setNames(cols, cols)
 })
 
+## A node is a set of cells, so its annotation is a DISTRIBUTION, not a value.
+## The aggregation stores the modal value in `<col>` and the full tally in
+## `<col>_dist` ("2 types: Influenza (5), CMV (2)"). Showing only the mode makes
+## a heterogeneous node look categorically assigned -- on the shipped TRB graph
+## several nodes carry more than one reagent antigen, and some carry both
+## genotype-status values, all rendered as if settled.
+##
+## Where a node is homogeneous the plain value is shown. Where it is not, the
+## cell becomes the distribution string itself: it names the mixture, keeps the
+## counts, survives the CSV export, and needs no extra column. This follows the
+## page's existing habit of reporting a spanning node as such rather than
+## breaking the tie (see hla_context_summary()'s "Mixed").
+hla_mark_mixed_nodes <- function(df, cols) {
+  for (col in intersect(cols, colnames(df))) {
+    dist_col <- paste0(col, "_dist")
+    if (!dist_col %in% colnames(df)) {
+      next
+    }
+    n_types <- suppressWarnings(as.integer(
+      sub("^([0-9]+) type.*$", "\\1", df[[dist_col]])
+    ))
+    mixed <- !is.na(n_types) & n_types > 1L
+    df[[col]][mixed] <- df[[dist_col]][mixed]
+  }
+  df
+}
+
 hla_network_table_grain <- reactive({
   g <- input$hla_table_grain
   if (is.null(g) || !nzchar(g)) "node" else g
@@ -140,6 +167,9 @@ hla_network_table_data <- reactive({
     # Hard-coding "cells" mislabels a bulk repertoire, whose rows are analysis
     # units, not cells -- the same reason hla_unit_noun() exists.
     map[["clone_count"]] <- getObservationUnit()$plural
+    # A node aggregates cells, so an annotation that varies within it must say
+    # so rather than report its mode as if it were the node's value.
+    df <- hla_mark_mixed_nodes(df, names(hla_network_table_meta_cols()))
   }
   # A declared annotation that collides with a structural name (a `cdr3` column
   # in the metadata, say) must not produce two columns of the same name.

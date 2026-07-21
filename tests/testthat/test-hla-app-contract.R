@@ -363,6 +363,45 @@ test_that("an incompletely called locus is unknown, never a confirmed negative",
   }
 })
 
+test_that("the shipped demo's selection is a caveat the page can actually show", {
+  # The caveat above the Associations tables is keyed on technical_info$
+  # tcr_selection. This demo declares "antigen-selected", which was NOT a
+  # recognised key -- so the object declared a selection and the page rendered
+  # nothing, while the vignette told users to read a note that did not exist.
+  crb <- hla_sc_demo()
+  src <- paste(
+    readLines(
+      hla_inst_file("shiny/v1.4/hla_tcr_motifs/data.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  key <- crb$technical_info$tcr_selection
+  expect_match(
+    src,
+    paste0(
+      "HLA_SELECTION_CAVEATS <- list\\([\\s\\S]{0,4000}\"",
+      key,
+      "\" = list\\("
+    ),
+    perl = TRUE
+  )
+  # Independent genotypes remove circularity, not ascertainment -- the wording
+  # has to keep those apart rather than declaring the contrast clean.
+  expect_match(crb$technical_info$tcr_selection_detail, "ASCERTAINMENT")
+})
+
+test_that("the shipped demo ships its CC-BY attribution beside the data", {
+  # data-raw/DATASETS.md holds the provenance but is .Rbuildignore'd, so an
+  # installed user would otherwise receive the CC-BY data with no licensing
+  # record. The attribution file lives in extdata so it installs with the demo.
+  att <- hla_inst_file("extdata/v1.4/demo_hla_tcr_dextramer.ATTRIBUTION.md")
+  expect_true(file.exists(att))
+  txt <- paste(readLines(att, warn = FALSE), collapse = "\n")
+  expect_match(txt, "CC-BY", fixed = TRUE)
+  expect_match(txt, "abf5835", fixed = TRUE) # the source paper
+})
+
 ## ---- node colours must not be handed to vis-network's group palette --- ##
 
 test_that("motif network nodes carry no group column", {
@@ -1247,6 +1286,14 @@ test_that("the network table carries the data set's own annotations", {
   expect_match(
     src,
     "hla_network_table_meta_cols\\(\\),[\\s\\S]{0,60}HLA_NETWORK_TABLE_NODE_TAIL_COLS",
+    perl = TRUE
+  )
+  # a node aggregates cells, so an annotation that varies within it must not be
+  # reported as that node's value
+  expect_match(src, "hla_mark_mixed_nodes <- function", perl = TRUE)
+  expect_match(
+    src,
+    "map\\[\\[\"clone_count\"\\]\\][\\s\\S]{0,300}hla_mark_mixed_nodes\\(",
     perl = TRUE
   )
 })
