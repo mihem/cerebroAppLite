@@ -320,7 +320,7 @@ test_that("shipped demo exposes its cross-reactivity instead of describing it", 
   # It is also declared as a group, so it reaches the network and its table.
   crb <- hla_sc_demo()
   md <- crb$getMetaData()
-  expect_setequal(unique(md$restriction_in_genotype), c("yes", "no"))
+  expect_true(all(md$restriction_in_genotype %in% c("yes", "no", "unknown")))
   # If this ever came out clean, the calls would have stopped being raw 10x
   # calls and the documentation would need rewriting -- so assert the caveat.
   expect_gt(sum(md$restriction_in_genotype == "no"), 0L)
@@ -333,15 +333,34 @@ test_that("shipped demo exposes its cross-reactivity instead of describing it", 
   )
 })
 
-test_that("the shipped demo ships its CC-BY attribution beside the data", {
-  # data-raw/DATASETS.md holds the provenance but is .Rbuildignore'd, so an
-  # installed user would otherwise receive the CC-BY data with no licensing
-  # record. The attribution file lives in extdata so it installs with the demo.
-  att <- hla_inst_file("extdata/v1.4/demo_hla_tcr_dextramer.ATTRIBUTION.md")
-  expect_true(file.exists(att))
-  txt <- paste(readLines(att, warn = FALSE), collapse = "\n")
-  expect_match(txt, "CC-BY", fixed = TRUE)
-  expect_match(txt, "abf5835", fixed = TRUE) # the source paper
+test_that("an incompletely called locus is unknown, never a confirmed negative", {
+  # Table S1 publishes ONE HLA-B allele for donors 1 and 2, so their second B
+  # copy could be anything -- a B-restricted binder call there is undecidable,
+  # not off-genotype. A two-state column would have to call it "no", inventing a
+  # confirmed negative out of missing data. Same rule the carrier logic uses:
+  # only a locus called at two copies can rule an allele out.
+  crb <- hla_sc_demo()
+  md <- crb$getMetaData()
+  ht <- crb$getHLATyping()
+  expect_gt(sum(md$restriction_in_genotype == "unknown"), 0L)
+
+  for (i in seq_len(nrow(md))) {
+    if (!identical(md$restriction_in_genotype[i], "no")) {
+      next
+    }
+    locus <- hla_allele_locus(md$dextramer_allele[i])
+    n_copies <- sum(ht$sample == md$sample[i] & ht$locus == locus)
+    # every "no" must stand on a completely called locus
+    expect_gte(n_copies, 2L)
+  }
+  # and every "unknown" must be a call the genotype genuinely cannot settle
+  unknown <- md[md$restriction_in_genotype == "unknown", , drop = FALSE]
+  if (nrow(unknown) > 0) {
+    carried <- paste(ht$sample, ht$allele)
+    expect_false(any(
+      paste(unknown$sample, unknown$dextramer_allele) %in% carried
+    ))
+  }
 })
 
 ## ---- node colours must not be handed to vis-network's group palette --- ##

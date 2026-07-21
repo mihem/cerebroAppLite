@@ -68,12 +68,20 @@ Measured on this source with the package's own motif core:
 | subset of the same donor | unique CDR3β | result |
 |---|---|---|
 | all cells, unselected | 26,449 | trips the size guard — nothing to draw |
-| dextramer-binding cells | 2,910 | **308 nodes in 75 motifs** |
-| one epitope: Flu-MP `GILGFVFTL` | 267 | **121 nodes in 7 motifs** |
+| cells called a binder of any reagent | 2,910 | **308 nodes in 75 motifs** |
+| cells called a binder of one reagent (`A0201_GILGFVFTL_Flu-MP`) | 267 | **121 nodes in 7 motifs** |
 
-The last row is the point: against one immunodominant influenza epitope, 45% of
-the observed CDR3s collapse into **seven** families. That is measured
-convergence in real data, not a designed fixture.
+The last row is the point, stated carefully: within the subset **labelled by a
+single reagent**, 45% of the observed CDR3s collapse into seven families. The
+convergence is measured and real — but the label on that subset is a raw binder
+call, so this is convergence within a reagent-labelled subset, *not* a
+demonstration of measured peptide-level specificity. Attributing it to the
+influenza epitope itself would assume exactly what the next section shows is
+unsupported.
+
+Which, if anything, makes the structure more striking rather than less: a noisy
+label should blur families together, not sharpen them. But "more striking" is
+not "established", and the page does not need it to be.
 
 # The source
 
@@ -223,22 +231,43 @@ It is a property of the **reagent**, not a verified property of the cell. A
 binder call does not establish that the cell is specific for that peptide, nor
 that the reagent's allele is what presents it in that donor. Dextramer staining
 is heavily cross-reactive in this experiment, and the size of the effect is
-easy to state: for **6,729 of the 12,000 shipped cells (56 %)**, the bound
-reagent's restriction is not even one of the alleles that donor carries
-(per donor: 954, 468, 2,997 and 2,310 of 3,000) (see §*Why the
+easy to state: only **5,271 of the 12,000 shipped cells (44 %)** bound a
+reagent whose restriction their donor actually carries. 6,654 bound one their
+donor demonstrably does not, and 75 more cannot be decided at all
+(per donor, yes / no / unknown of 3,000: 2,046 / 879 / 75 · 2,532 / 468 / 0 ·
+3 / 2,997 / 0 · 690 / 2,310 / 0 — donor 3 is the extreme case) (see §*Why the
 genotypes are not inferred from binding*, where the same fact sinks the
 inference).
 
 That is why the per-cell columns ship as `dextramer_antigen`,
 `dextramer_peptide` and `dextramer_allele` — a reagent label, deliberately not
 named `antigen` or `restricting_allele` — and why a fourth column,
-`restriction_in_genotype` (`yes` / `no`), ships beside them. Colour the
-projection by it and the noise is visible in one look rather than buried in a
-methods note.
+`restriction_in_genotype`, ships beside them. Colour the projection by it and
+the noise is visible in one look rather than buried in a methods note.
 
-Nothing on the HLA Associations tab rests on these calls: the carrier contrasts
-use the **published genotypes**, which were measured independently of these
-cells.
+It has **three** states, not two, and the third one matters:
+
+| value | meaning |
+|---|---|
+| `yes` | the reagent's restriction is one of the donor's published alleles |
+| `no` | it is not, **and that locus was called completely** (two copies), so absence is real |
+| `unknown` | it is not listed, but the locus was called at one copy only — the second copy could be it |
+
+Table S1 reports a single HLA-B allele for donors 1 and 2, so every B-restricted
+binder call in those donors is undecidable rather than off-genotype. Collapsing
+that into `no` would manufacture a confirmed negative out of missing data — the
+same false-negative bias `hla_allele_status_by_unit()` refuses to take when it
+builds carrier / non-carrier groups. The build applies the package's own rule
+(`hla_locus_call_state()`: a locus is complete at two copies).
+
+The carrier contrasts on the HLA Associations tab use the **published
+genotypes**, which were measured independently of these cells — so they are not
+circular. That is a narrower claim than it may sound, and the page now says so
+above the tables: independent genotypes remove circularity, they do not remove
+**ascertainment**. The repertoire being compared was itself captured by the
+reagent panel; the panel's reagents are restricted by particular alleles; and
+there are four donors. Donor and panel stay confounded with genotype, so a
+contrast here is suggestive, not a test.
 
 ## Step 3 — one binder call per cell, or none
 
@@ -463,7 +492,7 @@ On the shipped object the gate prints:
    TRB: 3270 unique CDR3 -> 169 nodes in 39 motifs
    TRA: 3189 unique CDR3 -> 396 nodes in 141 motifs
    HLA: 4 donors, 12 alleles, source_type=genotyped
-   off-genotype binder calls: 6729 of 12000 cells (the documented caveat)
+   binder calls vs genotype: 6654 off-genotype, 75 undecidable, of 12000 cells
    PUBLISHED inst/extdata/v1.4/demo_hla_tcr_dextramer.crb (5.2 MB)
 ```
 
@@ -483,7 +512,9 @@ Open the data set and go to **HLA & TCR Motifs**:
   each node's `dextramer_antigen`, `dextramer_allele` and
   `restriction_in_genotype` — the reagent it bound, and whether that reagent's
   restriction is an allele the donor actually carries.
-* **HLA Associations** — real donor genotypes, so the carrier contrasts are
-  real; read the note above the tables for what the antigen selection means.
-  These contrasts do **not** use the dextramer binder calls.
+* **HLA Associations** — real donor genotypes, so the carrier contrasts are not
+  circular. The note above the tables states what the selection still costs:
+  the receptors available to compare were chosen by the reagent panel, so
+  ascertainment and donor/panel confounding remain. These contrasts do **not**
+  use the dextramer binder calls.
 * **Data & QC** — the published genotypes and their coverage.

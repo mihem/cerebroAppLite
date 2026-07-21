@@ -63,9 +63,11 @@
 #       reagent's peptide, or that the reagent's allele is the one presenting
 #       it in that donor. 10x's binarized flags are raw binder calls, and
 #       dextramer staining is famously cross-reactive at this scale. Measured
-#       on the shipped cells: the bound reagent's restriction is ABSENT from
-#       the donor's published genotype for a majority of them (the exact
-#       per-donor counts are asserted and printed by the verification block).
+#       on the shipped cells: only 5,271 of 12,000 bound a reagent restricted
+#       by an allele their donor actually carries. 6,654 bound one the donor
+#       demonstrably lacks, and 75 cannot be decided because table S1 leaves
+#       that donor's HLA-B half-called (the per-donor counts are printed and
+#       asserted by the verification block).
 #       donor3 is the extreme case -- nearly all of its cells bind reagents
 #       restricted by alleles it does not carry.
 #       Therefore the per-cell columns are named `dextramer_*`, never
@@ -511,11 +513,60 @@ cat("== 6. assemble .crb ==\n")
 ## cross-reactivity, and it is common here. Shipping it as a colourable group
 ## means a user meets the caveat by looking at the UMAP, not by reading a
 ## footnote they will skip.
-genotype_key <- paste(donor_typing$sample, donor_typing$allele)
+##
+## THREE states, not two. Absence from the published table is only evidence of
+## absence when the LOCUS was called completely: table S1 reports a single
+## HLA-B allele for donors 1 and 2, so their second B copy is unknown and a
+## B-restricted reagent they bind cannot be called off-genotype. Calling it "no"
+## would manufacture a confirmed negative out of missing data -- exactly the
+## false-negative bias hla_allele_status_by_unit() refuses to take. The rule
+## used here is the package's own (hla_locus_call_state: a locus is complete at
+## two copies), applied to the canonical form of the same table the object ships.
+donor_typing_canonical <- cerebroAppLite:::hla_normalize_typing(donor_typing)
+genotype_key <- paste(
+  donor_typing_canonical$sample,
+  donor_typing_canonical$allele
+)
+donor_samples <- unique(donor_typing_canonical$sample)
+locus_complete <- do.call(
+  rbind,
+  lapply(unique(donor_typing_canonical$locus), function(lc) {
+    st <- cerebroAppLite:::hla_locus_call_state(
+      donor_typing_canonical,
+      donor_samples,
+      lc
+    )
+    data.frame(
+      sample = st$sample,
+      locus = lc,
+      complete = st$call_state == "complete",
+      stringsAsFactors = FALSE
+    )
+  })
+)
+# hla_allele_locus() is scalar (it guards with a bare `if (is.na(allele))`), so
+# it is mapped rather than handed the column.
+sel_locus <- vapply(
+  sel$dextramer_allele,
+  cerebroAppLite:::hla_allele_locus,
+  character(1),
+  USE.NAMES = FALSE
+)
+sel_complete <- locus_complete$complete[
+  match(
+    paste(sel$donor, sel_locus),
+    paste(locus_complete$sample, locus_complete$locus)
+  )
+]
+# NA from the match counts as not-complete, for the same reason a half-called
+# locus does: no information is not evidence of absence.
+locus_fully_called <- !is.na(sel_complete) & sel_complete
 restriction_in_genotype <- ifelse(
   paste(sel$donor, sel$dextramer_allele) %in% genotype_key,
   "yes",
-  "no"
+  # Not carried and the locus was fully called -> a real off-genotype call.
+  # Not carried but the locus is half-called -> unknown, not "no".
+  ifelse(locus_fully_called, "no", "unknown")
 )
 
 meta <- data.frame(
@@ -535,17 +586,21 @@ meta <- data.frame(
 rownames(umap) <- meta$cell_barcode
 
 cat(sprintf(
-  "   reagent restriction present in the donor's published genotype: %d of %d cells (%.1f%%)\n",
+  "   reagent restriction vs the donor's published genotype: yes %d / no %d / unknown %d of %d cells\n",
   sum(restriction_in_genotype == "yes"),
-  nrow(meta),
-  100 * mean(restriction_in_genotype == "yes")
+  sum(restriction_in_genotype == "no"),
+  sum(restriction_in_genotype == "unknown"),
+  nrow(meta)
 ))
 for (dn in sort(unique(meta$sample))) {
   ix <- meta$sample == dn
+  st <- meta$restriction_in_genotype[ix]
   cat(sprintf(
-    "     %s: %d of %d off-genotype\n",
+    "     %s: yes %d / no %d / unknown %d of %d\n",
     dn,
-    sum(meta$restriction_in_genotype[ix] == "no"),
+    sum(st == "yes"),
+    sum(st == "no"),
+    sum(st == "unknown"),
     sum(ix)
   ))
 }
@@ -590,7 +645,12 @@ crb$technical_info <- list(
     "unbiased sample of the donors' repertoires: which receptors are present",
     "was decided by the panel. The donor HLA genotypes are the published ones",
     "(table S1 of the source paper), measured independently of these cells, so",
-    "they are not circular with the selection.",
+    "they are not circular with the selection -- but that is a narrower claim",
+    "than it sounds. Independent genotypes remove circularity; they do not",
+    "remove ASCERTAINMENT: the repertoire being compared was itself captured by",
+    "the panel, the panel's reagents are restricted by particular alleles, and",
+    "there are four donors, so donor and panel remain confounded with genotype.",
+    "Read a carrier contrast here as suggestive, not as a test.",
     "IMPORTANT: the per-cell dextramer_* columns are 10x's RAW BINDER CALLS for",
     "a reagent, not validated peptide specificity. Dextramer staining is",
     "strongly cross-reactive here -- for most cells the bound reagent's HLA",
@@ -627,6 +687,27 @@ cat(sprintf("   staged %.1f MB\n", file.info(staged)$size / 1024^2))
 ## transcript of today's run.
 cat("== 7. verification gate (measured on the staged object) ==\n")
 check <- readRDS(staged)
+
+## Canonical rows of a typing table, ordered, for comparison by VALUE. Includes
+## `copy` and keeps duplicates, which is the whole point: donor4 is homozygous
+## A*03:01, so its two rows are identical apart from `copy` and a set-based
+## comparison cannot see one of them go missing.
+HLA_ROW_COLS <- c("sample", "donor_id", "locus", "allele", "copy")
+hla_canonical_rows <- function(typing) {
+  ## Fixed column set, and it must be complete on both sides: intersecting with
+  ## whatever each table happens to carry would let a missing `copy` column make
+  ## the comparison pass by comparing less.
+  stopifnot(
+    "typing table is missing a canonical column" = all(
+      HLA_ROW_COLS %in% colnames(typing)
+    )
+  )
+  df <- typing[, HLA_ROW_COLS, drop = FALSE]
+  df <- data.frame(lapply(df, as.character), stringsAsFactors = FALSE)
+  df <- df[do.call(order, df), , drop = FALSE]
+  rownames(df) <- NULL
+  df
+}
 
 ## -- shape and donor balance
 m <- check$getMetaData()
@@ -717,10 +798,15 @@ stopifnot(
     unique(ht$source_type),
     "genotyped"
   ),
-  "HLA alleles drifted from the published table" = setequal(
-    paste(ht$sample, ht$allele),
-    genotype_key
+  ## Sorted canonical ROWS, not a set of sample+allele pairs: a set comparison
+  ## silently tolerates a lost duplicate (donor4 is homozygous A*03:01, so one
+  ## of its two rows can vanish and the set is unchanged) and ignores `copy`
+  ## entirely. Compare what the object actually stores, and count the rows.
+  "HLA typing drifted from the published table" = identical(
+    hla_canonical_rows(ht),
+    hla_canonical_rows(donor_typing_canonical)
   ),
+  "HLA typing lost or gained rows" = nrow(ht) == nrow(donor_typing_canonical),
   "provenance is missing" = nzchar(unique(ht$typing_method)) &&
     nzchar(unique(ht$source_reference))
 )
@@ -742,8 +828,8 @@ stopifnot(
     ) %in%
       colnames(m)
   ),
-  "restriction_in_genotype must be yes/no" = all(
-    m$restriction_in_genotype %in% c("yes", "no")
+  "restriction_in_genotype must be yes/no/unknown" = all(
+    m$restriction_in_genotype %in% c("yes", "no", "unknown")
   ),
   ## If this ever came out clean, the binder calls would have stopped being raw
   ## 10x calls and the documentation would need rewriting -- so assert the
@@ -751,19 +837,49 @@ stopifnot(
   "off-genotype binding vanished; re-check the specificity claims" = any(
     m$restriction_in_genotype == "no"
   ),
+  ## And "unknown" must exist too: table S1 publishes one HLA-B allele for two
+  ## donors, so a binder call at their second B copy is undecidable. If this
+  ## became empty, either the typing gained copies or the three-state logic
+  ## collapsed back into a two-state one that calls missing data a negative.
+  "the undecidable calls vanished; check locus completeness" = any(
+    m$restriction_in_genotype == "unknown"
+  ),
   "the caveat must be recorded in the object" = grepl(
     "RAW BINDER CALLS",
     check$technical_info$tcr_selection_detail
   )
 )
 cat(sprintf(
-  "   off-genotype binder calls: %d of %d cells (the documented caveat)\n",
+  "   binder calls vs genotype: %d off-genotype, %d undecidable, of %d cells\n",
   sum(m$restriction_in_genotype == "no"),
+  sum(m$restriction_in_genotype == "unknown"),
   nrow(m)
 ))
 
 ## -- gate passed: publish
-file.rename(staged, OUT)
+## file.rename() RETURNS failure, it does not signal it -- and it is the failure
+## most likely to happen in practice (a replacement across devices, or an
+## existing OUT on Windows). Printing PUBLISHED over a rename that silently did
+## nothing would leave the old file in place while claiming the new one shipped,
+## which is the whole class of bug this gate exists to stop.
+if (!file.rename(staged, OUT)) {
+  stop(
+    "could not publish the staged object to ",
+    OUT,
+    " -- the previously shipped file is untouched",
+    call. = FALSE
+  )
+}
+## Re-read what actually landed: the gate measured the staged bytes, so this is
+## the last step that can catch a truncated or partially written destination.
+published <- readRDS(OUT)
+stopifnot(
+  "the published file does not match what was verified" = identical(
+    dim(published$expression),
+    dim(check$expression)
+  ) &&
+    nrow(published$getMetaData()) == nrow(m)
+)
 cat(sprintf(
   "   PUBLISHED %s (%.1f MB)\n",
   OUT,

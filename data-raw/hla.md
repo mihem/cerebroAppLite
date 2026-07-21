@@ -357,13 +357,28 @@ Only the 2,000 variable genes ship — 33,538 × 12,000 would be a large file fo
 A `.crb` is an R6 `Cerebro_v1.3` object written with `saveRDS()`. Building one from scratch means assigning its fields directly; there is no converter to go through.
 
 ```r
+# Three states, not two: absence from the published table is only evidence of
+# absence when the LOCUS was called completely. Table S1 gives donors 1 and 2 a
+# single HLA-B allele, so a B-restricted binder call there is undecidable. The
+# rule is the package's own (hla_locus_call_state: complete at two copies).
+donor_typing_canonical <- cerebroAppLite:::hla_normalize_typing(donor_typing)
+genotype_key <- paste(donor_typing_canonical$sample, donor_typing_canonical$allele)
+# ... locus_complete built per (sample, locus) from hla_locus_call_state ...
+restriction_in_genotype <- ifelse(
+  paste(sel$donor, sel$dextramer_allele) %in% genotype_key, "yes",
+  ifelse(locus_fully_called, "no", "unknown")
+)
+
 meta <- data.frame(
-  cell_barcode       = sel$barcode,
-  sample             = sel$donor,
-  cell_type          = "CD8 T",         # sorted CD8+; declared, never inferred
-  antigen            = sel$antigen,
-  peptide            = sel$peptide,
-  restricting_allele = sel$restricting_allele,
+  cell_barcode            = sel$barcode,
+  sample                  = sel$donor,
+  cell_type               = "CD8 T",    # sorted CD8+; declared, never inferred
+  # `dextramer_*`, never `antigen` / `restricting_allele`: these are 10x's raw
+  # binder calls for a reagent, not validated peptide specificity (S3.5).
+  dextramer_antigen       = sel$dextramer_antigen,
+  dextramer_peptide       = sel$dextramer_peptide,
+  dextramer_allele        = sel$dextramer_allele,
+  restriction_in_genotype = restriction_in_genotype,
   stringsAsFactors = FALSE
 )
 rownames(umap) <- meta$cell_barcode
@@ -379,10 +394,12 @@ crb$expression  <- expression
 crb$setMetaData(meta)
 crb$projections <- list(umap = umap)
 crb$groups <- list(
-  sample             = sort(unique(meta$sample)),
-  cell_type          = sort(unique(meta$cell_type)),
-  antigen            = sort(unique(meta$antigen)),
-  restricting_allele = sort(unique(meta$restricting_allele))
+  sample                  = sort(unique(meta$sample)),
+  cell_type               = sort(unique(meta$cell_type)),
+  dextramer_antigen       = sort(unique(meta$dextramer_antigen)),
+  dextramer_allele        = sort(unique(meta$dextramer_allele)),
+  # declared as a group so the cross-reactivity is colourable in the app
+  restriction_in_genotype = sort(unique(meta$restriction_in_genotype))
 )
 crb$immune_repertoire <- immune_repertoire
 crb$experiment <- list(
@@ -404,8 +421,14 @@ crb$addHLATyping(
   source_reference = "10x Genomics CD8+ T cells of Healthy Donor 1-4; Zhang et al., Sci Adv 2021, eabf5835"
 )
 
-saveRDS(crb, OUT, compress = "xz")
+# STAGING, not the shipped path -- S3.10 decides whether this ever becomes OUT.
+staged <- paste0(OUT, ".staged")
+on.exit(unlink(staged), add = TRUE)
+saveRDS(crb, staged, compress = "xz")
 ```
+
+Note also that `expression` was kept **sparse** in S3.8: a `dgCMatrix`, like
+every other demo this package ships.
 
 The four declared contracts and why each one:
 
@@ -423,15 +446,34 @@ The object is written to a **staging** path. The script then re-reads that file,
 This is a gate, not a report. An earlier version printed the same numbers *after* saving, so a drifted input still replaced a good demo and still exited 0.
 
 ```r
-check <- readRDS(OUT)
-ir    <- check$getImmuneRepertoire()
-for (ch in c("TRB", "TRA")) {
-  seg <- cerebroAppLite:::hla_parse_ir_segments(ir, ch)
-  g   <- cerebroAppLite:::hla_build_motif_graph(seg, by_v = TRUE, min_nodes = 2L)
-  cat(sprintf("   %s: %d unique CDR3 -> %d nodes in %d motifs\n", ch,
-              length(unique(seg$cdr3)), igraph::vcount(g),
-              length(unique(igraph::V(g)$cluster))))
+check <- readRDS(staged)          # the STAGED bytes, not the shipped file
+
+stopifnot(
+  "donors are not balanced"            = all(table(m$sample) == CELLS_PER_DONOR),
+  "expression block is not sparse"     = methods::is(check$expression, "CsparseMatrix"),
+  "not every observation is paired"    = all(is_paired(ctaa)),
+  "TRB network has collapsed"          = n_nodes > 100 && n_motifs >= 20,
+  # sorted canonical ROWS incl. `copy`, not a set of sample+allele pairs: donor4
+  # is homozygous A*03:01, so a set comparison cannot see one row go missing
+  "HLA typing drifted from table S1"   = identical(hla_canonical_rows(ht),
+                                                   hla_canonical_rows(donor_typing_canonical)),
+  "HLA typing lost or gained rows"     = nrow(ht) == nrow(donor_typing_canonical),
+  "restriction_in_genotype must be yes/no/unknown" =
+    all(m$restriction_in_genotype %in% c("yes", "no", "unknown")),
+  # both of these must still EXIST: no off-genotype calls would mean the binder
+  # calls stopped being raw 10x calls; no unknowns would mean the three-state
+  # logic collapsed back into calling missing data a negative
+  "off-genotype binding vanished"      = any(m$restriction_in_genotype == "no"),
+  "the undecidable calls vanished"     = any(m$restriction_in_genotype == "unknown")
+)
+
+# file.rename() RETURNS failure rather than signalling it, and printing
+# PUBLISHED over a rename that did nothing is exactly the bug this gate exists
+# to stop. Then re-read what actually landed.
+if (!file.rename(staged, OUT)) {
+  stop("could not publish the staged object -- the shipped file is untouched")
 }
+published <- readRDS(OUT)
 ```
 
 Current output, and what the shipped object contains:
@@ -443,13 +485,16 @@ Current output, and what the shipped object contains:
    TRB: 3270 unique CDR3 -> 169 nodes in 39 motifs
    TRA: 3189 unique CDR3 -> 396 nodes in 141 motifs
    HLA: 4 donors, 12 alleles, source_type=genotyped
-   off-genotype binder calls: 6729 of 12000 cells (the documented caveat)
+   binder calls vs genotype: 6654 off-genotype, 75 undecidable, of 12000 cells
    PUBLISHED inst/extdata/v1.4/demo_hla_tcr_dextramer.crb (5.2 MB)
 
    groups:   sample, cell_type, dextramer_antigen, dextramer_allele,
              restriction_in_genotype
    metadata: cell_barcode, sample, cell_type, dextramer_antigen,
              dextramer_peptide, dextramer_allele, restriction_in_genotype
+   restriction_in_genotype: yes 5271 / no 6654 / unknown 75
+             (the 75 are donor1 HLA-B*08:01 calls: table S1 publishes only one
+              HLA-B allele for that donor, so the second copy could be it)
    23 antigens; 6 reagent restrictions present on cells
 ```
 

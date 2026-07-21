@@ -35,10 +35,14 @@
   carries Class II typing plus a lineage column.
   The per-cell `dextramer_*` columns are 10x's **raw binder calls for a
   reagent**, not validated peptide specificity: staining is heavily
-  cross-reactive here, and a `restriction_in_genotype` column ships beside them
-  so that is visible in the app rather than only in the vignette. The HLA
-  association contrasts use the published genotypes and do not rest on those
-  calls.
+  cross-reactive here, and a `restriction_in_genotype` (`yes` / `no` /
+  `unknown`) column ships beside them so that is visible in the app rather than
+  only in the vignette. `unknown` is not padding: table S1 publishes one HLA-B
+  allele for two donors, and absence from an incompletely called locus is not
+  evidence of absence. The HLA association contrasts use the published genotypes
+  and are therefore not circular — though the repertoire was still captured by a
+  reagent panel, so ascertainment and donor/panel confounding remain, which the
+  caveat above the tables now states.
 - **Three new vignettes.** *"HLA & TCR Motifs: from synthetic data to an
   interactive app"* (single-cell, runnable end to end), *"HLA Associations on
   bulk TCRβ with real donor HLA"* (bring your own bulk cohort, with its
