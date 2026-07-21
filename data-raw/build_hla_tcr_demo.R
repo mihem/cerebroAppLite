@@ -1,5 +1,12 @@
 #!/usr/bin/env Rscript
 # ============================================================================
+# NOT SHIPPED (since 2026-07-21). This script still runs and is maintained, but
+# the .crb it writes is no longer tracked or installed: it is fabricated end to
+# end, and demo_hla_tcr_dextramer.crb now shows the same network on measured
+# sequences. Kept because a fully-controlled dense network is still the fastest
+# fixture to develop the page against. data-raw/ is .Rbuildignore'd, so this
+# costs the installed package nothing.
+# ============================================================================
 # Build the HLA & TCR Motifs demo (.crb) — A FULLY SYNTHETIC FIXTURE
 # ============================================================================
 # Produces `inst/extdata/v1.4/demo_hla_tcr_synthetic.crb`.
@@ -37,7 +44,8 @@
 # so the carrier/non-carrier contrast this data set displays was put there on
 # purpose. It is circular by construction, more so than an
 # "association-conditioned" positive control (where at least the sequences and
-# genotypes are real). See `demo_hla_tcr_bulk.crb` for real donor HLA.
+# genotypes are real). The shipped demo, demo_hla_tcr_dextramer.crb, has real
+# cells, real TCR and real published genotypes -- prefer it for anything factual.
 #
 # WHAT IS REUSED RATHER THAN INVENTED
 # -----------------------------------

@@ -25,13 +25,19 @@
   the page states honestly when rows are analysis units rather than cells, when a
   receptor is keyed by V gene + CDR3, and when a carrier contrast is a positive
   control rather than independent evidence.
-- **Two demo data sets.** `demo_hla_tcr_synthetic.crb` (single cells, synthetic HLA and
-  designed motif families) and `demo_hla_tcr_bulk.crb` (bulk TCRβ with real donor
-  HLA from the Emerson 2017 cohort).
-- **Two new vignettes.** *"HLA & TCR Motifs: from synthetic data to an
-  interactive app"* (single-cell, runnable end to end) and *"HLA Associations on
-  bulk TCRβ with real donor HLA"* (the bulk workflow and its positive-control
-  caveat).
+- **One demo data set.** `demo_hla_tcr_dextramer.crb`: 12,000 real CD8+ T cells
+  with real paired αβ TCR and the donors' published HLA genotypes, from 10x
+  Genomics' dextramer cohort (Zhang et al., *Sci Adv* 2021, CC-BY). The
+  repertoire is antigen-selected, which is what makes its motif network legible
+  — 157 TRB nodes in 31 motifs on measured sequences, where an unselected
+  repertoire gives 4. Class I only (sorted CD8+), so the Class I × Class II pair
+  scope stays hidden on this demo and appears when a data set carries Class II
+  typing plus a lineage column.
+- **Three new vignettes.** *"HLA & TCR Motifs: from synthetic data to an
+  interactive app"* (single-cell, runnable end to end), *"HLA Associations on
+  bulk TCRβ with real donor HLA"* (bring your own bulk cohort, with its
+  positive-control caveat), and *"Antigen-selected single-cell TCR"* (the
+  shipped demo's full download → `.crb` pipeline).
 
 # cerebroAppLite 2.2.0
 

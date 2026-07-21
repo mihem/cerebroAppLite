@@ -34,18 +34,25 @@ The emphasis is on the two parts that decide whether the HLA & TCR Motifs page
 says anything true: **how the TCR is transformed**, and **where the HLA comes
 from**.
 
-## Why a third demo
+## Why this demo
 
-The package ships three HLA demos because no single one answers everything:
+One HLA demo ships, and everything in it is measured:
 
-| demo | cells | TCR | HLA | what it is for |
-|---|---|---|---|---|
-| `demo_hla_tcr_synthetic.crb` | synthetic | synthetic | synthetic | shows a dense motif network; proves nothing about real data |
-| `demo_hla_tcr_bulk.crb` | none (bulk) | **real** | **real genotypes** | HLA Associations on genuine typing |
-| **`demo_hla_tcr_dextramer.crb`** | **real** | **real** | **real, published** | the motif network on measured sequences |
+| | `demo_hla_tcr_dextramer.crb` |
+|---|---|
+| cells | **real** — 12,000 sequenced CD8+ T cells |
+| TCR | **real** — paired αβ contigs, V gene + CDR3 |
+| HLA | **real** — the donors' published genotypes (table S1), measured independently of these cells |
 
-The gap the third one fills is a fair objection: *if the motif network is only
-legible on synthetic data, what is the feature for?*
+Earlier iterations shipped two others — a fully fabricated fixture and a real
+bulk TCRβ cohort. Both are gone: cerebroAppLite is a single-cell application, and
+a demo that is neither real nor single-cell earns its place only if nothing
+better exists. This one is both, so it replaces them. Their build pipelines
+remain in `data-raw/` (see `data-raw/hla.md`) if you want to reproduce them, and
+the bulk workflow now lives in its own guide as *bring your own cohort*.
+
+Replacing them required answering a fair objection first: *if the motif network
+is only legible on synthetic data, what is the feature for?*
 
 ## The answer, as a measurement
 
@@ -233,12 +240,27 @@ science.org:
 https://www.science.org/doi/suppl/10.1126/sciadv.abf5835/suppl_file/abf5835_sm.pdf
 ```
 
-The table is transcribed into `data-raw/donor_hla_haplotypes.csv`, which the
-build reads directly:
+Open it in a browser — science.org is behind Cloudflare and refuses
+command-line clients. Nothing depends on that, though: the table is transcribed
+inline in the build script, so it is self-contained — 14 rows, and a separate
+file would only be one more thing to keep in step:
 
 ```{r hla-genotype}
-tab <- read.csv("data-raw/donor_hla_haplotypes.csv", comment.char = "#")
-tab$sample <- tolower(gsub(" ", "", tab$donor))   # "Donor 1" -> "donor1"
+DONOR_HLA <- read.csv(text = "donor,copy,allele
+donor1,1,HLA-A*02:01
+donor1,2,HLA-A*11:01
+donor1,1,HLA-B*35:01
+donor2,1,HLA-A*02:01
+donor2,2,HLA-A*01:01
+donor2,1,HLA-B*08:01
+donor3,1,HLA-A*24:02
+donor3,2,HLA-A*29:02
+donor3,1,HLA-B*35:02
+donor3,2,HLA-B*44:03
+donor4,1,HLA-A*03:01
+donor4,2,HLA-A*03:01
+donor4,1,HLA-B*07:02
+donor4,2,HLA-B*57:01", stringsAsFactors = FALSE)
 ```
 
 | donor | HLA-A | HLA-B |

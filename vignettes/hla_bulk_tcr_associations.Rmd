@@ -26,8 +26,11 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 # What this guide does
 
-The main HLA guide builds a *single-cell* data set.
-This companion covers the other input the **HLA Associations** tab is made for: **bulk TCRβ immunosequencing paired with real donor HLA genotypes**.
+cerebroAppLite is a single-cell application, and the demo it ships is single-cell: real cells, real paired TCR, real donor genotypes.
+But the **HLA Associations** tab also accepts an input that has no cells at all — **bulk TCRβ immunosequencing paired with real donor HLA genotypes** — and this guide is how you bring your own.
+
+Nothing here is shipped with the package: there is no bundled bulk demo to open.
+Instead this guide shows you how to build one, either from a real public cohort ([Option A](#option-a-the-real-public-cohort-pubtcrs-emerson-2017)) or as a small synthetic object you can run in the next five minutes ([Option B](#option-b-a-small-synthetic-bulk-crb-you-can-run-now)).
 
 If you have not read the main guide, skim its "two ideas" section first — this one assumes you know what a CDR3, a motif, and an HLA allele are.
 As before, every code block runs on its own (base R + `Matrix` + `cerebroAppLite`, no downloads), and we print each object as we build it.
@@ -49,7 +52,7 @@ The payoff: the HLA genotypes are **real**, so the Associations tab runs on genu
 
 <div style="border-left: 4px solid #e69500; background: #fff6e6; padding: 0.6em 1em; margin: 1em 0;">
 **"Association-conditioned" means positive control, not evidence.**
-The public demo's receptors were chosen *using* a published HLA association, and donors were then kept only if they carry one of those receptors.
+The public cohort's receptors were chosen *using* a published HLA association, and donors were then kept only if they carry one of those receptors.
 So any carrier / non-carrier difference you see was **built in by that selection**, and re-checking it on the very cohort the association came from is not independent replication.
 Treat it as a positive control that proves the workflow runs — nothing more.
 The `.crb` says so (`technical_info$tcr_selection = "association-conditioned"`) and the app shows an orange warning wherever the contrast appears.
@@ -82,9 +85,9 @@ The rest of this guide fills in `meta`, `ir`, and `hla_long`, and shows each one
 
 ## Option A — the real public cohort (pubtcrs / Emerson 2017)
 
-The shipped `demo_hla_tcr_bulk.crb` is built from real data: the Emerson et al. (*Nat Genet* 2017) cohort as cleaned by DeWitt et al. (*eLife* 2018), distributed as `pubtcrs_data_v1.tgz` on Zenodo record [1248193](https://zenodo.org/records/1248193).
+The best public source is the Emerson et al. (*Nat Genet* 2017) cohort as cleaned by DeWitt et al. (*eLife* 2018), distributed as `pubtcrs_data_v1.tgz` on Zenodo record [1248193](https://zenodo.org/records/1248193).
 It holds 630 donors' real HLA typing, roughly 11 million public TCRβ chains, and the paper's own table of HLA-associated receptors.
-The build script downloads and assembles all of it:
+`data-raw/build_hla_tcr_bulk_demo.R` in the repository downloads and assembles all of it into a `.crb` — it is kept as a working, runnable pipeline even though the resulting object is no longer shipped:
 
 ```{r, eval = FALSE}
 # ~349 MB download; see data-raw/build_hla_tcr_bulk_demo.R for the full pipeline
@@ -114,7 +117,7 @@ TRBV19,CASSIRSSYEQYF   HLA-A*02:01     1.2e-14
 TRBV27,CASSLGQAYEQYF   HLA-B*07:02     3.4e-11
 ```
 
-`pubtcrs_info.tsv` holds the ~11 million public TCRβ chains as **V family + CDR3 amino acids only** — Adaptive's immunoSEQ assay does not report a J gene. That single fact is why the shipped `.crb` declares `receptor_key = "v_gene+cdr3"`: a receptor is a V family plus its CDR3, not the CDR3 alone.
+`pubtcrs_info.tsv` holds the ~11 million public TCRβ chains as **V family + CDR3 amino acids only** — Adaptive's immunoSEQ assay does not report a J gene. That single fact is why a `.crb` built from it declares `receptor_key = "v_gene+cdr3"`: a receptor is a V family plus its CDR3, not the CDR3 alone.
 
 Each row of the built `.crb` is therefore a *(donor, associated-TCR)* pair: the TCR's V + CDR3 from `pubtcrs_info.tsv`, the donor's real genotype from `HLA_features.txt`, and the real observed fact that this donor's repertoire contains this TCR.
 
@@ -285,7 +288,7 @@ launchCerebro(crb_file_to_load = "demo_hla_tcr_bulk_toy.crb")
 ```
 
 Because a TRB chain is present, the **HLA & TCR Motifs** item appears in the sidebar; open it and switch to **HLA Associations**.
-With the shipped `demo_hla_tcr_bulk.crb` (the real cohort) the tab looks like this:
+Built from the real cohort (Option A), the tab looks like this:
 
 ![HLA Associations on the real bulk cohort. The orange banner declares the positive control; the allele picker shows real carrier / non-carrier counts (51 vs 49); the overlap table is donor-level.](img/hla_bulk_positive_control.png)
 
@@ -378,7 +381,7 @@ Bulk immunoSEQ reports only the V family and the CDR3; the parser leaves `j_gene
 
 - **HLA & TCR Motifs: from synthetic data to an interactive app** — the single-cell workflow (Seurat → `.crb` → app) and a full tour of the page.
 - `data-raw/build_hla_tcr_bulk_demo.R` — the real pubtcrs → `.crb` pipeline.
-- `data-raw/DATASETS.md` — provenance for both shipped HLA demos.
+- `data-raw/DATASETS.md` — provenance for the shipped HLA demo, and for the two demos this package no longer ships.
 
 # Getting help
 

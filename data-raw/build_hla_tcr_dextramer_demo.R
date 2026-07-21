@@ -3,17 +3,16 @@
 # Build the REAL single-cell antigen-selected TCR demo (.crb)
 #   -> inst/extdata/v1.4/demo_hla_tcr_dextramer.crb
 # ============================================================================
-# This is the third HLA demo. It ADDS to the other two, it does not replace
-# them -- each answers a different question and none of them answers all three:
+# This is the ONLY HLA demo the package ships. It replaced two earlier ones
+# (2026-07-21): a fully fabricated fixture and a real BULK TCRb cohort. Neither
+# was both real and single-cell, and cerebroAppLite is a single-cell app. Their
+# build scripts are kept in data-raw/ as the reproducibility record --
+# build_hla_tcr_demo.R and build_hla_tcr_bulk_demo.R -- but what they write into
+# inst/extdata/v1.4/ is no longer tracked or installed. See data-raw/hla.md S1.
 #
-#   demo_hla_tcr_synthetic.crb   fully synthetic single cells
-#       -> shows what a dense motif network looks like, but proves nothing
-#          about real data
-#   demo_hla_tcr_bulk.crb        real bulk TCRb + REAL genotypes (Emerson 2017)
-#       -> HLA Associations on genuine HLA typing, but no cells
-#   demo_hla_tcr_dextramer.crb   REAL single cells + REAL TCR + REAL genotypes,
-#     (this file)                antigen-selected
-#       -> the motif network on measured sequences
+# Because this demo is sorted CD8+ T cells, its typing is CLASS I ONLY, so the
+# Class I x Class II pair scope stays hidden on it (hla_pair_available() gates
+# the control). That is a real gap, stated rather than papered over.
 #
 # WHY THIS DATA SET EXISTS
 # ------------------------
@@ -55,9 +54,9 @@
 #       stated in the reagent's name (A0201_GILGFVFTL_Flu-MP -> HLA-A*02:01)
 #
 #     * the donors' HLA GENOTYPES, transcribed from table S1 of the paper's
-#       supplementary PDF (see data-raw/donor_hla_haplotypes.csv for citation
-#       and URL). They were measured independently of these cells, so they can
-#       carry an association claim.
+#       supplementary PDF (inline as DONOR_HLA below, with citation and URL).
+#       They were measured independently of these cells, so they can carry an
+#       association claim.
 #
 # WHY THE GENOTYPES ARE NOT INFERRED FROM BINDING
 # -----------------------------------------------
@@ -99,9 +98,20 @@ CACHE <- "data-raw/vdj_10x_dextramer"
 OUT <- "inst/extdata/v1.4/demo_hla_tcr_dextramer.crb"
 BASE <- "https://cf.10xgenomics.com/samples/cell-vdj/3.0.2"
 
-## The donors' REAL genotypes, transcribed from table S1 of the paper's
-## supplementary PDF. See data-raw/donor_hla_haplotypes.csv for the citation and
-## the working URL (the link printed in the paper itself is dead).
+## The donors' REAL genotypes: table S1 ("HLA haplotypes of the healthy donors")
+## of the paper's supplementary PDF, transcribed by hand. Kept inline so this
+## script is self-contained -- it is 14 rows, and a separate file would only be
+## one more thing to keep in step.
+##
+##   Supplement (Figs. S1-S11, Tables S1-S5), ~6 MB:
+##   https://www.science.org/doi/suppl/10.1126/sciadv.abf5835/suppl_file/abf5835_sm.pdf
+##   (the link printed inside the paper, advances.sciencemag.org/.../DC1, is dead:
+##    that domain was retired when Science migrated to science.org)
+##
+## Table S1 gives two HLA-A and two HLA-B alleles per donor, "na" where the paper
+## reports none -- which is why donors 1 and 2 contribute a single B allele.
+## Donor 4 is homozygous A*03:01. `copy` is 1 or 2 within a locus, matching the
+## canonical HLA table this package stores.
 ##
 ## This matters more than it looks. An earlier version of this script inferred
 ## the genotypes from which dextramers each donor's cells bound, and that
@@ -109,7 +119,24 @@ BASE <- "https://cf.10xgenomics.com/samples/cell-vdj/3.0.2"
 ## binding A*03:01-restricted dextramers and is not an A*03:01 carrier at all --
 ## it is A*24:02 / A*29:02. Binding is not genotype, and cross-reactivity is far
 ## larger than a threshold can separate. The published table is used instead.
-HLA_TABLE <- "data-raw/donor_hla_haplotypes.csv"
+DONOR_HLA <- read.csv(
+  text = "donor,copy,allele
+donor1,1,HLA-A*02:01
+donor1,2,HLA-A*11:01
+donor1,1,HLA-B*35:01
+donor2,1,HLA-A*02:01
+donor2,2,HLA-A*01:01
+donor2,1,HLA-B*08:01
+donor3,1,HLA-A*24:02
+donor3,2,HLA-A*29:02
+donor3,1,HLA-B*35:02
+donor3,2,HLA-B*44:03
+donor4,1,HLA-A*03:01
+donor4,2,HLA-A*03:01
+donor4,1,HLA-B*07:02
+donor4,2,HLA-B*57:01",
+  stringsAsFactors = FALSE
+)
 
 ## Shipped size. The demo must stay a few MB, so the antigen-selected cells are
 ## subsampled per donor and the matrix is cut to informative genes.
@@ -295,19 +322,12 @@ cat(sprintf(
   nrow(dex_all)
 ))
 
-## Donor genotype, INFERRED from binding (see the header's circularity note).
+## Donor genotype, read off the published table (see DONOR_HLA above).
 hla_donor_typing <- function(donors) {
-  tab <- utils::read.csv(
-    HLA_TABLE,
-    comment.char = "#",
-    stringsAsFactors = FALSE
-  )
-  # "Donor 1" in the paper is "donor1" here; keep only the donors we ship.
-  tab$sample <- tolower(gsub(" ", "", tab$donor))
-  tab <- tab[tab$sample %in% donors, , drop = FALSE]
+  tab <- DONOR_HLA[DONOR_HLA$donor %in% donors, , drop = FALSE]
   data.frame(
-    sample = tab$sample,
-    donor_id = tab$sample,
+    sample = tab$donor,
+    donor_id = tab$donor,
     allele = tab$allele,
     copy = as.integer(tab$copy),
     stringsAsFactors = FALSE

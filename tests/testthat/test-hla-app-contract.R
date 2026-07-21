@@ -194,121 +194,88 @@ test_that("bundled core shim resolves without an installed package", {
   expect_equal(status, 0L, info = paste(output, collapse = "\n"))
 })
 
-test_that("bundled HLA demo is disclosed as fully fabricated", {
-  # This demo used to carry REAL sequences with a synthetic receptor-to-cell
-  # linkage. It is now fabricated end to end, which is a strictly stronger
-  # claim: the label and registry must not still read as "real data, synthetic
-  # wiring", or a reader would trust the sequences.
-  app <- paste(readLines(hla_inst_file("app.R"), warn = FALSE), collapse = "\n")
-
-  datasets_path <- testthat::test_path("../../data-raw/DATASETS.md")
-  if (file.exists(datasets_path)) {
-    datasets <- paste(readLines(datasets_path, warn = FALSE), collapse = "\n")
-    expect_match(datasets, "fully synthetic", ignore.case = TRUE)
-  }
-  expect_match(app, "FULLY FABRICATED", ignore.case = TRUE)
-  expect_match(
-    app,
-    "SYNTHETIC fixture[\\s\\S]{0,40}not measurement",
-    perl = TRUE
-  )
-})
-
-## ---- single-cell fixture contracts ------------------------------------ ##
-## Its whole reason to exist is a motif network that is dense enough to read,
-## which only holds because the families were designed in. If a rebuild loses
-## that, the page silently reverts to the near-empty scatter this replaced.
+## ---- shipped demo contracts ------------------------------------------- ##
+## One demo ships: real single cells, real paired TCR, real published donor
+## genotypes. It makes claims the UI depends on, so if a rebuild drops one the
+## page silently changes meaning -- donor-level counting reverts to
+## sample-level, or the antigen-selection disclosure disappears while the
+## carrier contrast remains on screen.
 
 hla_sc_demo <- function() {
-  path <- hla_inst_file("extdata/v1.4/demo_hla_tcr_synthetic.crb")
+  path <- hla_inst_file("extdata/v1.4/demo_hla_tcr_dextramer.crb")
   testthat::skip_if_not(file.exists(path), "single-cell demo not built")
   readRDS(path)
 }
 
-test_that("single-cell fixture declares synthetic selection and cell units", {
+test_that("shipped demo declares antigen selection, cells and its receptor key", {
   ti <- hla_sc_demo()$technical_info
-  expect_equal(ti$tcr_selection, "synthetic")
-  expect_equal(ti$observation_unit, "cell")
-  expect_equal(ti$receptor_key, "v_gene+cdr3")
+  # The repertoire was sorted for dextramer binding: not an unbiased sample of
+  # the donors' repertoires, and the page prints so above the Associations.
+  expect_equal(ti$tcr_selection, "antigen-selected")
   expect_true(nzchar(ti$tcr_selection_detail))
+  expect_equal(ti$observation_unit, "cell")
+  # This source identifies a receptor by V gene AND CDR3; CDR3-only nodes would
+  # fuse receptors the source counts separately.
+  expect_equal(ti$receptor_key, "v_gene+cdr3")
+  # Declared, so class-based filtering never has to infer the lineage column.
+  expect_equal(ti$lineage_column, "cell_type")
 })
 
-test_that("single-cell fixture HLA is synthetic and covers every sample", {
+test_that("shipped demo HLA is genotyped and covers every sample", {
   crb <- hla_sc_demo()
   ht <- crb$getHLATyping()
-  expect_true(all(ht$source_type == "synthetic"))
+  # Published (table S1), measured independently of these cells -- which is what
+  # lets a carrier / non-carrier contrast mean anything here.
+  expect_true(all(ht$source_type == "genotyped"))
   expect_setequal(unique(ht$sample), names(crb$getImmuneRepertoire()))
-  # Only the loci the page enforces.
-  expect_setequal(
-    unique(ht$locus),
-    c("HLA-A", "HLA-B", "HLA-C", "HLA-DRB1")
-  )
+  # Sorted CD8+ T cells, so Class I only. The Class I x Class II pair scope is
+  # gated on hla_pair_available() and therefore stays hidden on this demo.
+  expect_setequal(unique(ht$locus), c("HLA-A", "HLA-B"))
 })
 
-test_that("single-cell fixture yields a readable TRB motif network", {
-  crb <- hla_sc_demo()
-  seg <- hla_parse_ir_segments(crb$getImmuneRepertoire(), "TRB")
-  nodes <- hla_aggregate_cdr3_nodes(seg, by_v = TRUE)
-  m <- hla_build_motif_groups(nodes, by_v = TRUE)$motif_df
-  in_motif <- m[m$motif_size >= 2L, ]
-  # The predecessor produced 4 nodes in 2 motifs. Assert an order of magnitude
-  # more, and a spread of sizes rather than a pile of identical pairs.
-  expect_gt(nrow(in_motif), 300L)
-  expect_gte(length(unique(in_motif$motif_group)), 15L)
-  expect_gte(max(in_motif$motif_size), 40L)
-  # Isolated CDR3s must still dominate: a repertoire where everything clusters
-  # would be its own kind of lie.
-  expect_gt(nrow(m) - nrow(in_motif), nrow(in_motif))
-})
-
-## ---- shipped demo contracts ------------------------------------------- ##
-## The bulk demo makes claims the UI depends on. If a rebuild drops one, the
-## page silently changes meaning: donor-level counting reverts to sample-level,
-## or the positive-control disclosure disappears while the contrast remains.
-
-hla_bulk_demo <- function() {
-  path <- hla_inst_file("extdata/v1.4/demo_hla_tcr_bulk.crb")
-  testthat::skip_if_not(file.exists(path), "bulk demo not built")
-  readRDS(path)
-}
-
-test_that("bulk demo declares its association-conditioned selection", {
-  ti <- hla_bulk_demo()$technical_info
-  expect_equal(ti$tcr_selection, "association-conditioned")
-  expect_true(nzchar(ti$tcr_selection_detail))
-})
-
-test_that("bulk demo declares a V-gene+CDR3 receptor key", {
-  # Its CDR3s recur across V families, so CDR3-only nodes would fuse receptors
-  # the source counts separately.
-  expect_equal(hla_bulk_demo()$technical_info$receptor_key, "v_gene+cdr3")
-})
-
-test_that("bulk demo carries donor ids, so counting is donor-level", {
-  ht <- hla_bulk_demo()$getHLATyping()
+test_that("shipped demo carries donor ids, so counting is donor-level", {
+  ht <- hla_sc_demo()$getHLATyping()
   expect_false(any(is.na(ht$donor_id)))
   units <- hla_analysis_unit_map(ht, unique(ht$sample))
   expect_equal(unique(units$unit_type), "donor")
 })
 
-test_that("bulk demo HLA is real, and measures no genes", {
-  crb <- hla_bulk_demo()
-  expect_true(all(crb$getHLATyping()$source_type == "genotyped"))
-  # Bulk: no transcriptome. A 0-row matrix states that; NULL would break
-  # ncol()/nrow() call sites.
-  expect_equal(nrow(crb$expression), 0L)
+test_that("shipped demo yields a readable TRB motif network on real sequences", {
+  # The whole argument for the page: a Hamming-1 CDR3 network is legible on an
+  # ANTIGEN-SELECTED repertoire. An unselected one is sparse -- the real-sequence
+  # predecessor gave 4 nodes in 2 motifs. Measured here: 157 nodes in 31 motifs,
+  # largest 36. Assert well under those so a rebuild is not brittle, but far
+  # above the near-empty scatter this replaced.
+  crb <- hla_sc_demo()
+  seg <- hla_parse_ir_segments(crb$getImmuneRepertoire(), "TRB")
+  nodes <- hla_aggregate_cdr3_nodes(seg, by_v = TRUE)
+  m <- hla_build_motif_groups(nodes, by_v = TRUE)$motif_df
+  in_motif <- m[m$motif_size >= 2L, ]
+  expect_gt(nrow(in_motif), 100L)
+  expect_gte(length(unique(in_motif$motif_group)), 20L)
+  expect_gte(max(in_motif$motif_size), 10L)
+  # Isolated CDR3s must still dominate: a repertoire where everything clusters
+  # would be its own kind of lie.
+  expect_gt(nrow(m) - nrow(in_motif), nrow(in_motif))
+})
+
+test_that("shipped demo measures real genes for every cell", {
+  crb <- hla_sc_demo()
+  # Unlike the bulk cohort this replaced, these are sequenced cells: the matrix
+  # must be non-empty and aligned to the metadata.
+  expect_gt(nrow(crb$expression), 0L)
   expect_equal(ncol(crb$expression), nrow(crb$meta_data))
 })
 
-test_that("the bulk demo ships its CC-BY attribution beside the data", {
+test_that("the shipped demo ships its CC-BY attribution beside the data", {
   # data-raw/DATASETS.md holds the provenance but is .Rbuildignore'd, so an
   # installed user would otherwise receive the CC-BY data with no licensing
   # record. The attribution file lives in extdata so it installs with the demo.
-  att <- hla_inst_file("extdata/v1.4/demo_hla_tcr_bulk.ATTRIBUTION.md")
+  att <- hla_inst_file("extdata/v1.4/demo_hla_tcr_dextramer.ATTRIBUTION.md")
   expect_true(file.exists(att))
   txt <- paste(readLines(att, warn = FALSE), collapse = "\n")
   expect_match(txt, "CC-BY", fixed = TRUE)
-  expect_match(txt, "1248193", fixed = TRUE) # the Zenodo record id
+  expect_match(txt, "abf5835", fixed = TRUE) # the source paper
 })
 
 ## ---- node colours must not be handed to vis-network's group palette --- ##

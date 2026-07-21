@@ -54,31 +54,17 @@ Cerebro.options <<- list(
     ## Moran's I, embedded per-nucleus positioning-evidence images).
     ## Rebuild with data-raw/build_trekker_demo.R (see data-raw/trekker.md).
     "Mouse brain (Trekker)" = "extdata/v1.4/demo_trekker.crb",
-    ## A FULLY FABRICATED fixture: simulated expression, projection, cell types,
-    ## CDR3 sequences and donor HLA genotypes. It exists because real unselected
-    ## repertoires are sparse in CDR3 space and render a near-empty motif network
-    ## (the real-sequence predecessor gave 4 nodes), so the motif families and
-    ## their HLA associations are designed in. 30 donors x 167 cells; declares
-    ## technical_info$tcr_selection = "synthetic", the page's hardest disclosure.
-    ## Use it to see the page work, never to read biology off it.
-    ## Rebuild with data-raw/build_hla_tcr_demo.R.
-    "HLA & TCR - SYNTHETIC fixture (fabricated, not measurement)" = "extdata/v1.4/demo_hla_tcr_synthetic.crb",
-    ## The real-HLA counterpart: real public TCRb chains, real donor-to-TCR
-    ## occurrence, and each donor's REAL HLA genotype (Emerson 2017 cohort).
-    ## Bulk, so it has no cells, no expression and no projection: each row is a
-    ## (donor, clonotype) analysis unit, and the lineage MHC context is Unknown
-    ## by design. Use it for HLA Associations on genuine genotypes.
-    ## Rebuild with data-raw/build_hla_tcr_bulk_demo.R.
-    "HLA & TCR - real bulk TCRb + real donor HLA" = "extdata/v1.4/demo_hla_tcr_bulk.crb",
-    ## The third corner, and the one that answers "does this work on real data?":
-    ## REAL single cells with REAL paired TCR, from 10x's dextramer cohort. The
-    ## repertoire is ANTIGEN-SELECTED (cells were sorted for binding a pMHC
-    ## dextramer), which is precisely why its motif network is legible where an
-    ## unselected repertoire's is not -- 12,000 cells give 157 TRB nodes in 31
-    ## motifs on measured sequences. Donor genotypes are the PUBLISHED ones
-    ## (table S1 of the source paper), measured independently of these cells, so
-    ## the carrier contrasts are real; the repertoire is still antigen-selected
-    ## and says so, since the reagent panel decided which receptors are present.
+    ## The HLA & TCR demo: REAL single cells with REAL paired TCR, from 10x's
+    ## dextramer cohort. The repertoire is ANTIGEN-SELECTED (cells were sorted
+    ## for binding a pMHC dextramer), which is precisely why its motif network is
+    ## legible where an unselected repertoire's is not -- 12,000 cells give 157
+    ## TRB nodes in 31 motifs on measured sequences. Donor genotypes are the
+    ## PUBLISHED ones (table S1 of the source paper), measured independently of
+    ## these cells, so the carrier contrasts are real; the repertoire is still
+    ## antigen-selected and says so, since the reagent panel decided which
+    ## receptors are present. Class I only (sorted CD8+ T cells), so the
+    ## Class I x Class II pair scope stays hidden here -- it appears when a data
+    ## set carries Class II typing and a lineage column.
     ## Rebuild with data-raw/build_hla_tcr_dextramer_demo.R.
     "HLA & TCR - real single cells, antigen-selected" = "extdata/v1.4/demo_hla_tcr_dextramer.crb"
   ),

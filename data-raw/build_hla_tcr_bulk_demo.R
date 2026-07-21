@@ -1,5 +1,13 @@
 #!/usr/bin/env Rscript
 # ============================================================================
+# NOT SHIPPED (since 2026-07-21). This script still runs and is maintained, but
+# the .crb it writes is no longer tracked or installed: cerebroAppLite is a
+# single-cell application and this cohort is bulk. Kept because it is the
+# reference pipeline for bringing a bulk cohort in (see the "HLA Associations on
+# bulk TCRb" vignette), and because its single-copy HLA calls are the only thing
+# that exercises the loose-vs-strict carrier distinction. data-raw/ is
+# .Rbuildignore'd, so this costs the installed package nothing.
+# ============================================================================
 # Build the real-HLA TCR demo (.crb)  ->  inst/extdata/v1.4/demo_hla_tcr_bulk.crb
 # ============================================================================
 # EVERYTHING in this demo is real measured data. Nothing is synthesised.
@@ -11,11 +19,12 @@
 #   * Linkage: which donor carries which TCR is the real observed occurrence
 #              pattern, not a simulation.
 #
-# This is the companion to `demo_hla_tcr_synthetic.crb`. They divide the work:
-#   demo_hla_tcr_synthetic.crb      real single cells + real TCR + SYNTHETIC HLA
-#                         -> motif network and lineage MHC context (needs cells)
-#   demo_hla_tcr_bulk.crb real TCR + REAL donor HLA, but bulk (no cells)
-#                         -> HLA Associations on genuine genotypes
+# The shipped demo is now `demo_hla_tcr_dextramer.crb` (real single cells, real
+# paired TCR, real published genotypes). What this cohort still adds, and why the
+# script is kept: 100 donors against that demo's 4, 139 alleles against 12, both
+# MHC classes rather than Class I only, and single-copy calls -- the only input
+# that makes the loose-vs-strict carrier distinction differ. Build it when you
+# need any of those; it is not installed.
 #
 # WHAT BULK MEANS HERE. The source is bulk TCR-beta immunosequencing: one
 # repertoire per donor, no single cells, no transcriptome, no CD4/CD8 label.
