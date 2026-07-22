@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,9 @@
     <li><a class="dropdown-item" href="../articles/trajectory_analysis.html">Trajectory Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/spatial_analysis.html">Spatial Transcriptomics Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/trekker_spatial_mapping.html">Trekker single-cell spatial mapping: from a vendor bundle to an interactive app</a></li>
+    <li><a class="dropdown-item" href="../articles/hla_tcr_motifs.html">HLA &amp; TCR Motifs: from synthetic data to an interactive app</a></li>
+    <li><a class="dropdown-item" href="../articles/hla_bulk_tcr_associations.html">HLA Associations on bulk TCRβ with real donor HLA</a></li>
+    <li><a class="dropdown-item" href="../articles/hla_tcr_antigen_selected.html">A real antigen-selected single-cell TCR demo, end to end</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -69,6 +72,24 @@
       <small>Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.3.0" id="cerebroapplite-230">cerebroAppLite 2.3.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-230"></a></h2>
+<div class="section level3">
+<h3 id="hla--tcr-motifs-2-3-0">HLA &amp; TCR Motifs<a class="anchor" aria-label="anchor" href="#hla--tcr-motifs-2-3-0"></a></h3>
+<ul><li>
+<strong>New page: HLA &amp; TCR Motifs.</strong> A standalone top-level tab (peer of Immune Repertoire) that draws a CDR3 motif network — every unique CDR3 is a node and an edge joins two equal-length CDR3s at Hamming distance 1 — alongside donor-level HLA context. It appears conditionally, only when the loaded <code>.crb</code> carries a TRA/TRB chain. Three sub-tabs: <strong>Motif Network</strong> (colour by motif cluster, cell type, MHC context, HLA carrier status, or sample of origin), <strong>HLA Associations</strong> (descriptive carrier vs. non-carrier overlap — no p-value, no restriction claim), and <strong>Data &amp; QC</strong> (coverage, normalized typing, and a session-only HLA upload).</li>
+<li>
+<strong>HLA typing on the data class.</strong> <code>Cerebro_v1.3</code> gained an optional <code>hla_typing</code> slot with <code>addHLATyping()</code> / <code>getHLATyping()</code>; the getter is backward-compatible with older <code>.crb</code> files. Typing accepts a canonical long table, a wide <code>sample</code> + <code>HLA-*_1/_2</code> table, or a named list, and carries provenance (<code>genotyped</code> / <code>imputed</code> / <code>synthetic</code> / <code>unknown</code>) so a synthetic or imputed genotype is never treated as directly typed.</li>
+<li>
+<strong>Export picks it up automatically.</strong> <code><a href="../reference/exportFromSeurat.html">exportFromSeurat()</a></code> now reads <code>object@misc$hla_typing</code> (with <code>object@misc$hla_typing_source_type</code>), parallel to the existing <code>immune_repertoire</code> slot.</li>
+<li>
+<strong>Declared contracts for bulk data.</strong> A <code>.crb</code> may declare <code>observation_unit</code>, <code>receptor_key</code>, and <code>tcr_selection</code> in <code>technical_info</code>, so the page states honestly when rows are analysis units rather than cells, when a receptor is keyed by V gene + CDR3, and when a carrier contrast is a positive control rather than independent evidence.</li>
+<li>
+<strong>One demo data set.</strong> <code>demo_hla_tcr_dextramer.crb</code>: 12,000 real CD8+ T cells, every one with a paired αβ clonotype, plus the donors’ published HLA genotypes, from 10x Genomics’ dextramer cohort (Zhang et al., <em>Sci Adv</em> 2021, CC-BY). The repertoire is antigen-selected, which is what makes its motif network legible on measured sequences, where an unselected repertoire gives a handful of disconnected dots. Class I only (sorted CD8+), so the Class I × Class II pair scope stays hidden on this demo and appears when a data set carries Class II typing plus a lineage column. The per-cell <code>dextramer_*</code> columns are 10x’s <strong>raw binder calls for a reagent</strong>, not validated peptide specificity: staining is heavily cross-reactive here, and a <code>restriction_in_genotype</code> (<code>yes</code> / <code>no</code> / <code>unknown</code>) column ships beside them so that is visible in the app rather than only in the vignette. <code>unknown</code> is not padding: table S1 publishes one HLA-B allele for two donors, and absence from an incompletely called locus is not evidence of absence. The HLA association contrasts use the published genotypes and are therefore not circular — though the repertoire was still captured by a reagent panel, so ascertainment and donor/panel confounding remain, which the caveat above the tables now states.</li>
+<li>
+<strong>Three new vignettes.</strong> <em>“HLA &amp; TCR Motifs: from synthetic data to an interactive app”</em> (single-cell, runnable end to end), <em>“HLA Associations on bulk TCRβ with real donor HLA”</em> (bring your own bulk cohort, with its positive-control caveat), and <em>“Antigen-selected single-cell TCR”</em> (the shipped demo’s full download → <code>.crb</code> pipeline).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.2.0" id="cerebroapplite-220">cerebroAppLite 2.2.0<a class="anchor" aria-label="anchor" href="#cerebroapplite-220"></a></h2>
 <div class="section level3">

@@ -21,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="index.html">cerebroAppLite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,6 +61,9 @@
     <li><a class="dropdown-item" href="articles/trajectory_analysis.html">Trajectory Analysis</a></li>
     <li><a class="dropdown-item" href="articles/spatial_analysis.html">Spatial Transcriptomics Analysis</a></li>
     <li><a class="dropdown-item" href="articles/trekker_spatial_mapping.html">Trekker single-cell spatial mapping: from a vendor bundle to an interactive app</a></li>
+    <li><a class="dropdown-item" href="articles/hla_tcr_motifs.html">HLA &amp; TCR Motifs: from synthetic data to an interactive app</a></li>
+    <li><a class="dropdown-item" href="articles/hla_bulk_tcr_associations.html">HLA Associations on bulk TCRβ with real donor HLA</a></li>
+    <li><a class="dropdown-item" href="articles/hla_tcr_antigen_selected.html">A real antigen-selected single-cell TCR demo, end to end</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -91,20 +94,47 @@
 <div class="page-header"><h1 id="cerebroapplite">cerebroAppLite<a class="anchor" aria-label="anchor" href="#cerebroapplite"></a>
 </h1></div>
 <p>Interactive visualization of single-cell RNA-seq data, built on top of <a href="https://shiny.posit.co/" class="external-link">Shiny</a>.</p>
-<p>cerebroAppLite supports loading pre-processed single-cell data, exploring projections and gene expression, browsing marker genes and enriched pathways, and inspecting group compositions—all through an interactive web interface. The sections below cover the key features.</p>
-<p>For the original feature set and data preparation workflows, refer to the upstream cerebroApp documentation at <a href="https://romanhaa.github.io/cerebroApp/" class="external-link uri">https://romanhaa.github.io/cerebroApp/</a>—everything described there works the same way here.</p>
+<p>cerebroAppLite supports loading pre-processed single-cell data, exploring projections and gene expression, browsing marker genes and enriched pathways, and inspecting group compositions — all through an interactive web interface. The sections below cover the key features.</p>
+<p>For the original feature set and data preparation workflows, refer to the upstream cerebroApp documentation at <a href="https://romanhaa.github.io/cerebroApp/" class="external-link uri">https://romanhaa.github.io/cerebroApp/</a> — everything described there works the same way here.</p>
 <p><em>A community fork of <a href="https://github.com/romanhaa/cerebroApp" class="external-link">cerebroApp</a> by Roman Hillje, developed and maintained by <a href="https://github.com/mihem" class="external-link">mihem</a>.</em></p>
 <div class="section level2">
-<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+<h2 id="contents">Contents<a class="anchor" aria-label="anchor" href="#contents"></a>
+</h2>
+<ul>
+<li><a href="#id_1-installation">1. Installation</a></li>
+<li>
+<a href="#id_2-features">2. Features</a>
+<ul>
+<li><a href="#id_21-convertseurattocerebro">2.1 convertSeuratToCerebro()</a></li>
+<li><a href="#id_22-createshinyapp">2.2 createShinyApp()</a></li>
+<li><a href="#id_23-choosing-an-expression-backend">2.3 Choosing an expression backend</a></li>
+<li><a href="#id_24-other-improvements">2.4 Other improvements</a></li>
+</ul>
+</li>
+<li>
+<a href="#id_3-testing">3. Testing</a>
+<ul>
+<li><a href="#id_31-install-the-test-tooling">3.1 Install the test tooling</a></li>
+<li><a href="#id_32-run-the-tests">3.2 Run the tests</a></li>
+<li><a href="#id_33-precheck-the-one-shot-local-gate">3.3 precheck: the one-shot local gate</a></li>
+<li><a href="#id_34-self-containment-of-exported-apps">3.4 Self-containment of exported apps</a></li>
+<li><a href="#id_35-snapshots-and-further-reading">3.5 Snapshots and further reading</a></li>
+</ul>
+</li>
+<li><a href="#id_4-license">4. License</a></li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="id_1-installation">1. Installation<a class="anchor" aria-label="anchor" href="#id_1-installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">'mihem/cerebroAppLite'</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
+<h2 id="id_2-features">2. Features<a class="anchor" aria-label="anchor" href="#id_2-features"></a>
 </h2>
 <div class="section level3">
-<h3 id="id_1-convertseurattocerebro--one-step-data-conversion">1. <code>convertSeuratToCerebro()</code> — one-step data conversion<a class="anchor" aria-label="anchor" href="#id_1-convertseurattocerebro--one-step-data-conversion"></a>
+<h3 id="id_21-convertseurattocerebro">2.1 convertSeuratToCerebro()<a class="anchor" aria-label="anchor" href="#id_21-convertseurattocerebro"></a>
 </h3>
 <p><code><a href="reference/convertSeuratToCerebro.html">convertSeuratToCerebro()</a></code> handles the entire export process in a single call: reading the Seurat object (<code>.rds</code> on disk, or one already loaded in memory), renaming grouping variables, loading marker gene tables, calculating most-expressed genes, and saving a <code>.crb</code> file.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
@@ -123,12 +153,12 @@
 <span>    <span class="st">"cell_type"</span> <span class="op">=</span> <span class="st">"cluster"</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  marker_file              <span class="op">=</span> <span class="st">"markers.csv"</span>,   <span class="co"># optional: .csv/.tsv/.txt/.tab</span></span>
-<span>  expression_matrix_mode   <span class="op">=</span> <span class="st">"h5"</span>             <span class="co"># "embedded" | "bpcells" | "h5", see §3</span></span>
+<span>  expression_matrix_mode   <span class="op">=</span> <span class="st">"h5"</span>             <span class="co"># "embedded" | "bpcells" | "h5", see §2.3</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># → saves output/cerebro_my_seurat.crb (+ sibling .h5 / .bpcells/ when applicable)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="id_2-createshinyapp--generate-a-deployable-shiny-app">2. <code>createShinyApp()</code> — generate a deployable Shiny app<a class="anchor" aria-label="anchor" href="#id_2-createshinyapp--generate-a-deployable-shiny-app"></a>
+<h3 id="id_22-createshinyapp">2.2 createShinyApp()<a class="anchor" aria-label="anchor" href="#id_22-createshinyapp"></a>
 </h3>
 <p>Instead of running <code><a href="reference/launchCerebro.html">launchCerebro()</a></code> interactively, you can generate a self-contained Shiny app directory with all data and source files bundled. This is useful for deploying to a Shiny server or sharing with collaborators.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -145,10 +175,10 @@
 <span>  overwrite        <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># → run with shiny::runApp("my_app/") or deploy to Shiny Server</span></span></code></pre></div>
-<p><code>cerebro_data</code> is required and must be a <em>named</em> vector / list of <code>.crb</code> (or <code>.rds</code>) paths — names become the dataset labels users switch between in the app. <code>result_dir</code> is optional. Sibling <code>&lt;stem&gt;.bpcells/</code> and <code>&lt;stem&gt;.h5</code> artefacts produced by the external backends are detected and copied into the bundle automatically (see §3). Other knobs available: <code>colors</code>, <code>cerebro_options</code>, <code>crb_pick_smallest_file</code>, <code>show_upload_ui</code>, <code>point_size</code>, <code>variable_to_compare</code> — run <code><a href="reference/createShinyApp.html">?createShinyApp</a></code> for the full list.</p>
+<p><code>cerebro_data</code> is required and must be a <em>named</em> vector / list of <code>.crb</code> (or <code>.rds</code>) paths — names become the dataset labels users switch between in the app. <code>result_dir</code> is optional. Sibling <code>&lt;stem&gt;.bpcells/</code> and <code>&lt;stem&gt;.h5</code> artefacts produced by the external backends are detected and copied into the bundle automatically (see §2.3). Other knobs available: <code>colors</code>, <code>cerebro_options</code>, <code>crb_pick_smallest_file</code>, <code>show_upload_ui</code>, <code>point_size</code>, <code>variable_to_compare</code> — run <code><a href="reference/createShinyApp.html">?createShinyApp</a></code> for the full list.</p>
 </div>
 <div class="section level3">
-<h3 id="id_3-choosing-an-expression-backend">3. Choosing an expression backend<a class="anchor" aria-label="anchor" href="#id_3-choosing-an-expression-backend"></a>
+<h3 id="id_23-choosing-an-expression-backend">2.3 Choosing an expression backend<a class="anchor" aria-label="anchor" href="#id_23-choosing-an-expression-backend"></a>
 </h3>
 <p><code><a href="reference/exportFromSeurat.html">exportFromSeurat()</a></code> (and <code><a href="reference/convertSeuratToCerebro.html">convertSeuratToCerebro()</a></code>) accept <code>expression_matrix_mode = c("embedded", "bpcells", "h5")</code> for how the count matrix is persisted alongside the <code>.crb</code>:</p>
 <table class="table">
@@ -257,7 +287,7 @@
 <p><code><a href="reference/createShinyApp.html">createShinyApp()</a></code> already knows about both <code>&lt;stem&gt;.bpcells/</code> and <code>&lt;stem&gt;.h5</code> and copies them next to the bundled <code>.crb</code>. The Shiny runtime re-resolves the sibling location on load via <code>getExpressionBackend()$location</code> relative to the <code>.crb</code>’s parent directory, so the bundle stays portable.</p>
 </div>
 <div class="section level3">
-<h3 id="id_4-other-improvements">4. Other Improvements<a class="anchor" aria-label="anchor" href="#id_4-other-improvements"></a>
+<h3 id="id_24-other-improvements">2.4 Other improvements<a class="anchor" aria-label="anchor" href="#id_24-other-improvements"></a>
 </h3>
 <ul>
 <li>
@@ -267,33 +297,60 @@
 </div>
 </div>
 <div class="section level2">
-<h2 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a>
+<h2 id="id_3-testing">3. Testing<a class="anchor" aria-label="anchor" href="#id_3-testing"></a>
 </h2>
-<p>The package ships with a <code>testthat</code> + <code>shinytest2</code> suite under <code>tests/testthat/</code>. CI (<code>.github/workflows/R-cmd-check.yaml</code>, <code>.github/workflows/R-tests.yaml</code>) runs it on every PR; locally:</p>
+<p>The package ships with a <code>testthat</code> + <code>shinytest2</code> suite under <code>tests/testthat/</code>. CI runs it on every PR (<code>.github/workflows/R-tests.yaml</code> and <code>R-cmd-check.yaml</code>); the sections below cover running it locally.</p>
+<div class="section level3">
+<h3 id="id_31-install-the-test-tooling">3.1 Install the test tooling<a class="anchor" aria-label="anchor" href="#id_31-install-the-test-tooling"></a>
+</h3>
+<p>The shinytest2 suite drives a real headless Chrome via <code>chromote</code> and relies on <code>NOT_CRAN=true</code> (already set in <code>tests/testthat/setup.R</code>). Install the extras once:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># whole suite (loads dev source via pkgload::load_all)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"testthat"</span>, <span class="st">"shinytest2"</span>, <span class="st">"chromote"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># or pull the whole Suggests block:</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/install_deps.html" class="external-link">install_dev_deps</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="id_32-run-the-tests">3.2 Run the tests<a class="anchor" aria-label="anchor" href="#id_32-run-the-tests"></a>
+</h3>
+<p>From R, loading the dev source via <code><a href="https://pkgload.r-lib.org/reference/load_all.html" class="external-link">pkgload::load_all()</a></code> (this is what CI’s test job does too):</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># whole suite</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># one file at a time</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span>filter <span class="op">=</span> <span class="st">"app-inst"</span><span class="op">)</span>          <span class="co"># shinytest2 end-to-end smoke</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span>filter <span class="op">=</span> <span class="st">"exportFromSeurat"</span><span class="op">)</span>  <span class="co"># exporter-only</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span>filter <span class="op">=</span> <span class="st">"r-functions"</span><span class="op">)</span>       <span class="co"># plain unit tests</span></span></code></pre></div>
-<p><code>test-app-inst.R</code> drives a real headless Chrome via <code>chromote</code> and relies on <code>NOT_CRAN=true</code> (already set in <code>tests/testthat/setup.R</code>). Install the extras once:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"testthat"</span>, <span class="st">"shinytest2"</span>, <span class="st">"chromote"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co"># or pull the whole Suggests block:</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/install_deps.html" class="external-link">install_dev_deps</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>From the shell (CI / scripting):</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># what R CMD check effectively runs (uses installed package, not dev source)</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'testthat::test_dir("tests/testthat")'</span></span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># every test_*.R, dev source loaded</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::load_all("."); testthat::test_dir("tests/testthat")'</span></span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a></span>
 <span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co"># only the shinytest2 suite, with a verbose reporter</span></span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="va">NOT_CRAN</span><span class="op">=</span>true <span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::test(filter="app-inst", reporter="summary")'</span></span></code></pre></div>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="va">NOT_CRAN</span><span class="op">=</span>true <span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::test(filter = "app-inst", reporter = "summary")'</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="id_33-precheck-the-one-shot-local-gate">3.3 precheck: the one-shot local gate<a class="anchor" aria-label="anchor" href="#id_33-precheck-the-one-shot-local-gate"></a>
+</h3>
+<p><code>scripts/precheck.sh</code> runs the same checks as CI, <strong>on your machine, in the order CI runs them</strong> (air-format → tests → <code>R CMD check</code> → pkgdown), so you catch failures before pushing:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">scripts/precheck.sh</span>        <span class="co"># full: air-format + tests + R CMD check + pkgdown</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="ex">scripts/precheck.sh</span> fast   <span class="co"># quick: air-format + tests only (day-to-day)</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="ex">scripts/precheck.sh</span> air    <span class="co"># air-format only</span></span></code></pre></div>
+<p>Run it before pushing. CI air-formats <strong>before</strong> testing, so running the steps out of order lets format-sensitive tests pass locally and fail on CI. This is a local convenience, not CI itself — the authoritative gate is GitHub Actions, which runs on every push regardless of your OS. It needs <code>air</code> on <code>PATH</code> plus an R with the Suggests packages (from a native R install, or the repo’s <code>default.nix</code>).</p>
+</div>
+<div class="section level3">
+<h3 id="id_34-self-containment-of-exported-apps">3.4 Self-containment of exported apps<a class="anchor" aria-label="anchor" href="#id_34-self-containment-of-exported-apps"></a>
+</h3>
+<p>Apps built by <code><a href="reference/createShinyApp.html">createShinyApp()</a></code> must stay <strong>self-contained</strong> — they run with no <code>cerebroAppLite</code> installed. <code>test-smoke-production.R</code> enforces this with a static source check, a hermetic <code>.crb</code> deserialize, and a hermetic bundle boot (each in a process whose library path lacks the package), so a bundle that reaches back into <code>cerebroAppLite</code> fails a test rather than a user. See <a href="CONTRIBUTING.html"><code>CONTRIBUTING.md</code></a> for the rule and where runtime code must live.</p>
+</div>
+<div class="section level3">
+<h3 id="id_35-snapshots-and-further-reading">3.5 Snapshots and further reading<a class="anchor" aria-label="anchor" href="#id_35-snapshots-and-further-reading"></a>
+</h3>
 <p>Snapshot diffs from <code>expect_snapshot()</code> land under <code>tests/testthat/_snaps/</code>; review them with <code><a href="https://testthat.r-lib.org/reference/snapshot_accept.html" class="external-link">testthat::snapshot_review()</a></code> and accept with <code><a href="https://testthat.r-lib.org/reference/snapshot_accept.html" class="external-link">testthat::snapshot_accept()</a></code> only after confirming the new output is correct.</p>
 <p>See <a href="tests/README.html"><code>tests/README.md</code></a> for the full layout, the <code>inst_dir</code> resolution rule, and the gotcha about regenerating <code>inst/extdata/v1.4/example.crb</code> after R6 method changes (a stale fixture surfaces as a misleading <code>Shiny app did not become stable in 15000ms</code> from shinytest2).</p>
 </div>
+</div>
 <div class="section level2">
-<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
+<h2 id="id_4-license">4. License<a class="anchor" aria-label="anchor" href="#id_4-license"></a>
 </h2>
 <p>MIT — see <a href="LICENSE.html">LICENSE.md</a>. Original cerebroApp © Roman Hillje; cerebroAppLite fork by <a href="https://github.com/mihem" class="external-link">mihem</a>.</p>
 </div>

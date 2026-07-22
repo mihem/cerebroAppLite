@@ -145,6 +145,17 @@ CTstrict), it will be automatically exported into the Cerebro object via
 `addImmuneRepertoire()`. Legacy `bcr_data` / `tcr_data` slots are also
 supported as a fallback.
 
+## HLA typing
+
+If `object@misc$hla_typing` holds an HLA genotype table – a canonical
+long `data.frame`, a wide `sample` + `HLA-*_1/_2` `data.frame`, or a
+named list (sample -\> allele vector) – it is exported via
+`addHLATyping()`, parallel to the immune repertoire. The provenance in
+`object@misc$hla_typing_source_type` (one of `"genotyped"`, `"imputed"`,
+`"synthetic"`, `"unknown"`; default `"unknown"`) is carried through, so
+a predicted or fabricated genotype is never mistaken for a directly
+typed one.
+
 ## Examples
 
 ``` r
@@ -161,22 +172,22 @@ exportFromSeurat(
   use_delayed_array = FALSE,
   verbose = TRUE
 )
-#> [19:40:10] Initializing Cerebro object...
-#> [19:40:10] Adding expression data (embedded)...
-#> [19:40:10] Collecting available meta data...
-#> [19:40:10] Extracting all meta data columns...
-#> [19:40:10] Extracting dimensional reductions...
-#> [19:40:10] Will export the following dimensional reductions: umap
-#> [19:40:10] Extracting marker genes table...
-#> [19:40:10] No trajectories to extract...
-#> [19:40:10] Checking for spatial data...
-#> [19:40:10] Overview of Cerebro object:
+#> [05:45:50] Initializing Cerebro object...
+#> [05:45:50] Adding expression data (embedded)...
+#> [05:45:50] Collecting available meta data...
+#> [05:45:50] Extracting all meta data columns...
+#> [05:45:50] Extracting dimensional reductions...
+#> [05:45:50] Will export the following dimensional reductions: umap
+#> [05:45:50] Extracting marker genes table...
+#> [05:45:50] No trajectories to extract...
+#> [05:45:50] Checking for spatial data...
+#> [05:45:50] Overview of Cerebro object:
 #> class: Cerebro_v1.3
-#> cerebroApp version: 2.2.0
+#> cerebroApp version: 2.3.0
 #> experiment name: PBMC
 #> organism: hg
 #> date of analysis: 
-#> date of export: 2026-07-19
+#> date of export: 2026-07-22
 #> number of cells: 80
 #> number of genes: 230
 #> grouping variables (2): sample, seurat_clusters
@@ -190,7 +201,8 @@ exportFromSeurat(
 #> trajectories:
 #> extra material:
 #> Immune repertoire:
+#> HLA typing: none
 #> Spatial data:
-#> [19:40:10] Saving Cerebro object to: /tmp/nix-shell-4418-1768106611/RtmpE7Qksk/pbmc_Seurat.crb
-#> [19:40:10] Done!
+#> [05:45:50] Saving Cerebro object to: /tmp/nix-shell-4314-270536829/RtmptVgOpA/pbmc_Seurat.crb
+#> [05:45:50] Done!
 ```

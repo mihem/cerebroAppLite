@@ -1,0 +1,38 @@
+# Compare a donor's typed allele against a queried allele, field by field
+
+Typing arrives at whatever resolution the lab reported and is never
+zero-padded, so \`HLA-A\*02\` and \`HLA-A\*02:01\` are different STRINGS
+naming the same molecule family. Exact string matching therefore got
+both directions wrong, and both errors are false negatives that land
+people in the comparison group that must not hold them: \* a donor typed
+\`A\*02\` looked like a NON-carrier of \`A\*02:01\`, although
+\`A\*02:01\` is an \`A\*02\` and that donor may well have it; \* a donor
+typed \`A\*02:01\` looked like a NON-carrier of \`A\*02\`, although it
+certainly carries one.
+
+## Usage
+
+``` r
+hla_allele_compare(donor_allele, query_allele)
+```
+
+## Arguments
+
+- donor_allele:
+
+  One canonical allele from a donor's typing.
+
+- query_allele:
+
+  The canonical allele being asked about.
+
+## Value
+
+"carrier" when the donor's allele IS the query or refines it;
+"ambiguous" when the donor's typing is too coarse to decide either way;
+"no" when they disagree at a field both report.
+
+## Details
+
+Fields are compared as whole tokens, never as text prefixes, so \`A\*2\`
+never matches \`A\*24\` and the locus must agree first.

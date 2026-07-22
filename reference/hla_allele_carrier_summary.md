@@ -1,0 +1,33 @@
+# Descriptive per-allele carrier summary over analysis units
+
+For each allele in the typing table, count carriers, non-carriers and
+untyped units. Every call is derived from
+\[hla_allele_status_by_unit()\] so the counts match the association
+tables and network colours exactly: comparison is resolution-aware, and
+only a completely-typed locus can be a non-carrier – a one-copy call is
+untyped, not assumed negative. Complete donor mappings are collapsed to
+donor; otherwise the units remain samples. This is strictly descriptive:
+it performs no enrichment test and reports no p-value.
+
+## Usage
+
+``` r
+hla_allele_carrier_summary(typing, samples)
+```
+
+## Arguments
+
+- typing:
+
+  A canonical long table.
+
+- samples:
+
+  Character vector of samples to consider (e.g. the IR samples).
+
+## Value
+
+data.frame(allele, locus, mhc_class, n_carrier, n_noncarrier, n_untyped,
+carriers, analysis_unit) ordered by descending carrier count, or an
+empty frame. Complete donor mappings are collapsed to donor; otherwise
+the function reports sample-level counts.

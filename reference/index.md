@@ -70,6 +70,8 @@
 - [`getMostExpressedGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMostExpressedGenes.md)
   : Get most expressed genes for specified grouping variables in Seurat
   object.
+- [`hla_normalize_typing()`](https://mihem.github.io/cerebroAppLite/reference/hla_normalize_typing.md)
+  : Normalize any accepted HLA input into the canonical long table
 - [`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
   : Launch Cerebro interface.
 - [`launchCerebroV1.0()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.0.md)

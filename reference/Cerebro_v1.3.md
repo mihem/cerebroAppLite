@@ -117,6 +117,13 @@ A new `Cerebro_v1.3` object.
   `list` of data.frames (one per sample) containing scRepertoire columns
   (CTgene, CTnt, CTaa, CTstrict, etc.).
 
+- `hla_typing`:
+
+  canonical HLA typing `data.frame` (long: one row per sample x locus x
+  copy) with data provenance, or NULL. Consumed by the HLA & TCR Motifs
+  page for donor-level HLA context. Optional; older .crb files simply
+  lack it.
+
 - `bcr_data`:
 
   `list` that contains BCR data (kept for backward compatibility with
@@ -263,6 +270,10 @@ A new `Cerebro_v1.3` object.
 - [`Cerebro_v1.3$getImmuneRepertoire()`](#method-Cerebro_v1.3-getImmuneRepertoire)
 
 - [`Cerebro_v1.3$addImmuneRepertoire()`](#method-Cerebro_v1.3-addImmuneRepertoire)
+
+- [`Cerebro_v1.3$getHLATyping()`](#method-Cerebro_v1.3-getHLATyping)
+
+- [`Cerebro_v1.3$addHLATyping()`](#method-Cerebro_v1.3-addHLATyping)
 
 - [`Cerebro_v1.3$addSpatialData()`](#method-Cerebro_v1.3-addSpatialData)
 
@@ -1431,6 +1442,61 @@ Set immune repertoire data.
 
   Named list of data.frames (one per sample) containing scRepertoire
   columns.
+
+------------------------------------------------------------------------
+
+### Method `getHLATyping()`
+
+Get HLA typing data (canonical long `data.frame`), or an empty table
+when none is stored. Safe on older objects that predate the field.
+
+#### Usage
+
+    Cerebro_v1.3$getHLATyping()
+
+#### Returns
+
+A canonical HLA typing `data.frame` (possibly zero-row).
+
+------------------------------------------------------------------------
+
+### Method `addHLATyping()`
+
+Set HLA typing data. Accepts a canonical long `data.frame`, a wide
+`data.frame` (sample + HLA-\*\_1/\_2 columns), or a named `list` (sample
+-\> allele vector). Non-canonical inputs are normalized; a table that
+already has the canonical columns is validated (unrecognisable alleles
+dropped, locus re-derived, copy and provenance coerced) rather than
+stored verbatim, so a canonical-looking table cannot smuggle invalid
+values into downstream analysis.
+
+#### Usage
+
+    Cerebro_v1.3$addHLATyping(
+      data,
+      source_type = "unknown",
+      typing_method = NA_character_,
+      source_reference = NA_character_
+    )
+
+#### Arguments
+
+- `data`:
+
+  HLA typing in any accepted form.
+
+- `source_type`:
+
+  Provenance of the genotype: one of "genotyped", "imputed",
+  "synthetic", "unknown".
+
+- `typing_method`:
+
+  Optional assay/software string.
+
+- `source_reference`:
+
+  Optional traceable reference (file/cohort/model).
 
 ------------------------------------------------------------------------
 

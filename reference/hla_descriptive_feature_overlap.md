@@ -1,0 +1,60 @@
+# Descriptive overlap of one HLA allele with a frozen TCR feature
+
+A feature is supplied as its member CDR3 strings (one node or all nodes
+in a frozen motif component). The function reports per-unit presence
+plus two fractions. It deliberately performs no hypothesis test.
+
+## Usage
+
+``` r
+hla_descriptive_feature_overlap(
+  typing,
+  segments,
+  samples,
+  allele,
+  feature_cdr3,
+  feature_v_gene = NULL
+)
+```
+
+## Arguments
+
+- typing:
+
+  Canonical HLA typing table.
+
+- segments:
+
+  Parsed IR segments with \`sample\` and \`cdr3\` columns.
+
+- samples:
+
+  In-scope immune-repertoire sample names.
+
+- allele:
+
+  HLA allele to describe.
+
+- feature_cdr3:
+
+  Character vector of CDR3 members in the frozen feature.
+
+- feature_v_gene:
+
+  Optional V gene per \`feature_cdr3\`. When supplied, the frozen
+  feature is matched by \`(V gene, CDR3)\` rather than CDR3 alone.
+
+## Value
+
+Per-unit descriptive data.frame.
+
+## Details
+
+\*\*What the denominators are.\*\* Both fractions are over what the DATA
+SET contains for that unit — \`n_cells\` counts rows (observations), not
+necessarily sequenced cells, and \`n_unique_clonotypes\` counts the
+clonotypes present here. When the data set holds a selected subset of
+receptors (e.g. one assembled from a published HLA association), these
+are fractions of that subset and are NOT the unit's repertoire breadth
+or bulk clonal depth. The caller is responsible for naming the unit and
+disclosing any selection; see \`technical_info\$tcr_selection\`.

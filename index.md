@@ -5,27 +5,47 @@ Interactive visualization of single-cell RNA-seq data, built on top of
 
 cerebroAppLite supports loading pre-processed single-cell data,
 exploring projections and gene expression, browsing marker genes and
-enriched pathways, and inspecting group compositions—all through an
+enriched pathways, and inspecting group compositions — all through an
 interactive web interface. The sections below cover the key features.
 
 For the original feature set and data preparation workflows, refer to
 the upstream cerebroApp documentation at
-<https://romanhaa.github.io/cerebroApp/>—everything described there
+<https://romanhaa.github.io/cerebroApp/> — everything described there
 works the same way here.
 
 *A community fork of
 [cerebroApp](https://github.com/romanhaa/cerebroApp) by Roman Hillje,
 developed and maintained by [mihem](https://github.com/mihem).*
 
-## Installation
+## Contents
+
+- [1. Installation](#id_1-installation)
+- [2. Features](#id_2-features)
+  - [2.1 convertSeuratToCerebro()](#id_21-convertseurattocerebro)
+  - [2.2 createShinyApp()](#id_22-createshinyapp)
+  - [2.3 Choosing an expression
+    backend](#id_23-choosing-an-expression-backend)
+  - [2.4 Other improvements](#id_24-other-improvements)
+- [3. Testing](#id_3-testing)
+  - [3.1 Install the test tooling](#id_31-install-the-test-tooling)
+  - [3.2 Run the tests](#id_32-run-the-tests)
+  - [3.3 precheck: the one-shot local
+    gate](#id_33-precheck-the-one-shot-local-gate)
+  - [3.4 Self-containment of exported
+    apps](#id_34-self-containment-of-exported-apps)
+  - [3.5 Snapshots and further
+    reading](#id_35-snapshots-and-further-reading)
+- [4. License](#id_4-license)
+
+## 1. Installation
 
 ``` r
 remotes::install_github('mihem/cerebroAppLite')
 ```
 
-## Features
+## 2. Features
 
-### 1. `convertSeuratToCerebro()` — one-step data conversion
+### 2.1 convertSeuratToCerebro()
 
 [`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md)
 handles the entire export process in a single call: reading the Seurat
@@ -49,12 +69,12 @@ convertSeuratToCerebro(
     "cell_type" = "cluster"
   ),
   marker_file              = "markers.csv",   # optional: .csv/.tsv/.txt/.tab
-  expression_matrix_mode   = "h5"             # "embedded" | "bpcells" | "h5", see §3
+  expression_matrix_mode   = "h5"             # "embedded" | "bpcells" | "h5", see §2.3
 )
 # → saves output/cerebro_my_seurat.crb (+ sibling .h5 / .bpcells/ when applicable)
 ```
 
-### 2. `createShinyApp()` — generate a deployable Shiny app
+### 2.2 createShinyApp()
 
 Instead of running
 [`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
@@ -82,13 +102,13 @@ createShinyApp(
 (or `.rds`) paths — names become the dataset labels users switch between
 in the app. `result_dir` is optional. Sibling `<stem>.bpcells/` and
 `<stem>.h5` artefacts produced by the external backends are detected and
-copied into the bundle automatically (see §3). Other knobs available:
+copied into the bundle automatically (see §2.3). Other knobs available:
 `colors`, `cerebro_options`, `crb_pick_smallest_file`, `show_upload_ui`,
 `point_size`, `variable_to_compare` — run
 [`?createShinyApp`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
 for the full list.
 
-### 3. Choosing an expression backend
+### 2.3 Choosing an expression backend
 
 [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
 (and
@@ -164,28 +184,21 @@ them next to the bundled `.crb`. The Shiny runtime re-resolves the
 sibling location on load via `getExpressionBackend()$location` relative
 to the `.crb`’s parent directory, so the bundle stays portable.
 
-### 4. Other Improvements
+### 2.4 Other improvements
 
 - **Seurat v5** support throughout (`GetAssayData()`-based slot access)
 - Loading spinners on all plot outputs
 
-## Testing
+## 3. Testing
 
 The package ships with a `testthat` + `shinytest2` suite under
-`tests/testthat/`. CI (`.github/workflows/R-cmd-check.yaml`,
-`.github/workflows/R-tests.yaml`) runs it on every PR; locally:
+`tests/testthat/`. CI runs it on every PR
+(`.github/workflows/R-tests.yaml` and `R-cmd-check.yaml`); the sections
+below cover running it locally.
 
-``` r
-# whole suite (loads dev source via pkgload::load_all)
-devtools::test()
+### 3.1 Install the test tooling
 
-# one file at a time
-devtools::test(filter = "app-inst")          # shinytest2 end-to-end smoke
-devtools::test(filter = "exportFromSeurat")  # exporter-only
-devtools::test(filter = "r-functions")       # plain unit tests
-```
-
-`test-app-inst.R` drives a real headless Chrome via `chromote` and
+The shinytest2 suite drives a real headless Chrome via `chromote` and
 relies on `NOT_CRAN=true` (already set in `tests/testthat/setup.R`).
 Install the extras once:
 
@@ -195,15 +208,64 @@ install.packages(c("testthat", "shinytest2", "chromote"))
 devtools::install_dev_deps()
 ```
 
+### 3.2 Run the tests
+
+From R, loading the dev source via
+[`pkgload::load_all()`](https://pkgload.r-lib.org/reference/load_all.html)
+(this is what CI’s test job does too):
+
+``` r
+# whole suite
+devtools::test()
+
+# one file at a time
+devtools::test(filter = "app-inst")          # shinytest2 end-to-end smoke
+devtools::test(filter = "exportFromSeurat")  # exporter-only
+devtools::test(filter = "r-functions")       # plain unit tests
+```
+
 From the shell (CI / scripting):
 
 ``` bash
-# what R CMD check effectively runs (uses installed package, not dev source)
-Rscript -e 'testthat::test_dir("tests/testthat")'
+# every test_*.R, dev source loaded
+Rscript -e 'devtools::load_all("."); testthat::test_dir("tests/testthat")'
 
 # only the shinytest2 suite, with a verbose reporter
-NOT_CRAN=true Rscript -e 'devtools::test(filter="app-inst", reporter="summary")'
+NOT_CRAN=true Rscript -e 'devtools::test(filter = "app-inst", reporter = "summary")'
 ```
+
+### 3.3 precheck: the one-shot local gate
+
+`scripts/precheck.sh` runs the same checks as CI, **on your machine, in
+the order CI runs them** (air-format → tests → `R CMD check` → pkgdown),
+so you catch failures before pushing:
+
+``` bash
+scripts/precheck.sh        # full: air-format + tests + R CMD check + pkgdown
+scripts/precheck.sh fast   # quick: air-format + tests only (day-to-day)
+scripts/precheck.sh air    # air-format only
+```
+
+Run it before pushing. CI air-formats **before** testing, so running the
+steps out of order lets format-sensitive tests pass locally and fail on
+CI. This is a local convenience, not CI itself — the authoritative gate
+is GitHub Actions, which runs on every push regardless of your OS. It
+needs `air` on `PATH` plus an R with the Suggests packages (from a
+native R install, or the repo’s `default.nix`).
+
+### 3.4 Self-containment of exported apps
+
+Apps built by
+[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+must stay **self-contained** — they run with no `cerebroAppLite`
+installed. `test-smoke-production.R` enforces this with a static source
+check, a hermetic `.crb` deserialize, and a hermetic bundle boot (each
+in a process whose library path lacks the package), so a bundle that
+reaches back into `cerebroAppLite` fails a test rather than a user. See
+[`CONTRIBUTING.md`](https://mihem.github.io/cerebroAppLite/CONTRIBUTING.md)
+for the rule and where runtime code must live.
+
+### 3.5 Snapshots and further reading
 
 Snapshot diffs from `expect_snapshot()` land under
 `tests/testthat/_snaps/`; review them with
@@ -219,7 +281,7 @@ about regenerating `inst/extdata/v1.4/example.crb` after R6 method
 changes (a stale fixture surfaces as a misleading
 `Shiny app did not become stable in 15000ms` from shinytest2).
 
-## License
+## 4. License
 
 MIT — see
 [LICENSE.md](https://mihem.github.io/cerebroAppLite/LICENSE.md).

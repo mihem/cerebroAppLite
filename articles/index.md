@@ -50,3 +50,9 @@
 - [Trekker single-cell spatial mapping: from a vendor bundle to an
   interactive
   app](https://mihem.github.io/cerebroAppLite/articles/trekker_spatial_mapping.md):
+- [HLA & TCR Motifs: from synthetic data to an interactive
+  app](https://mihem.github.io/cerebroAppLite/articles/hla_tcr_motifs.md):
+- [HLA Associations on bulk TCRβ with real donor
+  HLA](https://mihem.github.io/cerebroAppLite/articles/hla_bulk_tcr_associations.md):
+- [A real antigen-selected single-cell TCR demo, end to
+  end](https://mihem.github.io/cerebroAppLite/articles/hla_tcr_antigen_selected.md):
