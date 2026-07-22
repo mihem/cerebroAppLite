@@ -11,9 +11,11 @@ navbar:
   components:
     github:
       icon: fab fa-github
+      aria-label: GitHub repository
       href: https://github.com/mihem/CerebroNexus
     homepage:
       icon: fas fa-globe
+      aria-label: Maintainer website
       href: https://mheming.com/
 
 reference:

@@ -23,6 +23,18 @@ test_that("development-only directories are excluded from package builds", {
   expect_true(all(expected %in% ignores))
 })
 
+test_that("package and exported-app branding use the current identity", {
+  description <- read.dcf(source_file("DESCRIPTION"))
+
+  expect_identical(unname(description[1, "Package"]), "CerebroNexus")
+  expect_identical(unname(description[1, "Version"]), "3.0.0")
+  expect_match(description[1, "URL"], "mihem/CerebroNexus", fixed = TRUE)
+  expect_identical(
+    formals(createShinyApp)$welcome_message,
+    "Welcome to CerebroNexus!"
+  )
+})
+
 test_that("self-contained app vignette never purls interactive runApp calls", {
   skip_if_not_source_tree()
   lines <- readLines(

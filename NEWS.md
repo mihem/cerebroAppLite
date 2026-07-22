@@ -10,7 +10,7 @@
   `convertSeuratToCerebro()`.
 - Updated the HLA export metadata field to `CerebroNexus_version`.
 
-# CerebroNexus 2.3.0
+# Version 2.3.0
 
 ## HLA & TCR Motifs
 
@@ -61,7 +61,7 @@
   positive-control caveat), and *"Antigen-selected single-cell TCR"* (the
   shipped demo's full download → `.crb` pipeline).
 
-# CerebroNexus 2.2.0
+# Version 2.2.0
 
 ## Trekker single-cell spatial mapping
 
@@ -119,7 +119,7 @@
   interactive app"*, covering the registration-gated download, the bundle
   contents, and the reproducible build (`data-raw/build_trekker_demo.R`).
 
-# CerebroNexus 2.1.1
+# Version 2.1.1
 
 ## Robustness and interface
 
@@ -144,7 +144,7 @@
 - Preserve the last shinytest2 output error when a retry times out, so failures
   report their original cause instead of an unexplained `NULL` value.
 
-# CerebroNexus 2.1.0
+# Version 2.1.0
 
 ## Projection overhaul, unified interface, and cross-tab selection
 
@@ -175,7 +175,7 @@
   sync with the server across re-renders; and the trajectory projection keeps
   its view on redraw.
 
-# CerebroNexus 2.0.1
+# Version 2.0.1
 
 ## Robustness, performance, and deprecation cleanup
 
@@ -195,7 +195,7 @@
   per-call warning and roughly halves the composition cross-tabulation on large
   tables.
 
-# CerebroNexus 2.0.0
+# Version 2.0.0
 
 ## Spatial analysis and overlay improvements
 
@@ -259,7 +259,7 @@
 - **Demo dataset**: bundled a synthetic Xenium spatial demo
   (`demo_spatial.crb`, 1,000 cells) as a fifth demo dataset.
 
-# CerebroNexus 1.7.8
+# Version 1.7.8
 
 ## Trajectory tab
 
@@ -277,7 +277,7 @@
   separate `demo_trajectory.crb`, so one demo shows TCR + BCR + trajectory. The
   trajectory is reproducible via `data-raw/build_trajectory_demo.R`.
 
-# CerebroNexus 1.7.7
+# Version 1.7.7
 
 ## Multiple data sets (multi-crb)
 
@@ -312,7 +312,7 @@
   output element is created on tab switch; plotly sizes itself client-side, so
   that gate was removed.
 
-# CerebroNexus 1.7.6
+# Version 1.7.6
 
 ## Immune repertoire
 
@@ -328,7 +328,7 @@
   clone-call resolution rather than a reader-facing figure. Uncomment its
   `tabPanel` to re-enable.
 
-# CerebroNexus 1.7.5
+# Version 1.7.5
 
 ## Immune repertoire
 
@@ -336,7 +336,7 @@
   titles removed, with boxed/mirrored axes (showline + mirror) and autorange,
   so the Clonal UMAP sits visually consistent with the main projection tab.
 
-# CerebroNexus 1.7.4
+# Version 1.7.4
 
 ## Immune repertoire
 
@@ -381,7 +381,7 @@
   height (`ir_fill_plot` / `ir_fill_wrap` helpers) instead of repeating a
   per-tab pixel value.
 
-# CerebroNexus 1.7.3
+# Version 1.7.3
 
 ## Immune repertoire
 
@@ -405,7 +405,7 @@
   data set's metadata and joined onto the clonotype data by barcode, rather
   than only columns embedded in the IR table.
 
-# CerebroNexus 1.7.2
+# Version 1.7.2
 
 ## Enhanced modules
 
@@ -417,7 +417,7 @@
   extra tables, and extra plots.
 - Added tests and vignettes covering the new Shiny modules and export helpers.
 
-# CerebroNexus 1.7.1
+# Version 1.7.1
 
 This maintenance release cleans up the package surface introduced by the
 previous releases and refreshes documentation for the current codebase.
@@ -432,7 +432,7 @@ previous releases and refreshes documentation for the current codebase.
 - Updated package metadata and regenerated documentation for the current public
   API.
 
-# CerebroNexus 1.7.0
+# Version 1.7.0
 
 ## New features
 
@@ -466,7 +466,7 @@ previous releases and refreshes documentation for the current codebase.
 - Switched Nix environment to `fixed-date` to avoid constant rebuilding
 - simplified workflow by removing `dev` and `sync-dev`
 
-# CerebroNexus 1.6.0
+# Version 1.6.0
 
 ## Bug fixes
 
@@ -498,28 +498,28 @@ previous releases and refreshes documentation for the current codebase.
 - Added pkgdown site at <https://mihem.github.io/CerebroNexus/> with light/dark/auto theme switch, search, and all vignettes as articles
 - Site automatically builds and deploys to GitHub Pages on push to master
 
-# CerebroNexus 1.5.3
+# Version 1.5.3
 
 - several bug fixes so that launchCerebro should work again
 
-# CerebroNexus 1.5.2
+# Version 1.5.2
 
 - allow plot settings (size, opacity, number of cells to show) to be different in gene expression and overview (useful for large datasets with slow gene expression)
 
-# CerebroNexus 1.5.1
+# Version 1.5.1
 
 - remove unused functions in group
 
-# CerebroNexus 1.5.0
+# Version 1.5.0
 
 - make compatible with Seuratv5, especially with BPCells Matrix
 
-# CerebroNexus 1.4.1
+# Version 1.4.1
 
 - timeout function added. This logs out the user after 600 second of inactivity (can be changed in `shiny_ui.R`). The JS function was taken from https://stackoverflow.com/a/53207050/21417317.
 - add option to show up to 1000 cells in `Main`, which is useful for exports.
 
-# CerebroNexus 1.4.0
+# Version 1.4.0
 
 This is the first update of this cerebroApp fork. Its aim is to continue a lightweight version of the excellent cerebroApp with only the main function as the cerebroApp by Roman Hillje is sadly discontinued.
 
