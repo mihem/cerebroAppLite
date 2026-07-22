@@ -38,7 +38,7 @@ jobs:
       - name: Install R package dependencies
         run: nix-shell default.nix --run "echo 'R package dependencies installed'"
 
-      - name: Install cerebroAppLite
+      - name: Install CerebroNexus
         run: |
           nix-shell default.nix --run "Rscript -e \"
             lib <- Sys.getenv('R_LIBS_USER')
