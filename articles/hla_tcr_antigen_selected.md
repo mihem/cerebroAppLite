@@ -24,7 +24,7 @@ One HLA demo ships, and everything in it is measured:
 | HLA | **real** — the donors’ published genotypes (table S1), measured independently of these cells |
 
 Earlier iterations shipped two others — a fully fabricated fixture and a
-real bulk TCRβ cohort. Both are gone: cerebroAppLite is a single-cell
+real bulk TCRβ cohort. Both are gone: CerebroNexus is a single-cell
 application, and a demo that is neither real nor single-cell earns its
 place only if nothing better exists. This one is both, so it replaces
 them. Their build pipelines remain in `data-raw/` (see
@@ -168,7 +168,7 @@ may not carry.
 ### Why this exact shape
 
 The app reads receptors through
-[`hla_parse_ir_segments()`](https://mihem.github.io/cerebroAppLite/reference/hla_parse_ir_segments.md),
+[`hla_parse_ir_segments()`](https://mihem.github.io/CerebroNexus/reference/hla_parse_ir_segments.md),
 whose contract is `barcode` + `CTgene` + `CTaa`. For the requested chain
 it takes the matching underscore slot, pulls the `TRBV…` / `TRBJ…`
 tokens out of `CTgene`, and the CDR3 out of the same slot of `CTaa`.
@@ -237,10 +237,10 @@ Table S1 reports a single HLA-B allele for donors 1 and 2, so every
 B-restricted binder call in those donors is undecidable rather than
 off-genotype. Collapsing that into `no` would manufacture a confirmed
 negative out of missing data — the same false-negative bias
-[`hla_allele_status_by_unit()`](https://mihem.github.io/cerebroAppLite/reference/hla_allele_status_by_unit.md)
+[`hla_allele_status_by_unit()`](https://mihem.github.io/CerebroNexus/reference/hla_allele_status_by_unit.md)
 refuses to take when it builds carrier / non-carrier groups. The build
 applies the package’s own rule
-([`hla_locus_call_state()`](https://mihem.github.io/cerebroAppLite/reference/hla_locus_call_state.md):
+([`hla_locus_call_state()`](https://mihem.github.io/CerebroNexus/reference/hla_locus_call_state.md):
 a locus is complete at two copies).
 
 The carrier contrasts on the HLA Associations tab use the **published

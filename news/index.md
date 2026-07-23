@@ -1,6 +1,21 @@
 # Changelog
 
-## cerebroAppLite 2.3.0
+## CerebroNexus 3.0.0
+
+### Renamed package and application
+
+- Unified the R package, Shiny application, and GitHub repository under
+  the `CerebroNexus` name. Install from `mihem/CerebroNexus` and load
+  the package with
+  [`library(CerebroNexus)`](https://mihem.github.io/CerebroNexus/).
+- Kept the established Cerebro data model and public API, including
+  `.crb` files, `Cerebro_v1.3`, `Cerebro.options`,
+  [`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md),
+  and
+  [`convertSeuratToCerebro()`](https://mihem.github.io/CerebroNexus/reference/convertSeuratToCerebro.md).
+- Updated the HLA export metadata field to `CerebroNexus_version`.
+
+## Version 2.3.0
 
 ### HLA & TCR Motifs
 
@@ -22,7 +37,7 @@
   `unknown`) so a synthetic or imputed genotype is never treated as
   directly typed.
 - **Export picks it up automatically.**
-  [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+  [`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
   now reads `object@misc$hla_typing` (with
   `object@misc$hla_typing_source_type`), parallel to the existing
   `immune_repertoire` slot.
@@ -59,7 +74,7 @@
   single-cell TCR”* (the shipped demo’s full download → `.crb`
   pipeline).
 
-## cerebroAppLite 2.2.0
+## Version 2.2.0
 
 ### Trekker single-cell spatial mapping
 
@@ -125,7 +140,7 @@
   download, the bundle contents, and the reproducible build
   (`data-raw/build_trekker_demo.R`).
 
-## cerebroAppLite 2.1.1
+## Version 2.1.1
 
 ### Robustness and interface
 
@@ -151,7 +166,7 @@
   failures report their original cause instead of an unexplained `NULL`
   value.
 
-## cerebroAppLite 2.1.0
+## Version 2.1.0
 
 ### Projection overhaul, unified interface, and cross-tab selection
 
@@ -186,7 +201,7 @@
   restored; hidden-group state stays in sync with the server across
   re-renders; and the trajectory projection keeps its view on redraw.
 
-## cerebroAppLite 2.0.1
+## Version 2.0.1
 
 ### Robustness, performance, and deprecation cleanup
 
@@ -208,7 +223,7 @@
   which also removes the per-call warning and roughly halves the
   composition cross-tabulation on large tables.
 
-## cerebroAppLite 2.0.0
+## Version 2.0.0
 
 ### Spatial analysis and overlay improvements
 
@@ -244,7 +259,7 @@
   whenever the loaded dataset carries spatial data, with plotly-based
   coloring, group filters, and box/lasso cell selection.
 - **Histology background overlay**:
-  [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+  [`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
   gains `spatial_images` plus per-dataset `spatial_images_flip_x`,
   `spatial_images_flip_y`, `spatial_images_scale_x`,
   `spatial_images_scale_y`, and `spatial_plot_rotation` parameters.
@@ -259,7 +274,7 @@
   types visibly stratify across the cortex out of the box. Both the
   coordinates and the image are synthetic — no patient data.
 - **Documentation**: added the
-  [`vignette("spatial_analysis")`](https://mihem.github.io/cerebroAppLite/articles/spatial_analysis.md)
+  [`vignette("spatial_analysis")`](https://mihem.github.io/CerebroNexus/articles/spatial_analysis.md)
   guide.
 - **Bundled demo set**: the app now opens on `demo_full_tcr_bcr.crb`
   (PBMC, TCR + BCR + trajectory) plus four real spatial sections
@@ -276,7 +291,7 @@
   field with `addSpatialData()`, `getSpatialData()`, and
   `availableSpatial()` accessors.
 - **Export support**:
-  [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+  [`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
   now extracts spatial coordinates and expression from Seurat v5 image
   slots (Visium / Xenium / FOV) via the internal `.getSpatialData()`
   helper, storing them per image in the exported `.crb`.
@@ -285,7 +300,7 @@
 - **Demo dataset**: bundled a synthetic Xenium spatial demo
   (`demo_spatial.crb`, 1,000 cells) as a fifth demo dataset.
 
-## cerebroAppLite 1.7.8
+## Version 1.7.8
 
 ### Trajectory tab
 
@@ -305,12 +320,12 @@
   TCR + BCR + trajectory. The trajectory is reproducible via
   `data-raw/build_trajectory_demo.R`.
 
-## cerebroAppLite 1.7.7
+## Version 1.7.7
 
 ### Multiple data sets (multi-crb)
 
 - **Dataset switcher**:
-  [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+  [`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
   now accepts a named vector of several `.crb` files and renders a
   “Select dataset:” dropdown in the sidebar, letting users move between
   data sets without restarting the app. Single-file usage is unchanged
@@ -333,9 +348,9 @@
   reproducible build. The bundled app (`shiny::runApp("inst")`) now
   opens on these three data sets so the switcher is visible out of the
   box; pass a named vector to
-  [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+  [`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
   for your own data (see
-  [`vignette("multi_crb")`](https://mihem.github.io/cerebroAppLite/articles/multi_crb.md)).
+  [`vignette("multi_crb")`](https://mihem.github.io/CerebroNexus/articles/multi_crb.md)).
   New vignette: *Loading multiple data sets (multi-crb) with a dataset
   switcher*.
 
@@ -347,7 +362,7 @@
   available when its output element is created on tab switch; plotly
   sizes itself client-side, so that gate was removed.
 
-## cerebroAppLite 1.7.6
+## Version 1.7.6
 
 ### Immune repertoire
 
@@ -363,7 +378,7 @@
   choosing a clone-call resolution rather than a reader-facing figure.
   Uncomment its `tabPanel` to re-enable.
 
-## cerebroAppLite 1.7.5
+## Version 1.7.5
 
 ### Immune repertoire
 
@@ -372,7 +387,7 @@
   mirror) and autorange, so the Clonal UMAP sits visually consistent
   with the main projection tab.
 
-## cerebroAppLite 1.7.4
+## Version 1.7.4
 
 ### Immune repertoire
 
@@ -425,7 +440,7 @@
   single plot height (`ir_fill_plot` / `ir_fill_wrap` helpers) instead
   of repeating a per-tab pixel value.
 
-## cerebroAppLite 1.7.3
+## Version 1.7.3
 
 ### Immune repertoire
 
@@ -451,7 +466,7 @@
   from the data set’s metadata and joined onto the clonotype data by
   barcode, rather than only columns embedded in the IR table.
 
-## cerebroAppLite 1.7.2
+## Version 1.7.2
 
 ### Enhanced modules
 
@@ -465,7 +480,7 @@
 - Added tests and vignettes covering the new Shiny modules and export
   helpers.
 
-## cerebroAppLite 1.7.1
+## Version 1.7.1
 
 This maintenance release cleans up the package surface introduced by the
 previous releases and refreshes documentation for the current codebase.
@@ -480,12 +495,12 @@ previous releases and refreshes documentation for the current codebase.
 - Updated package metadata and regenerated documentation for the current
   public API.
 
-## cerebroAppLite 1.7.0
+## Version 1.7.0
 
 ### New features
 
 - External HDF5 expression backend, symmetric to the bpcells backend:
-  [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+  [`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
   with `expression_matrix_mode = "h5"` writes the matrix via
   [`HDF5Array::writeTENxMatrix()`](https://rdrr.io/pkg/HDF5Array/man/writeTENxMatrix.html)
   to a TENx-format `.h5` next to the `.crb`. The runtime attach loads it
@@ -495,22 +510,22 @@ previous releases and refreshes documentation for the current codebase.
   `dgCMatrix` is never materialised, so RAM stays close to the `.crb`
   metadata size and attach is effectively instant
 - Introduced
-  [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+  [`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
   for bundling a self-contained Shiny app from one or more `.crb` files
-- [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+- [`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
   now copies the `<stem>.h5` sibling alongside the `.crb` during app
   bundling, mirroring the existing `.bpcells/` handling
 - Legacy `.crb` files (predating the `expression_backend` field) are
   auto-tagged as `h5` when the host app sets
   `Cerebro.options[["expression_matrix_h5"]]`, finally giving
   `inst/extdata/v1.4/example.h5` a runtime consumer
-- [`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md)
+- [`convertSeuratToCerebro()`](https://mihem.github.io/CerebroNexus/reference/convertSeuratToCerebro.md)
   accepts an in-memory Seurat object alongside the `.rds` path; output
   basename derives from `experiment_name` when no path is given
-- [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+- [`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
   opens a `...` passthrough so callers can forward extra options without
   signature churn
-- [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+- [`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
   with `expression_matrix_mode = "bpcells"` now auto-detects
   losslessly-integer values and calls
   `BPCells::convert_matrix_type("uint32_t")` before
@@ -526,7 +541,7 @@ previous releases and refreshes documentation for the current codebase.
 ### Bug fixes
 
 - Fixed
-  [`exportFromSCE()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSCE.md)
+  [`exportFromSCE()`](https://mihem.github.io/CerebroNexus/reference/exportFromSCE.md)
   projections: `reducedDims()` output is now coerced to `data.frame`
   before `addProjection()`, matching the Seurat path and clearing a
   latent runtime error for SCE inputs with non-PCA reductions
@@ -567,7 +582,7 @@ previous releases and refreshes documentation for the current codebase.
 - Switched Nix environment to `fixed-date` to avoid constant rebuilding
 - simplified workflow by removing `dev` and `sync-dev`
 
-## cerebroAppLite 1.6.0
+## Version 1.6.0
 
 ### Bug fixes
 
@@ -616,30 +631,30 @@ previous releases and refreshes documentation for the current codebase.
 
 ### Documentation
 
-- Added pkgdown site at <https://mihem.github.io/cerebroAppLite/> with
+- Added pkgdown site at <https://mihem.github.io/CerebroNexus/> with
   light/dark/auto theme switch, search, and all vignettes as articles
 - Site automatically builds and deploys to GitHub Pages on push to
   master
 
-## cerebroAppLite 1.5.3
+## Version 1.5.3
 
 - several bug fixes so that launchCerebro should work again
 
-## cerebroAppLite 1.5.2
+## Version 1.5.2
 
 - allow plot settings (size, opacity, number of cells to show) to be
   different in gene expression and overview (useful for large datasets
   with slow gene expression)
 
-## cerebroAppLite 1.5.1
+## Version 1.5.1
 
 - remove unused functions in group
 
-## cerebroAppLite 1.5.0
+## Version 1.5.0
 
 - make compatible with Seuratv5, especially with BPCells Matrix
 
-## cerebroAppLite 1.4.1
+## Version 1.4.1
 
 - timeout function added. This logs out the user after 600 second of
   inactivity (can be changed in `shiny_ui.R`). The JS function was taken
@@ -647,7 +662,7 @@ previous releases and refreshes documentation for the current codebase.
 - add option to show up to 1000 cells in `Main`, which is useful for
   exports.
 
-## cerebroAppLite 1.4.0
+## Version 1.4.0
 
 This is the first update of this cerebroApp fork. Its aim is to continue
 a lightweight version of the excellent cerebroApp with only the main

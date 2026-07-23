@@ -14,11 +14,11 @@ log fold-change values on a diverging colour scale.
 ## Quick start
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 launchCerebroV1.4()
 ```
 
-1.  Launch cerebroAppLite and load a `.crb` file with enrichment results
+1.  Launch CerebroNexus and load a `.crb` file with enrichment results
 2.  If enrichment data is present, **Enriched pathways** appears in the
     sidebar
 3.  Choose an enrichment method (e.g., `cerebro_seurat_enrichr`)
@@ -37,7 +37,7 @@ Columns are auto-detected and formatted:
 ## Data export
 
 Enrichment results are passed to
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 via the `enriched_pathways` parameter.
 
 ``` r
@@ -51,10 +51,10 @@ exportFromSeurat(seurat_object,
 ```
 
 See
-[`vignette("overview_of_cerebro_v1.3_class")`](https://mihem.github.io/cerebroAppLite/articles/overview_of_cerebro_v1.3_class.md)
+[`vignette("overview_of_cerebro_v1.3_class")`](https://mihem.github.io/CerebroNexus/articles/overview_of_cerebro_v1.3_class.md)
 for the expected format.
 
 ## See also
 
-[`vignette("overview_of_cerebro_v1.3_class")`](https://mihem.github.io/cerebroAppLite/articles/overview_of_cerebro_v1.3_class.md)
+[`vignette("overview_of_cerebro_v1.3_class")`](https://mihem.github.io/CerebroNexus/articles/overview_of_cerebro_v1.3_class.md)
 for the Cerebro data model.

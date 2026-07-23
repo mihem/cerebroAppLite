@@ -13,11 +13,11 @@ into the v1.4 sub-file layout with no functional changes.
 ## Quick start
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 launchCerebroV1.4()
 ```
 
-1.  Launch cerebroAppLite and load a `.crb` file with trajectory data
+1.  Launch CerebroNexus and load a `.crb` file with trajectory data
 2.  If trajectory data is present, **Trajectory** appears in the sidebar
 3.  Select a trajectory method and name from the dropdowns
 4.  Explore cells along pseudotime, expression metrics, and state
@@ -62,11 +62,11 @@ are enriched in specific trajectory branches.
 
 Trajectories must be computed with Monocle 2 (or compatible) and
 exported via
-[`extractMonocleTrajectory()`](https://mihem.github.io/cerebroAppLite/reference/extractMonocleTrajectory.md)
+[`extractMonocleTrajectory()`](https://mihem.github.io/CerebroNexus/reference/extractMonocleTrajectory.md)
 before embedding in the `.crb` file.
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 traj <- extractMonocleTrajectory(
   monocle_object,
   seurat_object = seurat_object
@@ -79,5 +79,5 @@ exportFromSeurat(seurat_object,
 
 ## See also
 
-- [`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.md)
+- [`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/CerebroNexus/articles/cerebroApp_workflow_Seurat.md)
   for the complete export workflow

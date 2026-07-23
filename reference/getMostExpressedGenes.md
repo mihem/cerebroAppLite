@@ -33,12 +33,12 @@ the specified groups stored in `object@misc$most_expressed_genes`.
 
 ``` r
 pbmc <- readRDS(system.file("extdata/v1.4/pbmc_seurat.rds",
-  package = "cerebroAppLite"))
+  package = "CerebroNexus"))
 pbmc <- getMostExpressedGenes(
   object = pbmc,
   assay = 'RNA',
   groups = c('sample','seurat_clusters')
 )
-#> [05:46:05] Get most expressed genes for 2 groups in `sample`...
-#> [05:46:05] Get most expressed genes for 2 groups in `seurat_clusters`...
+#> [11:30:56] Get most expressed genes for 2 groups in `sample`...
+#> [11:30:56] Get most expressed genes for 2 groups in `seurat_clusters`...
 ```

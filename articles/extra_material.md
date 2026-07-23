@@ -17,11 +17,11 @@ when no extra content is needed.
 ## Quick start
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 launchCerebroV1.4()
 ```
 
-1.  Launch cerebroAppLite and load a `.crb` file with extra material
+1.  Launch CerebroNexus and load a `.crb` file with extra material
 2.  If extra material is present, **Extra material** appears in the
     sidebar
 3.  Select a category (`tables` or `plots`)
@@ -38,7 +38,7 @@ download support.
 ## Embedding content
 
 Use the `extra_material` parameter in
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md):
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md):
 
 ``` r
 exportFromSeurat(seurat_object,
@@ -52,5 +52,5 @@ exportFromSeurat(seurat_object,
 
 ## See also
 
-[`vignette("export_and_visualize_custom_tables_and_plots")`](https://mihem.github.io/cerebroAppLite/articles/export_and_visualize_custom_tables_and_plots.md)
+[`vignette("export_and_visualize_custom_tables_and_plots")`](https://mihem.github.io/CerebroNexus/articles/export_and_visualize_custom_tables_and_plots.md)
 for a detailed walkthrough with examples.

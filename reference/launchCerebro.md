@@ -28,10 +28,10 @@ Shiny application.
 
 ## See also
 
-[`launchCerebroV1.0`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.0.md),
-[`launchCerebroV1.1`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.1.md),
-[`launchCerebroV1.2`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.2.md),
-[`launchCerebroV1.3`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.3.md)
+[`launchCerebroV1.0`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.0.md),
+[`launchCerebroV1.1`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.1.md),
+[`launchCerebroV1.2`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.2.md),
+[`launchCerebroV1.3`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.3.md)
 
 ## Examples
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
 bundles a Cerebro v1.4 Shiny app into a single output directory. It
 copies the Shiny sources shipped under `inst/shiny/v1.4/`, the requested
 `.crb` (or `.rds`) data file(s), and the `inst/extdata/` reference
@@ -11,7 +11,7 @@ pre-built `Cerebro.options` list. The result is a directory you can
 serve directly with `shiny-server`, drop behind `rsconnect`/Posit
 Connect, or launch locally with
 [`shiny::runApp()`](https://rdrr.io/pkg/shiny/man/runApp.html) — no
-further calls into `cerebroAppLite` are required at runtime.
+further calls into `CerebroNexus` are required at runtime.
 
 This is the recommended path when you want to hand a colleague a
 runnable copy of Cerebro pre-loaded with a specific data set without
@@ -25,9 +25,9 @@ The package ships an example `.crb` (and its sibling `.h5`) in
 `inst/extdata/v1.4/`, which we use throughout this vignette.
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 
-crb <- system.file("extdata/v1.4/example.crb", package = "cerebroAppLite")
+crb <- system.file("extdata/v1.4/example.crb", package = "CerebroNexus")
 file.exists(crb)
 #> [1] TRUE
 ```
@@ -82,7 +82,7 @@ You can also supply matching `colors` so each dataset gets a
 deterministic palette.
 
 ``` r
-crb_pbmc <- system.file("extdata/v1.4/example.crb", package = "cerebroAppLite")
+crb_pbmc <- system.file("extdata/v1.4/example.crb", package = "CerebroNexus")
 # crb_other <- "/path/to/another_dataset.crb"
 
 createShinyApp(
@@ -103,12 +103,12 @@ createShinyApp(
 
 If your `.crb` was exported with an external expression backend
 (`expression_matrix_mode = "bpcells"` or `"h5"` in
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)),
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)),
 the actual expression matrix lives in a sibling file or directory next
 to the `.crb`. The bpcells backend writes a `<stem>.bpcells/` directory;
 the h5 backend writes a 10X-style sparse CSC `<stem>.h5` file.
 
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
 detects siblings automatically and copies them into `result_dir/data/`
 alongside the `.crb`, so the bundle stays portable. You don’t need to
 pass anything extra — just keep the sibling next to the `.crb` on disk
@@ -116,7 +116,7 @@ before calling the function.
 
 ``` r
 # example.crb ships with example.h5 in the same folder; both are bundled
-crb <- system.file("extdata/v1.4/example.crb", package = "cerebroAppLite")
+crb <- system.file("extdata/v1.4/example.crb", package = "CerebroNexus")
 file.exists(file.path(dirname(crb), "example.h5"))
 #> [1] TRUE
 ```
@@ -162,8 +162,8 @@ rsconnect::deployApp(appDir = out_dir)
 
 ## Reference
 
-- [`?createShinyApp`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
-- [`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.md)
+- [`?createShinyApp`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
+- [`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/CerebroNexus/articles/cerebroApp_workflow_Seurat.md)
   for end-to-end Seurat → `.crb` → app
-- [`vignette("host_cerebro_on_shinyapps")`](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md)
+- [`vignette("host_cerebro_on_shinyapps")`](https://mihem.github.io/CerebroNexus/articles/host_cerebro_on_shinyapps.md)
   for shinyapps.io specifics

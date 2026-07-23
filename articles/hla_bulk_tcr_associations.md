@@ -2,7 +2,7 @@
 
 ## What this guide does
 
-cerebroAppLite is a single-cell application, and the demo it ships is
+CerebroNexus is a single-cell application, and the demo it ships is
 single-cell: real cells, real paired TCR, real donor genotypes. But the
 **HLA Associations** tab also accepts an input that has no cells at all
 — **bulk TCRβ immunosequencing paired with real donor HLA genotypes** —
@@ -18,8 +18,7 @@ B](#option-b-a-small-synthetic-bulk-crb-you-can-run-now)).
 If you have not read the main guide, skim its “two ideas” section first
 — this one assumes you know what a CDR3, a motif, and an HLA allele are.
 As before, every code block runs on its own (base R + `Matrix` +
-`cerebroAppLite`, no downloads), and we print each object as we build
-it.
+`CerebroNexus`, no downloads), and we print each object as we build it.
 
 ### How bulk data is different
 
@@ -147,7 +146,7 @@ There is no Seurat object here (no cells), so we build the
 
 ``` r
 library(Matrix)
-library(cerebroAppLite)
+library(CerebroNexus)
 
 set.seed(7)
 donors <- sprintf("donor_%03d", 1:30)
@@ -445,9 +444,9 @@ key is `v_gene+cdr3` rather than CDR3 alone.
 ## Getting help
 
 - Questions and bug reports:
-  <https://github.com/mihem/cerebroAppLite/issues>.
+  <https://github.com/mihem/CerebroNexus/issues>.
 - Function reference and other articles:
-  <https://mihem.github.io/cerebroAppLite/>.
+  <https://mihem.github.io/CerebroNexus/>.
 - Provenance of every shipped demo data set: `data-raw/DATASETS.md`.
 
 ## Session info

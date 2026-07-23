@@ -2,9 +2,9 @@
 
 ## Overview
 
-cerebroAppLite can load **multiple `.crb` files** in a single app. When
+CerebroNexus can load **multiple `.crb` files** in a single app. When
 more than one file is supplied to
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md),
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md),
 a **“Select dataset:”** switcher appears in the sidebar so users can
 move between data sets without restarting the app. Each data set keeps
 its own expression data, metadata, and module-specific slots — including
@@ -22,7 +22,7 @@ createShinyApp(
   result_dir = file.path(tempdir(), "cerebro_app_single"),
   cerebro_data = c(demo = system.file(
     "extdata/v1.4/example.crb",
-    package = "cerebroAppLite"
+    package = "CerebroNexus"
   ))
 )
 ```
@@ -39,11 +39,11 @@ conditional tabs all change as you switch:
 createShinyApp(
   result_dir = file.path(tempdir(), "cerebro_app_multi"),
   cerebro_data = c(
-    "PBMC - Full (T+B)"                = system.file("extdata/v1.4/demo_full_tcr_bcr.crb",   package = "cerebroAppLite"),
-    "Mouse brain (Visium)"             = system.file("extdata/v1.4/demo_spatial_visium.crb",  package = "cerebroAppLite"),
-    "Mouse hippocampus (Slide-seq v2)" = system.file("extdata/v1.4/demo_spatial_slideseq.crb", package = "cerebroAppLite"),
-    "Mouse ileum (MERFISH)"            = system.file("extdata/v1.4/demo_spatial_merfish.crb", package = "cerebroAppLite"),
-    "Mouse brain (Xenium)"             = system.file("extdata/v1.4/demo_spatial_xenium.crb",  package = "cerebroAppLite")
+    "PBMC - Full (T+B)"                = system.file("extdata/v1.4/demo_full_tcr_bcr.crb",   package = "CerebroNexus"),
+    "Mouse brain (Visium)"             = system.file("extdata/v1.4/demo_spatial_visium.crb",  package = "CerebroNexus"),
+    "Mouse hippocampus (Slide-seq v2)" = system.file("extdata/v1.4/demo_spatial_slideseq.crb", package = "CerebroNexus"),
+    "Mouse ileum (MERFISH)"            = system.file("extdata/v1.4/demo_spatial_merfish.crb", package = "CerebroNexus"),
+    "Mouse brain (Xenium)"             = system.file("extdata/v1.4/demo_spatial_xenium.crb",  package = "CerebroNexus")
   )
 )
 ```

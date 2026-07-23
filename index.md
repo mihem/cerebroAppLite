@@ -1,12 +1,12 @@
-# cerebroAppLite
+# CerebroNexus
 
 Interactive visualization of single-cell RNA-seq data, built on top of
 [Shiny](https://shiny.posit.co/).
 
-cerebroAppLite supports loading pre-processed single-cell data,
-exploring projections and gene expression, browsing marker genes and
-enriched pathways, and inspecting group compositions — all through an
-interactive web interface. The sections below cover the key features.
+CerebroNexus supports loading pre-processed single-cell data, exploring
+projections and gene expression, browsing marker genes and enriched
+pathways, and inspecting group compositions — all through an interactive
+web interface. The sections below cover the key features.
 
 For the original feature set and data preparation workflows, refer to
 the upstream cerebroApp documentation at
@@ -40,21 +40,21 @@ developed and maintained by [mihem](https://github.com/mihem).*
 ## 1. Installation
 
 ``` r
-remotes::install_github('mihem/cerebroAppLite')
+remotes::install_github('mihem/CerebroNexus')
 ```
 
 ## 2. Features
 
 ### 2.1 convertSeuratToCerebro()
 
-[`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md)
+[`convertSeuratToCerebro()`](https://mihem.github.io/CerebroNexus/reference/convertSeuratToCerebro.md)
 handles the entire export process in a single call: reading the Seurat
 object (`.rds` on disk, or one already loaded in memory), renaming
 grouping variables, loading marker gene tables, calculating
 most-expressed genes, and saving a `.crb` file.
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 
 convertSeuratToCerebro(
   seurat_file     = "my_seurat.rds",     # or an in-memory Seurat object
@@ -77,7 +77,7 @@ convertSeuratToCerebro(
 ### 2.2 createShinyApp()
 
 Instead of running
-[`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+[`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
 interactively, you can generate a self-contained Shiny app directory
 with all data and source files bundled. This is useful for deploying to
 a Shiny server or sharing with collaborators.
@@ -105,14 +105,14 @@ in the app. `result_dir` is optional. Sibling `<stem>.bpcells/` and
 copied into the bundle automatically (see §2.3). Other knobs available:
 `colors`, `cerebro_options`, `crb_pick_smallest_file`, `show_upload_ui`,
 `point_size`, `variable_to_compare` — run
-[`?createShinyApp`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+[`?createShinyApp`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
 for the full list.
 
 ### 2.3 Choosing an expression backend
 
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 (and
-[`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md))
+[`convertSeuratToCerebro()`](https://mihem.github.io/CerebroNexus/reference/convertSeuratToCerebro.md))
 accept `expression_matrix_mode = c("embedded", "bpcells", "h5")` for how
 the count matrix is persisted alongside the `.crb`:
 
@@ -178,7 +178,7 @@ RSS, and ~0.45 s queries — i.e. lazy-h5 is the same backend with attach
 **~263× faster, RAM ~10× smaller, queries ~45× faster, web load ~4×
 faster**.
 
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
 already knows about both `<stem>.bpcells/` and `<stem>.h5` and copies
 them next to the bundled `.crb`. The Shiny runtime re-resolves the
 sibling location on load via `getExpressionBackend()$location` relative
@@ -256,13 +256,13 @@ native R install, or the repo’s `default.nix`).
 ### 3.4 Self-containment of exported apps
 
 Apps built by
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
-must stay **self-contained** — they run with no `cerebroAppLite`
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
+must stay **self-contained** — they run with no `CerebroNexus`
 installed. `test-smoke-production.R` enforces this with a static source
 check, a hermetic `.crb` deserialize, and a hermetic bundle boot (each
 in a process whose library path lacks the package), so a bundle that
-reaches back into `cerebroAppLite` fails a test rather than a user. See
-[`CONTRIBUTING.md`](https://mihem.github.io/cerebroAppLite/CONTRIBUTING.md)
+reaches back into `CerebroNexus` fails a test rather than a user. See
+[`CONTRIBUTING.md`](https://mihem.github.io/CerebroNexus/CONTRIBUTING.md)
 for the rule and where runtime code must live.
 
 ### 3.5 Snapshots and further reading
@@ -275,7 +275,7 @@ and accept with
 only after confirming the new output is correct.
 
 See
-[`tests/README.md`](https://mihem.github.io/cerebroAppLite/tests/README.md)
+[`tests/README.md`](https://mihem.github.io/CerebroNexus/tests/README.md)
 for the full layout, the `inst_dir` resolution rule, and the gotcha
 about regenerating `inst/extdata/v1.4/example.crb` after R6 method
 changes (a stale fixture surfaces as a misleading
@@ -283,7 +283,6 @@ changes (a stale fixture surfaces as a misleading
 
 ## 4. License
 
-MIT — see
-[LICENSE.md](https://mihem.github.io/cerebroAppLite/LICENSE.md).
-Original cerebroApp © Roman Hillje; cerebroAppLite fork by
+MIT — see [LICENSE.md](https://mihem.github.io/CerebroNexus/LICENSE.md).
+Original cerebroApp © Roman Hillje; CerebroNexus fork by
 [mihem](https://github.com/mihem).

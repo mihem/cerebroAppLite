@@ -57,7 +57,7 @@ A few general notes:
 #### Load data
 
 [![Load
-data](Cerebro_interface_v1.2_files/2019-09-23_01.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_01.png)
+data](Cerebro_interface_v1.2_files/2019-09-23_01.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_01.png)
 
 This is the panel that we will be shown to you when you launch Cerebro.
 In the top input panel you can choose your data which is the file you
@@ -74,9 +74,9 @@ more to do here so let’s move on to the “Overview” panel.
 #### Overview
 
 [![t-SNE projection with cells colored by
-sample](Cerebro_interface_v1.2_files/2019-09-23_02_01.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_02_01.png)[![UMAP
+sample](Cerebro_interface_v1.2_files/2019-09-23_02_01.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_02_01.png)[![UMAP
 projection with cells colored by cell
-cycle](Cerebro_interface_v1.2_files/2019-09-23_02_02.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_02_02.png)
+cycle](Cerebro_interface_v1.2_files/2019-09-23_02_02.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_02_02.png)
 
 In the “Overview” panel, you have access to all the dimensional
 reductions (e.g. t-SNE or UMAP) that have been generated for this data
@@ -106,9 +106,9 @@ scale.
 #### Samples
 
 [![Composition of samples by
-cluster](Cerebro_interface_v1.2_files/2019-09-23_03.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_03.png)[![Distribution
+cluster](Cerebro_interface_v1.2_files/2019-09-23_03.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_03.png)[![Distribution
 of cell cycle states by
-sample](Cerebro_interface_v1.2_files/2019-09-23_04.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_04.png)
+sample](Cerebro_interface_v1.2_files/2019-09-23_04.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_04.png)
 
 The “Samples” panel gives you a sample-centric view of the loaded data.
 That means, cells are grouped by the sample they came from.
@@ -133,9 +133,9 @@ Cyclone).
 #### Clusters
 
 [![Cluster
-tree](Cerebro_interface_v1.2_files/2019-09-23_05.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_05.png)[![Number
+tree](Cerebro_interface_v1.2_files/2019-09-23_05.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_05.png)[![Number
 of transcripts and expressed genes by
-cluster](Cerebro_interface_v1.2_files/2019-09-23_06.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_06.png)
+cluster](Cerebro_interface_v1.2_files/2019-09-23_06.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_06.png)
 
 The “Clusters” panel gives a cluster-centric view of the data. Except
 for the first plot (the cluster tree), it shows the same info as the
@@ -157,7 +157,7 @@ phases from either Seurat or Cyclone, if they have been calculated.
 #### Most expressed genes
 
 [![Table of most expressed by sample and
-cluster](Cerebro_interface_v1.2_files/2019-09-23_07.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_07.png)
+cluster](Cerebro_interface_v1.2_files/2019-09-23_07.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_07.png)
 
 The “Most expressed genes” panel provides tables with precisely the
 information promised by the title.
@@ -170,7 +170,7 @@ search box, or download it in CSV or Excel format.
 #### Marker genes
 
 [![Table of marker genes by sample and
-cluster](Cerebro_interface_v1.2_files/2019-09-23_08.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_08.png)
+cluster](Cerebro_interface_v1.2_files/2019-09-23_08.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_08.png)
 
 The “Marker genes” panel provides tables of - surprise - marker genes
 for each sample and cluster.
@@ -203,7 +203,7 @@ respective cell population.
 #### Enriched pathways
 
 [![Table of enriched pathways in marker genes of samples and
-clusters](Cerebro_interface_v1.2_files/2019-09-23_09.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_09.png)
+clusters](Cerebro_interface_v1.2_files/2019-09-23_09.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_09.png)
 
 The “Enriched pathways” panel shows results of pathway enrichment
 analysis, again for each sample and cluster. There are currently two
@@ -232,9 +232,9 @@ which is why we support both methods.
 #### Gene expression
 
 [![Expression of individual genes in t-SNE
-projection](Cerebro_interface_v1.2_files/2019-09-23_10.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_10.png)[![Expression
+projection](Cerebro_interface_v1.2_files/2019-09-23_10.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_10.png)[![Expression
 of individual genes by sample and
-cluster](Cerebro_interface_v1.2_files/2019-09-23_11.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_11.png)
+cluster](Cerebro_interface_v1.2_files/2019-09-23_11.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_11.png)
 
 The “Gene expression” panel allows you to visualize the log-normalized
 expression of one or multiple genes.
@@ -267,7 +267,7 @@ quickly spot which genes influence the color scale the most.
 #### Gene set expression
 
 [![Expression of MSigDB gene sets in t-SNE
-projection](Cerebro_interface_v1.2_files/2019-09-23_12.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_12.png)[](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_13.png)![Expression
+projection](Cerebro_interface_v1.2_files/2019-09-23_12.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_12.png)[](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_13.png)![Expression
 of MSigDB gene sets by sample and cluster and average expression of 50
 most expressed genes in gene
 set](Cerebro_interface_v1.2_files/2019-09-23_13.png)
@@ -284,11 +284,11 @@ This feature is only available for human and mouse data.
 #### Trajectory
 
 [![Monocle trajectory - dimensional
-reduction](Cerebro_interface_v1.2_files/2019-09-23_14.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_14.png)[![Monocle
+reduction](Cerebro_interface_v1.2_files/2019-09-23_14.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_14.png)[![Monocle
 trajectory - distribution of states along
-pseudotime](Cerebro_interface_v1.2_files/2019-09-23_15.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_15.png)[![Monocle
+pseudotime](Cerebro_interface_v1.2_files/2019-09-23_15.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_15.png)[![Monocle
 trajectory - distribution of states by cluster and cell
-cycle](Cerebro_interface_v1.2_files/2019-09-23_16.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_16.png)
+cycle](Cerebro_interface_v1.2_files/2019-09-23_16.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_16.png)
 
 This “Trajectory” panel gives you access to trajectory information (if
 data is available).
@@ -330,7 +330,7 @@ of number of transcripts and expressed genes.
 #### Gene ID conversion
 
 [![Gene ID conversion
-table](Cerebro_interface_v1.2_files/2019-09-23_17.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_17.png)
+table](Cerebro_interface_v1.2_files/2019-09-23_17.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_17.png)
 
 The “Gene ID conversion” panel provides tables which allow to convert
 gene IDs and names.
@@ -343,7 +343,7 @@ GENCODE annotation version M16 (mouse) and version 27 (human).
 #### Analysis info
 
 [![Information about
-analysis](Cerebro_interface_v1.2_files/2019-09-23_18.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_18.png)
+analysis](Cerebro_interface_v1.2_files/2019-09-23_18.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_18.png)
 
 The “Analysis info” panel gives you an overview of the parameters which
 were used during the analysis (as long as they were recorded).
@@ -362,7 +362,7 @@ Shown can be:
 #### About
 
 [![About
-Cerebro](Cerebro_interface_v1.2_files/2019-09-23_19.png)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2_files/2019-09-23_19.png)
+Cerebro](Cerebro_interface_v1.2_files/2019-09-23_19.png)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2_files/2019-09-23_19.png)
 
 The “About” panel, apart from providing information about Cerebro and
 the author (me), allows to switch off WebGL (see “Preferences” at the

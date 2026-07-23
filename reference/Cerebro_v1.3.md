@@ -71,7 +71,7 @@ A new `Cerebro_v1.3` object.
 
   `list` that contains a `data.frame` holding the most expressed genes
   for each grouping variable that was specified during the call to
-  [`getMostExpressedGenes`](https://mihem.github.io/cerebroAppLite/reference/getMostExpressedGenes.md).
+  [`getMostExpressedGenes`](https://mihem.github.io/CerebroNexus/reference/getMostExpressedGenes.md).
 
 - `mean_expression`:
 
@@ -83,16 +83,16 @@ A new `Cerebro_v1.3` object.
   `list` that contains a `list` for every method that was used to
   calculate marker genes, and a `data.frame` for each grouping variable,
   e.g. those that were specified during the call to
-  [`getMarkerGenes`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md).
+  [`getMarkerGenes`](https://mihem.github.io/CerebroNexus/reference/getMarkerGenes.md).
 
 - `enriched_pathways`:
 
   `list` that contains a `list` for every method that was used to
   calculate marker genes, and a `data.frame` for each grouping variable,
   e.g. those that were specified during the call to
-  [`getEnrichedPathways`](https://mihem.github.io/cerebroAppLite/reference/getEnrichedPathways.md)
+  [`getEnrichedPathways`](https://mihem.github.io/CerebroNexus/reference/getEnrichedPathways.md)
   or
-  [`performGeneSetEnrichmentAnalysis`](https://mihem.github.io/cerebroAppLite/reference/performGeneSetEnrichmentAnalysis.md).
+  [`performGeneSetEnrichmentAnalysis`](https://mihem.github.io/CerebroNexus/reference/performGeneSetEnrichmentAnalysis.md).
 
 - `trees`:
 
@@ -104,7 +104,7 @@ A new `Cerebro_v1.3` object.
   `list` that contains a `list` for every method that was used to
   calculate trajectories, and, depending on the method, a `data.frame`
   or `list` for each specific trajectory, e.g. those extracted with
-  [`extractMonocleTrajectory`](https://mihem.github.io/cerebroAppLite/reference/extractMonocleTrajectory.md).
+  [`extractMonocleTrajectory`](https://mihem.github.io/CerebroNexus/reference/extractMonocleTrajectory.md).
 
 - `extra_material`:
 
@@ -1006,7 +1006,7 @@ available.
 
 ------------------------------------------------------------------------
 
-### Method [`getMostExpressedGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMostExpressedGenes.md)
+### Method [`getMostExpressedGenes()`](https://mihem.github.io/CerebroNexus/reference/getMostExpressedGenes.md)
 
 Retrieve table of most expressed genes for a specific grouping variable.
 
@@ -1143,7 +1143,7 @@ using the specified method.
 
 ------------------------------------------------------------------------
 
-### Method [`getMarkerGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md)
+### Method [`getMarkerGenes()`](https://mihem.github.io/CerebroNexus/reference/getMarkerGenes.md)
 
 Retrieve table of marker genes for specific method and grouping
 variable.
@@ -1245,7 +1245,7 @@ available.
 
 ------------------------------------------------------------------------
 
-### Method [`getEnrichedPathways()`](https://mihem.github.io/cerebroAppLite/reference/getEnrichedPathways.md)
+### Method [`getEnrichedPathways()`](https://mihem.github.io/CerebroNexus/reference/getEnrichedPathways.md)
 
 Retrieve table of enriched pathways for a specific method and grouping
 variable.

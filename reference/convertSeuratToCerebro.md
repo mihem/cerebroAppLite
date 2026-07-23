@@ -107,7 +107,7 @@ convertSeuratToCerebro(
 
   How to persist the expression matrix in the generated `.crb`. One of
   `"embedded"` (default), `"bpcells"` or `"h5"`. See
-  [`exportFromSeurat`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+  [`exportFromSeurat`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
   for details; briefly, `"embedded"` stores the matrix inside the `.crb`
   (legacy behaviour), `"bpcells"` writes an on-disk BPCells directory
   next to the `.crb` and keeps a lightweight handle inside it (typically
@@ -184,7 +184,7 @@ The function performs the following steps:
     - For single-sheet files, data is split by the first column
 
 4.  Exports the processed data using
-    [`exportFromSeurat`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+    [`exportFromSeurat`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 
 5.  Saves the result as `cerebro_<basename>.crb` in `result_dir`
 
@@ -193,7 +193,7 @@ The function performs the following steps:
 
 ## See also
 
-[`exportFromSeurat`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 
 ## Examples
 

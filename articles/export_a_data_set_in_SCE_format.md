@@ -274,7 +274,7 @@ marker_genes_cell_type %>% select(1:6) %>% head() %>% knitr::kable(booktabs = T)
 ## Export to Cerebro format
 
 Finally, we use the
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 function of cerebroApp to export our Seurat object to a `.crb` file
 which can be loaded into Cerebro.
 
@@ -294,7 +294,7 @@ exportFromSCE(
 ```
 
 The Cerebro use interface can be launched using the
-[`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+[`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
 function.
 
 ## Session info

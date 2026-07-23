@@ -11,9 +11,9 @@ use your web server to upload their own data sets.
 ## How to do it
 
 It’s very simple, all you have to do is provide some parameters to
-[`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+[`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
 /
-[`launchCerebroV1.3()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.3.md).
+[`launchCerebroV1.3()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.3.md).
 Let’s say your data set is stored here:
 `~/Cerebro/data_sets/pbmc_v3.crb`. Then, launch Cerebro as shown below:
 
@@ -28,7 +28,7 @@ launchCerebro(
 That’s it.
 
 [![Load
-data](launch_cerebro_with_pre-loaded_data_set_files/landing_page.png)](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set_files/landing_page.png)
+data](launch_cerebro_with_pre-loaded_data_set_files/landing_page.png)](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set_files/landing_page.png)
 
 ## Modify welcome page
 
@@ -53,11 +53,11 @@ launchCerebro(
 ```
 
 [![Load
-data](launch_cerebro_with_pre-loaded_data_set_files/custom_welcome_message.png)](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set_files/custom_welcome_message.png)
+data](launch_cerebro_with_pre-loaded_data_set_files/custom_welcome_message.png)](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set_files/custom_welcome_message.png)
 
 ## See also
 
 - [Host Cerebro on
-  shinyapps.io](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md)
+  shinyapps.io](https://mihem.github.io/CerebroNexus/articles/host_cerebro_on_shinyapps.md)
 - [Control access to Cerebro with a login
-  page](https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page.md)
+  page](https://mihem.github.io/CerebroNexus/articles/control_access_to_cerebro_with_a_login_page.md)

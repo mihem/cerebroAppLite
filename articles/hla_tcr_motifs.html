@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>HLA &amp; TCR Motifs: from synthetic data to an interactive app • cerebroAppLite</title>
+<title>HLA &amp; TCR Motifs: from synthetic data to an interactive app • CerebroNexus</title>
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -17,9 +17,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
+    <a class="navbar-brand me-2" href="../index.html">CerebroNexus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,7 +55,7 @@
     <li><a class="dropdown-item" href="../articles/most_expressed_genes.html">Most Expressed Genes</a></li>
     <li><a class="dropdown-item" href="../articles/enriched_pathways.html">Enriched Pathways</a></li>
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
-    <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
+    <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in CerebroNexus</a></li>
     <li><a class="dropdown-item" href="../articles/trajectory_analysis.html">Trajectory Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/spatial_analysis.html">Spatial Transcriptomics Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/trekker_spatial_mapping.html">Trekker single-cell spatial mapping: from a vendor bundle to an interactive app</a></li>
@@ -70,8 +70,8 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/mihem/cerebroAppLite"><span class="fa fab fa-github"></span></a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://mheming.com/"><span class="fa fas fa-globe"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/mihem/CerebroNexus" aria-label="GitHub repository"><span class="fa fab fa-github"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://mheming.com/" aria-label="Maintainer website"><span class="fa fas fa-globe"></span></a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
@@ -97,9 +97,9 @@
                         <h4 data-toc-skip class="author">Xuesong
 Wang</h4>
             
-            <h4 data-toc-skip class="date">22 July, 2026</h4>
+            <h4 data-toc-skip class="date">23 July, 2026</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/vignettes/hla_tcr_motifs.Rmd" class="external-link"><code>vignettes/hla_tcr_motifs.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/mihem/CerebroNexus/blob/master/vignettes/hla_tcr_motifs.Rmd" class="external-link"><code>vignettes/hla_tcr_motifs.Rmd</code></a></small>
       <div class="d-none name"><code>hla_tcr_motifs.Rmd</code></div>
     </div>
 
@@ -108,16 +108,16 @@ Wang</h4>
 <div class="section level2">
 <h2 id="what-this-guide-does">What this guide does<a class="anchor" aria-label="anchor" href="#what-this-guide-does"></a>
 </h2>
-<p>cerebroAppLite ships a standalone <strong>HLA &amp; TCR
-Motifs</strong> page. This guide takes you all the way from
-<em>nothing</em> to <em>a running app on that page</em>: we invent a
-small immune data set from scratch, save it in Cerebro’s file format,
-launch an app on it, and tour the page.</p>
+<p>CerebroNexus ships a standalone <strong>HLA &amp; TCR Motifs</strong>
+page. This guide takes you all the way from <em>nothing</em> to <em>a
+running app on that page</em>: we invent a small immune data set from
+scratch, save it in Cerebro’s file format, launch an app on it, and tour
+the page.</p>
 <p>You will build the data set step by step, and after each step we
 print the object you just made so you can see exactly what changed.
 Every code block runs on its own — the only packages you need are base R
 plus <code>Matrix</code>, <code>Seurat</code>, and
-<code>cerebroAppLite</code>, and nothing is downloaded.</p>
+<code>CerebroNexus</code>, and nothing is downloaded.</p>
 <p>If your data is <strong>bulk</strong> TCR sequencing rather than
 single cells, read the companion guide <em>“HLA Associations on bulk
 TCRβ with real donor HLA”</em> instead; it uses real genotypes and a
@@ -244,7 +244,7 @@ build them one at a time.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://Matrix.R-forge.R-project.org" class="external-link">Matrix</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mihem.github.io/cerebroAppLite/">cerebroAppLite</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mihem.github.io/CerebroNexus/">CerebroNexus</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="co"># makes every random step below reproducible</span></span></code></pre></div>
 </div>
@@ -531,8 +531,8 @@ provenance stamped:</p>
 the app normalises whatever spelling you feed it. And the receptors
 really do form a network:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">seg</span> <span class="op">&lt;-</span> <span class="fu">cerebroAppLite</span><span class="fu">:::</span><span class="fu"><a href="../reference/hla_parse_ir_segments.html">hla_parse_ir_segments</a></span><span class="op">(</span><span class="va">crb</span><span class="op">$</span><span class="va">immune_repertoire</span>, <span class="st">"TRB"</span><span class="op">)</span></span>
-<span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">cerebroAppLite</span><span class="fu">:::</span><span class="fu"><a href="../reference/hla_build_motif_graph.html">hla_build_motif_graph</a></span><span class="op">(</span><span class="va">seg</span>, by_v <span class="op">=</span> <span class="cn">TRUE</span>, min_nodes <span class="op">=</span> <span class="fl">6</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">seg</span> <span class="op">&lt;-</span> <span class="fu">CerebroNexus</span><span class="fu">:::</span><span class="fu"><a href="../reference/hla_parse_ir_segments.html">hla_parse_ir_segments</a></span><span class="op">(</span><span class="va">crb</span><span class="op">$</span><span class="va">immune_repertoire</span>, <span class="st">"TRB"</span><span class="op">)</span></span>
+<span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu">CerebroNexus</span><span class="fu">:::</span><span class="fu"><a href="../reference/hla_build_motif_graph.html">hla_build_motif_graph</a></span><span class="op">(</span><span class="va">seg</span>, by_v <span class="op">=</span> <span class="cn">TRUE</span>, min_nodes <span class="op">=</span> <span class="fl">6</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>nodes <span class="op">=</span> <span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/gorder.html" class="external-link">gorder</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, edges <span class="op">=</span> <span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/gsize.html" class="external-link">gsize</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, families <span class="op">=</span> <span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/components.html" class="external-link">components</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">$</span><span class="va">no</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">#&gt;    nodes    edges families</span></span>
 <span><span class="co">#&gt;       54       49        6</span></span></code></pre>
@@ -892,7 +892,7 @@ first Cerebro export; the HLA slots above just ride along with it.</li>
 the companion workflow for bulk immunosequencing: real genotypes, no
 single cells, and the positive-control caveat that comes with them.</li>
 <li>
-<strong>Immune Repertoire Analysis in cerebroAppLite</strong> — the
+<strong>Immune Repertoire Analysis in CerebroNexus</strong> — the
 scRepertoire-based module that produces the same
 <code>@misc$immune_repertoire</code> slot from real 10x data.</li>
 <li>
@@ -905,8 +905,8 @@ scRepertoire-based module that produces the same
 <h2 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
 </h2>
 <ul>
-<li>Questions and bug reports: <a href="https://github.com/mihem/cerebroAppLite/issues" class="external-link uri">https://github.com/mihem/cerebroAppLite/issues</a>.</li>
-<li>Function reference and other articles: <a href="https://mihem.github.io/cerebroAppLite/" class="uri">https://mihem.github.io/cerebroAppLite/</a>.</li>
+<li>Questions and bug reports: <a href="https://github.com/mihem/CerebroNexus/issues" class="external-link uri">https://github.com/mihem/CerebroNexus/issues</a>.</li>
+<li>Function reference and other articles: <a href="https://mihem.github.io/CerebroNexus/" class="uri">https://mihem.github.io/CerebroNexus/</a>.</li>
 <li>Provenance of every shipped demo data set:
 <code>data-raw/DATASETS.md</code>.</li>
 </ul>

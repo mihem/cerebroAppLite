@@ -278,7 +278,7 @@ the data set and the contained clusters and cell types.
 
 First, for every cell we calculate the percentage of mitochondrial and
 ribosomal transcripts of all transcripts using the
-[`addPercentMtRibo()`](https://mihem.github.io/cerebroAppLite/reference/addPercentMtRibo.md)
+[`addPercentMtRibo()`](https://mihem.github.io/CerebroNexus/reference/addPercentMtRibo.md)
 function.
 
 ``` r
@@ -310,7 +310,7 @@ Marker genes are genes which are particularly strongly or weakly
 expressed in a given cell population, e.g. a cluster. This information
 can help to distinguish the role of different cell groups in the data
 set. We can identify marker genes using the
-[`getMarkerGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md)
+[`getMarkerGenes()`](https://mihem.github.io/CerebroNexus/reference/getMarkerGenes.md)
 function which internally uses the
 [`Seurat::FindAllMarkers()`](https://satijalab.org/seurat/reference/FindAllMarkers.html)
 function but also stores the results in the Seurat object under the
@@ -331,12 +331,12 @@ seurat <- getMarkerGenes(
 
 Using the previously identified marker genes, we can perform a pathway
 enrichmeny analysis using the
-[`getEnrichedPathways()`](https://mihem.github.io/cerebroAppLite/reference/getEnrichedPathways.md)
+[`getEnrichedPathways()`](https://mihem.github.io/CerebroNexus/reference/getEnrichedPathways.md)
 function. The function will internally use the
 [Enrichr](https://amp.pharm.mssm.edu/Enrichr/) API and store the results
 in the Seurat object under the `misc` slot. All we have to do is provide
 the name that we specified in
-[`getMarkerGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md).
+[`getMarkerGenes()`](https://mihem.github.io/CerebroNexus/reference/getMarkerGenes.md).
 
 ``` r
 seurat <- getEnrichedPathways(
@@ -354,14 +354,14 @@ On top of querying the databases of the
 perform gene set enrichment analysis on gene sets provided as a `.gmt`
 file, e.g. from the
 [MSigDB](https://www.gsea-msigdb.org/gsea/msigdb/index.jsp). The
-[`performGeneSetEnrichmentAnalysis()`](https://mihem.github.io/cerebroAppLite/reference/performGeneSetEnrichmentAnalysis.md)
+[`performGeneSetEnrichmentAnalysis()`](https://mihem.github.io/CerebroNexus/reference/performGeneSetEnrichmentAnalysis.md)
 function uses the
 [GSVA](https://bioconductor.org/packages/release/bioc/html/GSVA.html)
 method in combination with additional statistics as published by
 [Diaz-Mejia et. al.](https://f1000research.com/articles/8-296).
 
 ``` r
-example_gene_set <- system.file("extdata/example_gene_set.gmt", package = "cerebroAppLite)
+example_gene_set <- system.file("extdata/example_gene_set.gmt", package = "CerebroNexus")
 
 seurat <- performGeneSetEnrichmentAnalysis(
   seurat,
@@ -377,7 +377,7 @@ Then, we perform trajectory analysis with [Monocle
 v2](https://cole-trapnell-lab.github.io/monocle-release/) using the
 previously identified highly variable genes. We extract the trajectory
 from the generated Monocle object with the
-[`extractMonocleTrajectory()`](https://mihem.github.io/cerebroAppLite/reference/extractMonocleTrajectory.md)
+[`extractMonocleTrajectory()`](https://mihem.github.io/CerebroNexus/reference/extractMonocleTrajectory.md)
 function of cerebroApp and attach it to our Seurat object.
 
 ``` r
@@ -401,7 +401,7 @@ seurat <- extractMonocleTrajectory(monocle, seurat, 'highly_variable_genes')
 ## Export to Cerebro format
 
 Finally, we use the
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 function of cerebroApp to export our Seurat object to a `.crb` file
 which can be loaded into Cerebro.
 
@@ -422,7 +422,7 @@ exportFromSeurat(
 ```
 
 The Cerebro use interface can be launched using the
-[`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+[`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
 function.
 
 ## Session info

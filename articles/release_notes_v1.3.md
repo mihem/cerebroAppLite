@@ -29,7 +29,7 @@ genes and enriched pathways are expected to be formatted in a very
 specific way. More or less, the only way to get a table to be displayed
 correctly was to generate it with pre-processing functions of
 cerebroApp,
-e.g. [`getMarkerGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md).
+e.g. [`getMarkerGenes()`](https://mihem.github.io/CerebroNexus/reference/getMarkerGenes.md).
 These functions are bound to a specific method, e.g. the
 [`FindAllMarkers()`](https://satijalab.org/seurat/reference/FindAllMarkers.html)
 function of the Seurat package. Results from other methods generally
@@ -52,12 +52,12 @@ This is how the meta data table of selected cells in the “Overview” tab
 looks like with both options active:
 
 [![Dynamic table formatting
-on](release_notes_v1.3_files/dynamic_table_formatting_on.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/dynamic_table_formatting_on.png)
+on](release_notes_v1.3_files/dynamic_table_formatting_on.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/dynamic_table_formatting_on.png)
 
 And this is the same table with both options switched off:
 
 [![Dynamic table formatting
-off](release_notes_v1.3_files/dynamic_table_formatting_off.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/dynamic_table_formatting_off.png)
+off](release_notes_v1.3_files/dynamic_table_formatting_off.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/dynamic_table_formatting_off.png)
 
 Below you can find the details and actions of the two options:
 
@@ -98,7 +98,7 @@ that doesn’t mean it is the only good analysis framework out there.
 Another step towards making Cerebro more flexible is to allow exporting
 `SCE`/`SingleCellExperiment` object for visualization in Cerebro. An
 example of the workflow can be found
-[here](https://mihem.github.io/cerebroAppLite/articles/exporting_a_data_set_in_SCE_format.md).
+[here](https://mihem.github.io/CerebroNexus/articles/exporting_a_data_set_in_SCE_format.md).
 
 Please note that pre-processing functions are still limited to `Seurat`
 object as an input. It is on the roadmap to adapt those functions.
@@ -179,7 +179,7 @@ data set and the experimental context that was used to derive it from.
 
 You can find an example for the `closed` mode with a pre-loaded data set
 and a custom welcome message in [this
-vignette](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md).
+vignette](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set.md).
 
 ## User interface
 
@@ -203,7 +203,7 @@ parameters for the plot can be controlled through elements in the
 dropdown menu (gear icon) in the title bar.
 
 [![Groups: Phylogenetic
-tree](release_notes_v1.3_files/groups_tree.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/groups_tree.png)
+tree](release_notes_v1.3_files/groups_tree.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/groups_tree.png)
 
 The relationship between the selected grouping variable and another can
 be seen in the “Composition by other group” panel. For example, you can
@@ -216,14 +216,14 @@ relationships between the groups more apparent. Similarly, the plots
 related to the cell cycle have been combined - you can choose among the
 provided columns holding cell cycle assignments for cells (see the
 `cell_cycle` parameter in the
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 function) - and can be shown as bar charts or Sankey plots. As before,
 tables are hidden by default but can be shown using the switches above
 the plot, and you can switch between actual cell counts and percentage
 of cells (this option won’t affect the Sankey plot).
 
 [![Groups: Sankey plot to represent relationship between grouping
-variables](release_notes_v1.3_files/groups_sankey.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/groups_sankey.png)
+variables](release_notes_v1.3_files/groups_sankey.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/groups_sankey.png)
 
 The new “Expression metrics” panel contains plots for the number of
 transcripts, number of expressed genes, and percentage of mitochondrial
@@ -262,13 +262,13 @@ kind of values they are, and colors and color bars will be applied the
 numbers and grouping variables to facilitate interpretation.
 
 [![Marker
-genes](release_notes_v1.3_files/marker_genes.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/marker_genes.png)
+genes](release_notes_v1.3_files/marker_genes.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/marker_genes.png)
 
 Moreover, it is now possible to export results for marker genes /
 differentially expressed genes and enriched pathways generated other
 tools. You can find an example on how to do that in this vignette:
 [Export and visualize custom tables and
-plots](https://mihem.github.io/cerebroAppLite/articles/export_and_visualize_custom_tables_and_plots.md).
+plots](https://mihem.github.io/CerebroNexus/articles/export_and_visualize_custom_tables_and_plots.md).
 
 As in previous versions of Cerebro, you can export the tables in CSV or
 Excel format and hide columns using the “Column visibility” button.
@@ -297,7 +297,7 @@ the parameters of the trend line through element in the dropdown menu
 (gear icon) in the title bar.
 
 [![Gene (set) expression: Expression levels over
-pseudotime](release_notes_v1.3_files/expression_pseudotime.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/expression_pseudotime.png)
+pseudotime](release_notes_v1.3_files/expression_pseudotime.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/expression_pseudotime.png)
 
 There is another new feature, however quite experimental at this points,
 that allows you to plot expression of multiple genes at the same time in
@@ -314,7 +314,7 @@ expression than the others. I will try to improve this feature in coming
 releases.
 
 [![Gene (set) expression: Separate facet per
-gene](release_notes_v1.3_files/expression_facets.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/expression_facets.png)
+gene](release_notes_v1.3_files/expression_facets.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/expression_facets.png)
 
 ### Trajectory
 
@@ -336,7 +336,7 @@ density curve, deactive the trend line, and set parameters of the trend
 line.
 
 [![Trajectory: Distribution of groups along
-pseudotime](release_notes_v1.3_files/trajectory_density.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/trajectory_density.png)
+pseudotime](release_notes_v1.3_files/trajectory_density.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/trajectory_density.png)
 
 The “States by group” panel works similar to the “Composition by other
 group” in the “Groups” tab, meaning that you can represent the
@@ -361,15 +361,15 @@ material, but support for other types of content can be added in the
 future upon user request. You can see two examples below:
 
 [![Extra
-material](release_notes_v1.3_files/extra_material_table.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/extra_material_table.png)
+material](release_notes_v1.3_files/extra_material_table.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/extra_material_table.png)
 
 [![Extra
-material](release_notes_v1.3_files/extra_material_plot.png)](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3_files/extra_material_plot.png)
+material](release_notes_v1.3_files/extra_material_plot.png)](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3_files/extra_material_plot.png)
 
 Have a look at this vignette if you would like to know how you can
 export your tables as additional material: [Export and visualize custom
 tables and
-plots](https://mihem.github.io/cerebroAppLite/articles/export_and_visualize_custom_tables_and_plots.md).
+plots](https://mihem.github.io/CerebroNexus/articles/export_and_visualize_custom_tables_and_plots.md).
 
 **Note:** This tab is only visible if any extra material is present in
 the currently loaded data set.
@@ -403,7 +403,7 @@ the currently loaded data set.
 
 - Different Cerebro version now have a designated launch function to
   allow them to have different package dependencies. The
-  [`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+  [`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
   still exists and will call the specified Cerebro version.
 - Cerebro v1.3 no longer uses `ggtree` and `formattable`.
 - Pre-processing functions have been adapted to support different number
@@ -431,19 +431,19 @@ I prepared a couple of vignettes to highlight some of the new features
 and options:
 
 - [The cerebroApp workflow
-  (Seurat)](https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.md)
+  (Seurat)](https://mihem.github.io/CerebroNexus/articles/cerebroApp_workflow_Seurat.md)
 - [Export an SCE/SingleCellExperiment
-  object](https://mihem.github.io/cerebroAppLite/articles/export_a_data_set_in_SCE_format.md)
+  object](https://mihem.github.io/CerebroNexus/articles/export_a_data_set_in_SCE_format.md)
 - [Export and visualize custom tables and
-  plots](https://mihem.github.io/cerebroAppLite/articles/export_and_visualize_custom_tables_and_plots.md)
+  plots](https://mihem.github.io/CerebroNexus/articles/export_and_visualize_custom_tables_and_plots.md)
 - [Launch Cerebro with pre-loaded data
-  set](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md)
+  set](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set.md)
 - [Host Cerebro on
-  shinyapps.io](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md)
+  shinyapps.io](https://mihem.github.io/CerebroNexus/articles/host_cerebro_on_shinyapps.md)
 - [Control access to Cerebro with a login
-  page](https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page.md)
+  page](https://mihem.github.io/CerebroNexus/articles/control_access_to_cerebro_with_a_login_page.md)
 - [Overview of the Cerebro v1.3
-  class](https://mihem.github.io/cerebroAppLite/articles/articles/overview_of_cerebro_v1.3_class.md)
+  class](https://mihem.github.io/CerebroNexus/articles/articles/overview_of_cerebro_v1.3_class.md)
 
 ## Consequences
 
@@ -482,4 +482,4 @@ kindly ask for your patience. To compensate some of the consequences, I
 tried to make launching Cerebro from R more convenient (by providing
 additional parameters to load `.crb` file directly) and prepared a
 vignette explaining how to host Cerebro on
-[`shinyapps.io`](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md).
+[`shinyapps.io`](https://mihem.github.io/CerebroNexus/articles/host_cerebro_on_shinyapps.md).

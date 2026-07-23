@@ -39,7 +39,7 @@ Here, we use the example data set in the `cerebroApp` package:
 ```
 
 ``` r
-crb_input <- system.file('extdata', 'v1.4', 'example.crb', package = 'cerebroAppLite')
+crb_input <- system.file('extdata', 'v1.4', 'example.crb', package = 'CerebroNexus')
 crb <- readRDS(crb_input)
 ```
 
@@ -125,4 +125,4 @@ cerebroApp::launchCerebroV1.3(
 ## See also
 
 - [Launch Cerebro with pre-loaded data
-  set](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md)
+  set](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set.md)

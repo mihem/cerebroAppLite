@@ -71,9 +71,9 @@ stored in object@misc\$enriched_pathways\$\<name\>
 
 ``` r
 pbmc <- readRDS(system.file("extdata/v1.4/pbmc_seurat.rds",
-  package = "cerebroAppLite"))
+  package = "CerebroNexus"))
 example_gene_set <- system.file("extdata/example_gene_set.gmt",
-  package = "cerebroAppLite")
+  package = "CerebroNexus")
 pbmc <- performGeneSetEnrichmentAnalysis(
   object = pbmc,
   GMT_file = example_gene_set,
@@ -81,10 +81,10 @@ pbmc <- performGeneSetEnrichmentAnalysis(
   thresh_p_val = 0.05,
   thresh_q_val = 0.1
 )
-#> [05:46:17] Loading gene sets...
-#> [05:46:17] Loaded 2 gene sets from GMT file.
-#> [05:46:17] Extracting transcript counts from `data` slot of `RNA` assay...
-#> [05:46:17] Performing analysis for 2 subgroups of group `sample`...
+#> [11:31:05] Loading gene sets...
+#> [11:31:05] Loaded 2 gene sets from GMT file.
+#> [11:31:05] Extracting transcript counts from `data` slot of `RNA` assay...
+#> [11:31:05] Performing analysis for 2 subgroups of group `sample`...
 #> ℹ GSVA version 2.6.2
 #> ℹ Searching for rows with constant values
 #> ℹ Calculating GSVA ranks
@@ -96,8 +96,8 @@ pbmc <- performGeneSetEnrichmentAnalysis(
 #> ℹ GSVA dense (classical) algorithm
 #> ℹ Calculating GSVA scores for 2 gene sets
 #> ✔ Calculations finished
-#> [05:46:17] 0 gene sets passed the thresholds across all subgroups of group `sample`.
-#> [05:46:17] Performing analysis for 2 subgroups of group `seurat_clusters`...
+#> [11:31:05] 0 gene sets passed the thresholds across all subgroups of group `sample`.
+#> [11:31:06] Performing analysis for 2 subgroups of group `seurat_clusters`...
 #> ℹ GSVA version 2.6.2
 #> ℹ Searching for rows with constant values
 #> ℹ Calculating GSVA ranks
@@ -109,5 +109,5 @@ pbmc <- performGeneSetEnrichmentAnalysis(
 #> ℹ GSVA dense (classical) algorithm
 #> ℹ Calculating GSVA scores for 2 gene sets
 #> ✔ Calculations finished
-#> [05:46:17] 0 gene sets passed the thresholds across all subgroups of group `seurat_clusters`.
+#> [11:31:06] 0 gene sets passed the thresholds across all subgroups of group `seurat_clusters`.
 ```

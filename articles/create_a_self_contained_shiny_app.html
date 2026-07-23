@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Create a self-contained Shiny app from a Cerebro data file • cerebroAppLite</title>
+<title>Create a self-contained Shiny app from a Cerebro data file • CerebroNexus</title>
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -17,9 +17,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">cerebroAppLite</a>
+    <a class="navbar-brand me-2" href="../index.html">CerebroNexus</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,7 +55,7 @@
     <li><a class="dropdown-item" href="../articles/most_expressed_genes.html">Most Expressed Genes</a></li>
     <li><a class="dropdown-item" href="../articles/enriched_pathways.html">Enriched Pathways</a></li>
     <li><a class="dropdown-item" href="../articles/extra_material.html">Extra Material</a></li>
-    <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in cerebroAppLite</a></li>
+    <li><a class="dropdown-item" href="../articles/immune_repertoire_analysis.html">Immune Repertoire Analysis in CerebroNexus</a></li>
     <li><a class="dropdown-item" href="../articles/trajectory_analysis.html">Trajectory Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/spatial_analysis.html">Spatial Transcriptomics Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/trekker_spatial_mapping.html">Trekker single-cell spatial mapping: from a vendor bundle to an interactive app</a></li>
@@ -70,8 +70,8 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/mihem/cerebroAppLite"><span class="fa fab fa-github"></span></a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://mheming.com/"><span class="fa fas fa-globe"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/mihem/CerebroNexus" aria-label="GitHub repository"><span class="fa fab fa-github"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://mheming.com/" aria-label="Maintainer website"><span class="fa fas fa-globe"></span></a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
@@ -97,9 +97,9 @@
                         <h4 data-toc-skip class="author">Xuesong
 Wang</h4>
             
-            <h4 data-toc-skip class="date">22 July, 2026</h4>
+            <h4 data-toc-skip class="date">23 July, 2026</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/mihem/cerebroAppLite/blob/master/vignettes/create_a_self_contained_shiny_app.Rmd" class="external-link"><code>vignettes/create_a_self_contained_shiny_app.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/mihem/CerebroNexus/blob/master/vignettes/create_a_self_contained_shiny_app.Rmd" class="external-link"><code>vignettes/create_a_self_contained_shiny_app.Rmd</code></a></small>
       <div class="d-none name"><code>create_a_self_contained_shiny_app.Rmd</code></div>
     </div>
 
@@ -117,7 +117,7 @@ together with a pre-built <code>Cerebro.options</code> list. The result
 is a directory you can serve directly with <code>shiny-server</code>,
 drop behind <code>rsconnect</code>/Posit Connect, or launch locally with
 <code><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">shiny::runApp()</a></code> — no further calls into
-<code>cerebroAppLite</code> are required at runtime.</p>
+<code>CerebroNexus</code> are required at runtime.</p>
 <p>This is the recommended path when you want to hand a colleague a
 runnable copy of Cerebro pre-loaded with a specific data set without
 making them install the package themselves, pin the Shiny sources at a
@@ -131,9 +131,9 @@ R interactively (<code>shinyapps.io</code>, Docker images, etc.).</p>
 <code>.h5</code>) in <code>inst/extdata/v1.4/</code>, which we use
 throughout this vignette.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mihem.github.io/cerebroAppLite/">cerebroAppLite</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mihem.github.io/CerebroNexus/">CerebroNexus</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">crb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/example.crb"</span>, package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span></span>
+<span><span class="va">crb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/example.crb"</span>, package <span class="op">=</span> <span class="st">"CerebroNexus"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">crb</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
@@ -249,7 +249,7 @@ paths</td>
 inside Cerebro. You can also supply matching <code>colors</code> so each
 dataset gets a deterministic palette.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">crb_pbmc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/example.crb"</span>, package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">crb_pbmc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/example.crb"</span>, package <span class="op">=</span> <span class="st">"CerebroNexus"</span><span class="op">)</span></span>
 <span><span class="co"># crb_other &lt;- "/path/to/another_dataset.crb"</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/createShinyApp.html">createShinyApp</a></span><span class="op">(</span></span>
@@ -282,7 +282,7 @@ anything extra — just keep the sibling next to the <code>.crb</code> on
 disk before calling the function.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># example.crb ships with example.h5 in the same folder; both are bundled</span></span>
-<span><span class="va">crb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/example.crb"</span>, package <span class="op">=</span> <span class="st">"cerebroAppLite"</span><span class="op">)</span></span>
+<span><span class="va">crb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/v1.4/example.crb"</span>, package <span class="op">=</span> <span class="st">"CerebroNexus"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">dirname</a></span><span class="op">(</span><span class="va">crb</span><span class="op">)</span>, <span class="st">"example.h5"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>

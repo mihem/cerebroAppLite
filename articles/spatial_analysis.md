@@ -15,10 +15,10 @@ analysis.
 The Spatial tab surfaces automatically once a dataset carrying spatial
 data is loaded. To also show a histological image behind the cells, pass
 its path through
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md):
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md):
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 
 createShinyApp(
   cerebro_data = c("My spatial sample" = "path/to/sample_spatial.crb"),
@@ -84,13 +84,13 @@ Lasso or box-select cells in the projection to view:
 ## Data preparation
 
 Spatial data must be embedded in the `.crb` file by the export pipeline.
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 **automatically detects** spatial data on the Seurat object
 (`object@images`, covering Visium / Xenium / FOV) and stores the
 coordinates and expression — no special flag is required.
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 
 seurat_obj <- qs::qread("path/to/seurat_object.qs")
 
@@ -113,7 +113,7 @@ loaded.
 
 Histology images are **not** stored inside the `.crb`; they are passed
 to
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md),
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md),
 which copies them into the generated app bundle and references them by
 dataset name. Both JPG and PNG are supported.
 
@@ -167,9 +167,9 @@ entries default to a no-op (no flip, scale 1.0, no rotation).
 
 ## See also
 
-- [`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.md)
+- [`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/CerebroNexus/articles/cerebroApp_workflow_Seurat.md)
   for the complete export workflow.
-- [`vignette("create_a_self_contained_shiny_app")`](https://mihem.github.io/cerebroAppLite/articles/create_a_self_contained_shiny_app.md)
+- [`vignette("create_a_self_contained_shiny_app")`](https://mihem.github.io/CerebroNexus/articles/create_a_self_contained_shiny_app.md)
   for app bundling options.
-- [`vignette("multi_crb")`](https://mihem.github.io/cerebroAppLite/articles/multi_crb.md)
+- [`vignette("multi_crb")`](https://mihem.github.io/CerebroNexus/articles/multi_crb.md)
   for hosting several datasets in one app.

@@ -1,12 +1,12 @@
-# cerebroAppLite
+# CerebroNexus
 
 Interactive visualization of single-cell RNA-seq data, built on top of
 [Shiny](https://shiny.posit.co/).
 
-cerebroAppLite supports loading pre-processed single-cell data,
-exploring projections and gene expression, browsing marker genes and
-enriched pathways, and inspecting group compositions — all through an
-interactive web interface. The sections below cover the key features.
+CerebroNexus supports loading pre-processed single-cell data, exploring
+projections and gene expression, browsing marker genes and enriched
+pathways, and inspecting group compositions — all through an interactive
+web interface. The sections below cover the key features.
 
 For the original feature set and data preparation workflows, refer to
 the upstream cerebroApp documentation at
@@ -40,21 +40,21 @@ developed and maintained by [mihem](https://github.com/mihem).*
 ## 1. Installation
 
 ``` r
-remotes::install_github('mihem/cerebroAppLite')
+remotes::install_github('mihem/CerebroNexus')
 ```
 
 ## 2. Features
 
 ### 2.1 convertSeuratToCerebro()
 
-[`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md)
+[`convertSeuratToCerebro()`](https://mihem.github.io/CerebroNexus/reference/convertSeuratToCerebro.md)
 handles the entire export process in a single call: reading the Seurat
 object (`.rds` on disk, or one already loaded in memory), renaming
 grouping variables, loading marker gene tables, calculating
 most-expressed genes, and saving a `.crb` file.
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 
 convertSeuratToCerebro(
   seurat_file     = "my_seurat.rds",     # or an in-memory Seurat object
@@ -77,7 +77,7 @@ convertSeuratToCerebro(
 ### 2.2 createShinyApp()
 
 Instead of running
-[`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+[`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
 interactively, you can generate a self-contained Shiny app directory
 with all data and source files bundled. This is useful for deploying to
 a Shiny server or sharing with collaborators.
@@ -105,14 +105,14 @@ in the app. `result_dir` is optional. Sibling `<stem>.bpcells/` and
 copied into the bundle automatically (see §2.3). Other knobs available:
 `colors`, `cerebro_options`, `crb_pick_smallest_file`, `show_upload_ui`,
 `point_size`, `variable_to_compare` — run
-[`?createShinyApp`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+[`?createShinyApp`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
 for the full list.
 
 ### 2.3 Choosing an expression backend
 
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 (and
-[`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md))
+[`convertSeuratToCerebro()`](https://mihem.github.io/CerebroNexus/reference/convertSeuratToCerebro.md))
 accept `expression_matrix_mode = c("embedded", "bpcells", "h5")` for how
 the count matrix is persisted alongside the `.crb`:
 
@@ -178,7 +178,7 @@ RSS, and ~0.45 s queries — i.e. lazy-h5 is the same backend with attach
 **~263× faster, RAM ~10× smaller, queries ~45× faster, web load ~4×
 faster**.
 
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
 already knows about both `<stem>.bpcells/` and `<stem>.h5` and copies
 them next to the bundled `.crb`. The Shiny runtime re-resolves the
 sibling location on load via `getExpressionBackend()$location` relative
@@ -256,13 +256,13 @@ native R install, or the repo’s `default.nix`).
 ### 3.4 Self-containment of exported apps
 
 Apps built by
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
-must stay **self-contained** — they run with no `cerebroAppLite`
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
+must stay **self-contained** — they run with no `CerebroNexus`
 installed. `test-smoke-production.R` enforces this with a static source
 check, a hermetic `.crb` deserialize, and a hermetic bundle boot (each
 in a process whose library path lacks the package), so a bundle that
-reaches back into `cerebroAppLite` fails a test rather than a user. See
-[`CONTRIBUTING.md`](https://mihem.github.io/cerebroAppLite/CONTRIBUTING.md)
+reaches back into `CerebroNexus` fails a test rather than a user. See
+[`CONTRIBUTING.md`](https://mihem.github.io/CerebroNexus/CONTRIBUTING.md)
 for the rule and where runtime code must live.
 
 ### 3.5 Snapshots and further reading
@@ -275,7 +275,7 @@ and accept with
 only after confirming the new output is correct.
 
 See
-[`tests/README.md`](https://mihem.github.io/cerebroAppLite/tests/README.md)
+[`tests/README.md`](https://mihem.github.io/CerebroNexus/tests/README.md)
 for the full layout, the `inst_dir` resolution rule, and the gotcha
 about regenerating `inst/extdata/v1.4/example.crb` after R6 method
 changes (a stale fixture surfaces as a misleading
@@ -283,98 +283,97 @@ changes (a stale fixture surfaces as a misleading
 
 ## 4. License
 
-MIT — see
-[LICENSE.md](https://mihem.github.io/cerebroAppLite/LICENSE.md).
-Original cerebroApp © Roman Hillje; cerebroAppLite fork by
+MIT — see [LICENSE.md](https://mihem.github.io/CerebroNexus/LICENSE.md).
+Original cerebroApp © Roman Hillje; CerebroNexus fork by
 [mihem](https://github.com/mihem).
 
 # Package index
 
 ## Launch Cerebro
 
-- [`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+- [`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
   : Launch Cerebro interface.
-- [`launchCerebroV1.0()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.0.md)
+- [`launchCerebroV1.0()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.0.md)
   : Launch Cerebro v1.0
-- [`launchCerebroV1.1()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.1.md)
+- [`launchCerebroV1.1()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.1.md)
   : Launch Cerebro v1.1
-- [`launchCerebroV1.2()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.2.md)
+- [`launchCerebroV1.2()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.2.md)
   : Launch Cerebro v1.2
-- [`launchCerebroV1.3()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.3.md)
+- [`launchCerebroV1.3()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.3.md)
   : Launch Cerebro v1.3
-- [`launchCerebroV1.4()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.4.md)
+- [`launchCerebroV1.4()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.4.md)
   : Launch Cerebro v1.4
 
 ## Export data
 
-- [`exportFromSCE()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSCE.md)
+- [`exportFromSCE()`](https://mihem.github.io/CerebroNexus/reference/exportFromSCE.md)
   : Export SingleCellExperiment (SCE) object to Cerebro.
-- [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+- [`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
   : Export Seurat object to Cerebro.
 
 ## Pre-processing
 
-- [`addPercentMtRibo()`](https://mihem.github.io/cerebroAppLite/reference/addPercentMtRibo.md)
+- [`addPercentMtRibo()`](https://mihem.github.io/CerebroNexus/reference/addPercentMtRibo.md)
   : Add percentage of mitochondrial and ribosomal transcripts.
-- [`calculatePercentGenes()`](https://mihem.github.io/cerebroAppLite/reference/calculatePercentGenes.md)
+- [`calculatePercentGenes()`](https://mihem.github.io/CerebroNexus/reference/calculatePercentGenes.md)
   : Calculate percentage of transcripts of gene list.
-- [`getMostExpressedGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMostExpressedGenes.md)
+- [`getMostExpressedGenes()`](https://mihem.github.io/CerebroNexus/reference/getMostExpressedGenes.md)
   : Get most expressed genes for specified grouping variables in Seurat
   object.
-- [`getMarkerGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md)
+- [`getMarkerGenes()`](https://mihem.github.io/CerebroNexus/reference/getMarkerGenes.md)
   : Get marker genes for specified grouping variables in Seurat object.
-- [`getEnrichedPathways()`](https://mihem.github.io/cerebroAppLite/reference/getEnrichedPathways.md)
+- [`getEnrichedPathways()`](https://mihem.github.io/CerebroNexus/reference/getEnrichedPathways.md)
   : Get enriched pathways based on marker genes from EnrichR.
-- [`performGeneSetEnrichmentAnalysis()`](https://mihem.github.io/cerebroAppLite/reference/performGeneSetEnrichmentAnalysis.md)
+- [`performGeneSetEnrichmentAnalysis()`](https://mihem.github.io/CerebroNexus/reference/performGeneSetEnrichmentAnalysis.md)
   : Perform gene set enrichment analysis with GSVA.
-- [`extractMonocleTrajectory()`](https://mihem.github.io/cerebroAppLite/reference/extractMonocleTrajectory.md)
+- [`extractMonocleTrajectory()`](https://mihem.github.io/CerebroNexus/reference/extractMonocleTrajectory.md)
   : Extract trajectory from Monocle and add to Seurat object.
 
 ## Internal
 
-- [`Cerebro_v1.3`](https://mihem.github.io/cerebroAppLite/reference/Cerebro_v1.3.md)
+- [`Cerebro_v1.3`](https://mihem.github.io/CerebroNexus/reference/Cerebro_v1.3.md)
   : R6 class in which data sets will be stored for visualization in
   Cerebro.
-- [`addPercentMtRibo()`](https://mihem.github.io/cerebroAppLite/reference/addPercentMtRibo.md)
+- [`addPercentMtRibo()`](https://mihem.github.io/CerebroNexus/reference/addPercentMtRibo.md)
   : Add percentage of mitochondrial and ribosomal transcripts.
-- [`calculatePercentGenes()`](https://mihem.github.io/cerebroAppLite/reference/calculatePercentGenes.md)
+- [`calculatePercentGenes()`](https://mihem.github.io/CerebroNexus/reference/calculatePercentGenes.md)
   : Calculate percentage of transcripts of gene list.
-- [`convertSeuratToCerebro()`](https://mihem.github.io/cerebroAppLite/reference/convertSeuratToCerebro.md)
+- [`convertSeuratToCerebro()`](https://mihem.github.io/CerebroNexus/reference/convertSeuratToCerebro.md)
   : Convert Seurat Object to Cerebro Format
-- [`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md)
+- [`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md)
   : Create a self-contained Shiny app folder for Cerebro v1.4
-- [`.read_GMT_file()`](https://mihem.github.io/cerebroAppLite/reference/dot-read_GMT_file.md)
+- [`.read_GMT_file()`](https://mihem.github.io/CerebroNexus/reference/dot-read_GMT_file.md)
   : Read GMT file.
-- [`.send_enrichr_query()`](https://mihem.github.io/cerebroAppLite/reference/dot-send_enrichr_query.md)
+- [`.send_enrichr_query()`](https://mihem.github.io/CerebroNexus/reference/dot-send_enrichr_query.md)
   : Gene enrichment using Enrichr.
-- [`exportFromSCE()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSCE.md)
+- [`exportFromSCE()`](https://mihem.github.io/CerebroNexus/reference/exportFromSCE.md)
   : Export SingleCellExperiment (SCE) object to Cerebro.
-- [`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+- [`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
   : Export Seurat object to Cerebro.
-- [`extractMonocleTrajectory()`](https://mihem.github.io/cerebroAppLite/reference/extractMonocleTrajectory.md)
+- [`extractMonocleTrajectory()`](https://mihem.github.io/CerebroNexus/reference/extractMonocleTrajectory.md)
   : Extract trajectory from Monocle and add to Seurat object.
-- [`getEnrichedPathways()`](https://mihem.github.io/cerebroAppLite/reference/getEnrichedPathways.md)
+- [`getEnrichedPathways()`](https://mihem.github.io/CerebroNexus/reference/getEnrichedPathways.md)
   : Get enriched pathways based on marker genes from EnrichR.
-- [`getMarkerGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMarkerGenes.md)
+- [`getMarkerGenes()`](https://mihem.github.io/CerebroNexus/reference/getMarkerGenes.md)
   : Get marker genes for specified grouping variables in Seurat object.
-- [`getMostExpressedGenes()`](https://mihem.github.io/cerebroAppLite/reference/getMostExpressedGenes.md)
+- [`getMostExpressedGenes()`](https://mihem.github.io/CerebroNexus/reference/getMostExpressedGenes.md)
   : Get most expressed genes for specified grouping variables in Seurat
   object.
-- [`hla_normalize_typing()`](https://mihem.github.io/cerebroAppLite/reference/hla_normalize_typing.md)
+- [`hla_normalize_typing()`](https://mihem.github.io/CerebroNexus/reference/hla_normalize_typing.md)
   : Normalize any accepted HLA input into the canonical long table
-- [`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+- [`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
   : Launch Cerebro interface.
-- [`launchCerebroV1.0()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.0.md)
+- [`launchCerebroV1.0()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.0.md)
   : Launch Cerebro v1.0
-- [`launchCerebroV1.1()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.1.md)
+- [`launchCerebroV1.1()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.1.md)
   : Launch Cerebro v1.1
-- [`launchCerebroV1.2()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.2.md)
+- [`launchCerebroV1.2()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.2.md)
   : Launch Cerebro v1.2
-- [`launchCerebroV1.3()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.3.md)
+- [`launchCerebroV1.3()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.3.md)
   : Launch Cerebro v1.3
-- [`launchCerebroV1.4()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebroV1.4.md)
+- [`launchCerebroV1.4()`](https://mihem.github.io/CerebroNexus/reference/launchCerebroV1.4.md)
   : Launch Cerebro v1.4
-- [`performGeneSetEnrichmentAnalysis()`](https://mihem.github.io/cerebroAppLite/reference/performGeneSetEnrichmentAnalysis.md)
+- [`performGeneSetEnrichmentAnalysis()`](https://mihem.github.io/CerebroNexus/reference/performGeneSetEnrichmentAnalysis.md)
   : Perform gene set enrichment analysis with GSVA.
 
 # Articles
@@ -382,56 +381,56 @@ Original cerebroApp © Roman Hillje; cerebroAppLite fork by
 ### Workflows
 
 - [Introduction to the cerebroApp workflow
-  (Seurat)](https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.md):
+  (Seurat)](https://mihem.github.io/CerebroNexus/articles/cerebroApp_workflow_Seurat.md):
 - [Export a data set in SCE
-  format](https://mihem.github.io/cerebroAppLite/articles/export_a_data_set_in_SCE_format.md):
+  format](https://mihem.github.io/CerebroNexus/articles/export_a_data_set_in_SCE_format.md):
 
 ### Cerebro interface
 
 - [Introduction to the Cerebro interface (v1.2 and
-  older)](https://mihem.github.io/cerebroAppLite/articles/Cerebro_interface_v1.2.md):
+  older)](https://mihem.github.io/CerebroNexus/articles/Cerebro_interface_v1.2.md):
 - [Overview of the Cerebro v1.3
-  class](https://mihem.github.io/cerebroAppLite/articles/overview_of_cerebro_v1.3_class.md):
+  class](https://mihem.github.io/CerebroNexus/articles/overview_of_cerebro_v1.3_class.md):
 - [Release notes: Cerebro/cerebroApp
-  v1.3](https://mihem.github.io/cerebroAppLite/articles/release_notes_v1.3.md):
+  v1.3](https://mihem.github.io/CerebroNexus/articles/release_notes_v1.3.md):
 
 ### How-to guides
 
 - [Create a self-contained Shiny app from a Cerebro data
-  file](https://mihem.github.io/cerebroAppLite/articles/create_a_self_contained_shiny_app.md):
+  file](https://mihem.github.io/CerebroNexus/articles/create_a_self_contained_shiny_app.md):
 - [Create expression matrix in h5
-  format](https://mihem.github.io/cerebroAppLite/articles/create_expression_matrix_in_h5_format.md):
+  format](https://mihem.github.io/CerebroNexus/articles/create_expression_matrix_in_h5_format.md):
 - [Launch Cerebro with pre-loaded data
-  set](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md):
+  set](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set.md):
 - [Loading multiple data sets (multi-crb) with a dataset
-  switcher](https://mihem.github.io/cerebroAppLite/articles/multi_crb.md):
+  switcher](https://mihem.github.io/CerebroNexus/articles/multi_crb.md):
 - [Export and visualize custom tables and
-  plots](https://mihem.github.io/cerebroAppLite/articles/export_and_visualize_custom_tables_and_plots.md):
+  plots](https://mihem.github.io/CerebroNexus/articles/export_and_visualize_custom_tables_and_plots.md):
 - [Control access to Cerebro with a login
-  page](https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page.md):
+  page](https://mihem.github.io/CerebroNexus/articles/control_access_to_cerebro_with_a_login_page.md):
 - [Host Cerebro on
-  shinyapps.io](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md):
+  shinyapps.io](https://mihem.github.io/CerebroNexus/articles/host_cerebro_on_shinyapps.md):
 
 ### Module guides
 
 - [Most Expressed
-  Genes](https://mihem.github.io/cerebroAppLite/articles/most_expressed_genes.md):
+  Genes](https://mihem.github.io/CerebroNexus/articles/most_expressed_genes.md):
 - [Enriched
-  Pathways](https://mihem.github.io/cerebroAppLite/articles/enriched_pathways.md):
+  Pathways](https://mihem.github.io/CerebroNexus/articles/enriched_pathways.md):
 - [Extra
-  Material](https://mihem.github.io/cerebroAppLite/articles/extra_material.md):
+  Material](https://mihem.github.io/CerebroNexus/articles/extra_material.md):
 - [Immune Repertoire Analysis in
-  cerebroAppLite](https://mihem.github.io/cerebroAppLite/articles/immune_repertoire_analysis.md):
+  CerebroNexus](https://mihem.github.io/CerebroNexus/articles/immune_repertoire_analysis.md):
 - [Trajectory
-  Analysis](https://mihem.github.io/cerebroAppLite/articles/trajectory_analysis.md):
+  Analysis](https://mihem.github.io/CerebroNexus/articles/trajectory_analysis.md):
 - [Spatial Transcriptomics
-  Analysis](https://mihem.github.io/cerebroAppLite/articles/spatial_analysis.md):
+  Analysis](https://mihem.github.io/CerebroNexus/articles/spatial_analysis.md):
 - [Trekker single-cell spatial mapping: from a vendor bundle to an
   interactive
-  app](https://mihem.github.io/cerebroAppLite/articles/trekker_spatial_mapping.md):
+  app](https://mihem.github.io/CerebroNexus/articles/trekker_spatial_mapping.md):
 - [HLA & TCR Motifs: from synthetic data to an interactive
-  app](https://mihem.github.io/cerebroAppLite/articles/hla_tcr_motifs.md):
+  app](https://mihem.github.io/CerebroNexus/articles/hla_tcr_motifs.md):
 - [HLA Associations on bulk TCRβ with real donor
-  HLA](https://mihem.github.io/cerebroAppLite/articles/hla_bulk_tcr_associations.md):
+  HLA](https://mihem.github.io/CerebroNexus/articles/hla_bulk_tcr_associations.md):
 - [A real antigen-selected single-cell TCR demo, end to
-  end](https://mihem.github.io/cerebroAppLite/articles/hla_tcr_antigen_selected.md):
+  end](https://mihem.github.io/CerebroNexus/articles/hla_tcr_antigen_selected.md):

@@ -60,7 +60,7 @@ As long as you follow the described scheme, you can export and visualize
 any data frame that is stored in the `marker_genes` or
 `enriched_pathways` slots. I have prepared a vignette with some more
 details that you can find
-[here](https://mihem.github.io/cerebroAppLite/articles/export_and_visualize_custom_tables_and_plots.md).
+[here](https://mihem.github.io/CerebroNexus/articles/export_and_visualize_custom_tables_and_plots.md).
 
 Please make sure to use names for items in lists, otherwise it will
 likely result in an error.

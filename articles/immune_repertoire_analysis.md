@@ -1,8 +1,8 @@
-# Immune Repertoire Analysis in cerebroAppLite
+# Immune Repertoire Analysis in CerebroNexus
 
 ## Overview
 
-cerebroAppLite v1.4 introduces a comprehensive **Immune Repertoire**
+CerebroNexus v1.4 introduces a comprehensive **Immune Repertoire**
 module for interactive exploration of T-cell and B-cell receptor
 clonotype data. The module leverages the `scRepertoire` package and
 supports 19 visualization methods covering clonal abundance, diversity,
@@ -31,8 +31,8 @@ runtime.
 The immune repertoire module is built on the
 [scRepertoire](https://www.borch.dev/uploads/screpertoire/) package (≥
 2.0), which is the standard tool for turning 10x Cell Ranger V(D)J
-output into per-cell clonotype annotations. cerebroAppLite lists it
-under `Suggests`, so install it once before preparing data:
+output into per-cell clonotype annotations. CerebroNexus lists it under
+`Suggests`, so install it once before preparing data:
 
 ``` r
 # Bioconductor
@@ -43,7 +43,7 @@ The full scRepertoire workflow is documented in its vignettes — [Loading
 data](https://www.borch.dev/uploads/screpertoire/articles/loading) and
 [Combining
 contigs](https://www.borch.dev/uploads/screpertoire/articles/combining_contigs).
-The steps below summarise just what cerebroAppLite needs.
+The steps below summarise just what CerebroNexus needs.
 
 ### Step 1 — load the V(D)J contigs
 
@@ -77,13 +77,13 @@ combined_bcr <- combineBCR(bcr_contigs, samples = sample_names)
 Build a named list of data.frames (one element per sample) holding the
 scRepertoire clonotype columns, attach it to the Seurat object’s
 `@misc$immune_repertoire` slot, and export.
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 picks the slot up automatically. To include both receptor types,
 row-bind the T- and B-cell clonotypes per sample (cells are mutually
 exclusive — a cell has a TCR *or* a BCR):
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 
 ir_cols <- c("barcode", "CTgene", "CTnt", "CTaa", "CTstrict")
 to_df <- function(x) x[, ir_cols, drop = FALSE]

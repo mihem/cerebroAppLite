@@ -74,7 +74,7 @@ file.copy(
 ## Prepare `app.R` file
 
 Since we are not using the usual
-[`launchCerebro()`](https://mihem.github.io/cerebroAppLite/reference/launchCerebro.md)
+[`launchCerebro()`](https://mihem.github.io/CerebroNexus/reference/launchCerebro.md)
 function to start Cerebro, we have to prepare a dedicated `app.R` file
 that will do the same for us. Use your favorite text editor to open a
 new file, paste the code below into it, and save it as
@@ -147,9 +147,9 @@ more memory will be necessary.
 ## See also
 
 - [Launch Cerebro with pre-loaded data
-  set](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md)
+  set](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set.md)
 - [Control access to Cerebro with a login
-  page](https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page.md)
+  page](https://mihem.github.io/CerebroNexus/articles/control_access_to_cerebro_with_a_login_page.md)
 
 ## Known issues
 

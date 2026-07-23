@@ -33,7 +33,7 @@ gene list.
 
 ``` r
 pbmc <- readRDS(system.file("extdata/v1.4/pbmc_seurat.rds",
-  package = "cerebroAppLite"))
+  package = "CerebroNexus"))
 pbmc <- calculatePercentGenes(
   object = pbmc,
   assay = 'RNA',

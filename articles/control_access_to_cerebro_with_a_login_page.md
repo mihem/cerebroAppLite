@@ -4,7 +4,7 @@
 
 When hosting Cerebro on a web server, it can be useful to control who
 has access to it, especially, when it is pre-loaded with a data set (see
-[`vignette('launch_cerebro_with_pre-loaded_data_set')`](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md)).
+[`vignette('launch_cerebro_with_pre-loaded_data_set')`](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set.md)).
 This can be done with the
 [`shinymanager`](https://cran.r-project.org/web/packages/shinymanager/index.html)
 package, however some (minor) adjustments must be made to the source
@@ -79,7 +79,7 @@ ui <- shinymanager::secure_app(ui)
 ## Usage
 
 [![Login
-screen](control_access_to_cerebro_with_a_login_page_files/login_screen.png)](https://mihem.github.io/cerebroAppLite/articles/control_access_to_cerebro_with_a_login_page_files/login_screen.png)
+screen](control_access_to_cerebro_with_a_login_page_files/login_screen.png)](https://mihem.github.io/CerebroNexus/articles/control_access_to_cerebro_with_a_login_page_files/login_screen.png)
 
 Now, when opening the Cerebro user interface, user have to authenticate
 themselves as one of the users in the `user_credentials` data frame. Of
@@ -92,6 +92,6 @@ this possibility out and sharing his implementation.
 ## See also
 
 - [Launch Cerebro with pre-loaded data
-  set](https://mihem.github.io/cerebroAppLite/articles/launch_cerebro_with_pre-loaded_data_set.md)
+  set](https://mihem.github.io/CerebroNexus/articles/launch_cerebro_with_pre-loaded_data_set.md)
 - [Host Cerebro on
-  shinyapps.io](https://mihem.github.io/cerebroAppLite/articles/host_cerebro_on_shinyapps.md)
+  shinyapps.io](https://mihem.github.io/CerebroNexus/articles/host_cerebro_on_shinyapps.md)

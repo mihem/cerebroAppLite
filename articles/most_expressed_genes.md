@@ -13,11 +13,11 @@ present in every `.crb` file.
 ## Quick start
 
 ``` r
-library(cerebroAppLite)
+library(CerebroNexus)
 launchCerebroV1.4()
 ```
 
-1.  Launch cerebroAppLite and load a `.crb` file
+1.  Launch CerebroNexus and load a `.crb` file
 2.  Click **Most expressed genes** in the sidebar
 3.  Select a grouping variable (e.g., `seurat_clusters`, `sample`)
 4.  The table shows, for each group, the gene name, mean expression, and
@@ -35,7 +35,7 @@ The results table is rendered as an interactive DT table:
 ## Data export
 
 Most expressed gene tables are computed automatically during
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md).
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md).
 No additional parameters are required.
 
 ``` r
@@ -44,5 +44,5 @@ exportFromSeurat(seurat_object, file = "my_data.crb")
 
 ## See also
 
-[`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/cerebroAppLite/articles/cerebroApp_workflow_Seurat.md)
+[`vignette("cerebroApp_workflow_Seurat")`](https://mihem.github.io/CerebroNexus/articles/cerebroApp_workflow_Seurat.md)
 for the complete export workflow.

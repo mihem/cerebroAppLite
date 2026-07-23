@@ -47,9 +47,9 @@ Three ideas shape the page:
     Visium/Xenium/MERFISH demos — the Trekker `.crb` carries no
     histology raster. That is correct, not an omission.
 
-cerebroAppLite only **ingests and displays** the vendor pipeline’s
-output; it never runs the vendor Primary Analysis Pipeline (that is an
-HPC/cloud job far larger than a Shiny session).
+CerebroNexus only **ingests and displays** the vendor pipeline’s output;
+it never runs the vendor Primary Analysis Pipeline (that is an HPC/cloud
+job far larger than a Shiny session).
 
 ## Getting the data (registration required)
 
@@ -114,7 +114,7 @@ discrepancy is visible rather than hidden.
 
 The rest of this section is `data-raw/build_trekker_demo.R`, narrated.
 It needs `Seurat`, `Matrix`, the `magick` and `base64enc` packages
-(build-time only), and the in-tree cerebroAppLite (for the new `trekker`
+(build-time only), and the in-tree CerebroNexus (for the new `trekker`
 slot on `Cerebro_v1.3`).
 
 ### Setup
@@ -235,7 +235,7 @@ sub_bc <- bc_all[idx]
 ### Step 6 — export a Cerebro object and attach the `trekker` slot
 
 We build an ordinary `Cerebro_v1.3` object with
-[`exportFromSeurat()`](https://mihem.github.io/cerebroAppLite/reference/exportFromSeurat.md)
+[`exportFromSeurat()`](https://mihem.github.io/CerebroNexus/reference/exportFromSeurat.md)
 (whole- transcriptome expression + UMAP + `cluster`/`celltype` groups) —
 this is what powers gene colouring on the page. Then we attach a
 `trekker` slot with everything else the bespoke page needs.
@@ -297,12 +297,12 @@ The whole build is one command:
 The bundled app already lists the demo, so it is one dropdown click:
 
 ``` r
-shiny::runApp(system.file("app.R", package = "cerebroAppLite"))
+shiny::runApp(system.file("app.R", package = "CerebroNexus"))
 # choose "Mouse brain (Trekker)" in the "Select dataset:" switcher
 ```
 
 To host your own Trekker `.crb`, pass it to
-[`createShinyApp()`](https://mihem.github.io/cerebroAppLite/reference/createShinyApp.md).
+[`createShinyApp()`](https://mihem.github.io/CerebroNexus/reference/createShinyApp.md).
 The **Trekker** tab appears automatically whenever the loaded `.crb`
 carries a `trekker` slot.
 
