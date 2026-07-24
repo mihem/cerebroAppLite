@@ -24,14 +24,15 @@ output[["about"]] <- renderText({
     version,
     '<br>
     <br>
-    <b>Authors</b><br>
-    Roman Hillje<br>
+    <b>Authors</b> <span style="font-weight: normal; font-style: italic;">(in alphabetical order)</span><br>
     Michael Heming<br>
+    Roman Hillje<br>
     Xuesong Wang<br>
     <br>
     <b>Links</b><br>
     <ul>
-      <li><a href=https://github.com/mihem/CerebroNexus title="CerebroNexus on GitHub" target="_blank"><b>CerebroNexus on GitHub</b></a></li>
+      <li><a href=https://github.com/mihem/CerebroNexus title="CerebroNexus on GitHub (Michael Heming)" target="_blank"><b>CerebroNexus on GitHub (Michael Heming)</b></a></li>
+      <li><a href=https://github.com/duocang/CerebroNexus title="CerebroNexus on GitHub (Xuesong Wang)" target="_blank"><b>CerebroNexus on GitHub (Xuesong Wang)</b></a></li>
       <li><a href=https://github.com/romanhaa/Cerebro title="Discontinued Cerebro repository on GitHub (Roman Hillje)" target="_blank"><b>Discontinued Cerebro repository on GitHub (Roman Hillje)</b></a></li>
     </ul>
     <br>

@@ -1,3 +1,40 @@
+# CerebroNexus 3.0.1
+
+## Security and deployment hardening
+
+- Generated standalone bundles no longer expose the bundled `data/` directory
+  as a static URL, so the raw `.crb`/H5 datasets can no longer be downloaded
+  directly, bypassing the UI.
+- Plot export ("export to PDF") now streams the vector PDF to the browser as a
+  download instead of writing to a server-chosen path over the whole host
+  filesystem. The `shinyFiles` server-side save and `getVolumes()` are gone.
+- Uploaded `.crb` files are validated as Cerebro objects before use; a corrupt
+  or non-Cerebro file now shows a notification instead of crashing the session.
+  The default upload size limit dropped from 8000 MB to 200 MB (still
+  configurable via `max_request_size`).
+- `createShinyApp()` now defaults to `overwrite = FALSE` and guards the
+  destructive directory removal, refusing protected paths and any directory it
+  did not generate.
+- Data tables HTML-escape their cell content by default (`escape = TRUE`).
+
+## Robustness
+
+- Gene-set enrichment uses the public `msigdbr::msigdbr()` API instead of
+  removed internal objects, restoring the feature on recent `msigdbr` versions.
+- Fixed an empty-filter indexing bug that could inject a bogus/NA row into a
+  projection, a graphics-device leak on repeated plot export, and unbounded
+  diversity bootstrap iterations (now capped).
+- Loading a data set shows a progress indicator instead of a silent freeze.
+- Adjusting Clonal UMAP point size / opacity / legend no longer resets the
+  user's zoom, and colour pickers no longer collide for group levels that
+  differ only in punctuation.
+
+## Performance
+
+- The `.crb` cache is now shared across sessions (process-level) with an LRU
+  bound and change detection by path + size + mtime, so a data set is
+  decompressed once instead of once per session.
+
 # CerebroNexus 3.0.0
 
 ## Renamed package and application
