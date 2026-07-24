@@ -344,6 +344,7 @@ test_that("createShinyApp bundles a working app", {
     cerebro_data = c("mydata" = tmp),
     result_dir = app_dir,
     launch_browser = FALSE,
+    overwrite = TRUE,
     verbose = FALSE
   )
 

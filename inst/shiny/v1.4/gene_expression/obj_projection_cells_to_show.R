@@ -32,7 +32,7 @@ expression_projection_cells_to_show <- reactive({
   ## randomly remove cells (if necessary)
   cells_df <- randomlySubsetCells(cells_df, pct_cells)
   ## put rows in random order
-  cells_df <- cells_df[sample(1:nrow(cells_df)), ]
+  cells_df <- cells_df[sample(seq_len(nrow(cells_df))), ]
   cells_to_show <- cells_df$row_id
   #   message(str(cells_to_show))
   return(cells_to_show)
