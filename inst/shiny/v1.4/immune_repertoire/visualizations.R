@@ -568,6 +568,83 @@ output$ir_clonalUMAP_projection <- plotly::renderPlotly({
 ## level data the old renderPlotly built, but as the meta/data/hover arrays the
 ## shared render2DCategorical consumes, then hand off to JS. Runs only when no
 ## grouping column is chosen (the faceted variant uses the static ggplot below).
+##
+## X1: split into a STRUCTURE pass and a DECORATION pass. The structure pass
+## depends on the data inputs, rebuilds the (expensive) trace data and resets the
+## view. The decoration pass depends only on point size / opacity / legend and
+## re-pushes the CACHED data with reset_axes = FALSE, so a cosmetic tweak
+## restyles in place instead of recomputing the data and snapping the user's zoom
+## back to full extent.
+ir_clonal_umap_payload <- reactiveVal(NULL)
+
+## Resolve display params into the decoration the shared engine needs.
+ir_umap_decoration <- function(dp) {
+  point_size <- suppressWarnings(as.numeric(dp[["ir_d_point_size"]]))
+  if (length(point_size) != 1 || is.na(point_size)) {
+    point_size <- 1
+  }
+  alpha <- suppressWarnings(as.numeric(dp[["ir_d_alpha"]]))
+  if (length(alpha) != 1 || is.na(alpha)) {
+    alpha <- 0.8
+  }
+  legend_size <- suppressWarnings(as.numeric(dp[["ir_d_legend_size"]]))
+  if (length(legend_size) != 1 || is.na(legend_size) || legend_size <= 0) {
+    legend_size <- 12
+  }
+  ## Map the IR legend-position choice onto the shared renderer's legend modes:
+  ## "top" -> the custom top bar (shared default); right/bottom/left -> plotly's
+  ## native legend; "none" -> hidden. Default to the top bar for the unified look.
+  legend_pos <- dp[["ir_d_legend_pos"]]
+  if (!is.character(legend_pos) || length(legend_pos) != 1) {
+    legend_pos <- "top"
+  }
+  legend_position <- switch(
+    legend_pos,
+    top = "top",
+    right = "right",
+    bottom = "bottom",
+    left = "left",
+    none = "none",
+    "top"
+  )
+  ## plotly marker sizes read larger than ggplot's; scale up so the points are
+  ## comparable to the other UMAPs (matches the old renderer).
+  list(
+    marker_size = point_size * 5,
+    alpha = alpha,
+    legend_size = legend_size,
+    legend_position = legend_position
+  )
+}
+
+## Push a cached data payload to the shared engine with the given decoration.
+ir_push_clonal_umap <- function(payload, deco, reset_axes) {
+  req(length(payload$traces) > 0)
+  output_meta <- list(
+    color_type = "categorical",
+    traces = payload$traces,
+    color_variable = "expansion",
+    legend_position = deco$legend_position,
+    legend_font_size = deco$legend_size
+  )
+  output_data <- list(
+    x = payload$data_x,
+    y = payload$data_y,
+    color = payload$data_color,
+    point_size = deco$marker_size,
+    point_opacity = deco$alpha,
+    point_line = list(),
+    reset_axes = reset_axes
+  )
+  output_hover <- list(
+    hoverinfo = payload$hover_info,
+    text = payload$hover_text
+  )
+  shinyjs::js$updateClonalUMAP(output_meta, output_data, output_hover)
+}
+
+## Structure pass: depends on the data inputs. Rebuilds the trace data, caches
+## it, and pushes with reset_axes = TRUE (a genuine data change refits the view).
 observe({
   group_by <- ir_param("ir_p_umap_group_by", "")
   ## Faceting is handled by the static ggplot path; nothing to push here.
@@ -598,40 +675,6 @@ observe({
     cells = cells
   )
   req(!is.null(df) && nrow(df) > 0)
-
-  dp <- tryCatch(ir_display_params(), error = function(e) list())
-  point_size <- suppressWarnings(as.numeric(dp[["ir_d_point_size"]]))
-  if (length(point_size) != 1 || is.na(point_size)) {
-    point_size <- 1
-  }
-  alpha <- suppressWarnings(as.numeric(dp[["ir_d_alpha"]]))
-  if (length(alpha) != 1 || is.na(alpha)) {
-    alpha <- 0.8
-  }
-  ## plotly marker sizes read larger than ggplot's; scale up so the points are
-  ## comparable to the other UMAPs (matches the old renderer).
-  marker_size <- point_size * 5
-
-  legend_size <- suppressWarnings(as.numeric(dp[["ir_d_legend_size"]]))
-  if (length(legend_size) != 1 || is.na(legend_size) || legend_size <= 0) {
-    legend_size <- 12
-  }
-  ## Map the IR legend-position choice onto the shared renderer's legend modes:
-  ## "top" -> the custom top bar (shared default); right/bottom/left -> plotly's
-  ## native legend; "none" -> hidden. Default to the top bar for the unified look.
-  legend_pos <- dp[["ir_d_legend_pos"]]
-  if (!is.character(legend_pos) || length(legend_pos) != 1) {
-    legend_pos <- "top"
-  }
-  legend_position <- switch(
-    legend_pos,
-    top = "top",
-    right = "right",
-    bottom = "bottom",
-    left = "left",
-    none = "none",
-    "top"
-  )
 
   ## Grey background = cells without the selected receptor (expansion = NA);
   ## coloured foreground = receptor cells with an expansion level. One trace per
@@ -681,28 +724,36 @@ observe({
   }
   req(length(traces) > 0)
 
-  output_meta <- list(
-    color_type = "categorical",
+  payload <- list(
     traces = traces,
-    color_variable = "expansion",
-    legend_position = legend_position,
-    legend_font_size = legend_size
+    data_x = data_x,
+    data_y = data_y,
+    data_color = data_color,
+    hover_info = hover_info,
+    hover_text = hover_text
   )
-  output_data <- list(
-    x = data_x,
-    y = data_y,
-    color = data_color,
-    point_size = marker_size,
-    point_opacity = alpha,
-    point_line = list(),
-    reset_axes = TRUE
+  ir_clonal_umap_payload(payload)
+  ## Decoration read via isolate so a point-size / legend tweak does not re-run
+  ## this expensive data pass (the decoration observer below handles those).
+  deco <- ir_umap_decoration(
+    isolate(tryCatch(ir_display_params(), error = function(e) list()))
   )
-  output_hover <- list(
-    hoverinfo = hover_info,
-    text = hover_text
-  )
+  ir_push_clonal_umap(payload, deco, reset_axes = TRUE)
+})
 
-  shinyjs::js$updateClonalUMAP(output_meta, output_data, output_hover)
+## Decoration pass: depends only on display params. Re-pushes the CACHED data
+## with reset_axes = FALSE, so point size / opacity / legend changes restyle in
+## place and the shared engine's uirevision keeps the user's pan/zoom.
+observe({
+  group_by <- ir_param("ir_p_umap_group_by", "")
+  ## Only the non-faceted plot exists as a shared-engine div.
+  if (!is.null(group_by) && nzchar(group_by)) {
+    return()
+  }
+  dp <- tryCatch(ir_display_params(), error = function(e) list())
+  payload <- isolate(ir_clonal_umap_payload())
+  req(!is.null(payload))
+  ir_push_clonal_umap(payload, ir_umap_decoration(dp), reset_axes = FALSE)
 })
 
 ## ---- Clonal UMAP selection buttons (shared-projection engine) ----------- ##
