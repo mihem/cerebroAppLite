@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="man/figures/logo-dark.svg">
+    <img src="man/figures/logo.svg" alt="CerebroNexus" width="380">
+  </picture>
+</p>
+
 [![R-CMD-check (upstream)](https://github.com/mihem/CerebroNexus/actions/workflows/R-cmd-check.yaml/badge.svg)](https://github.com/mihem/CerebroNexus/actions/workflows/R-cmd-check.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Lifecycle: stable](https://lifecycle.r-lib.org/articles/figures/lifecycle-stable.svg)
