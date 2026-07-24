@@ -162,18 +162,20 @@ ui <- dashboardPage(
     tags$head(tags$style(HTML(".content-wrapper {overflow-x: scroll;}"))),
     div(
       class = "cerebro-brand",
+      ## Rounded-geometric wordmark: the letters are vector outlines (Fredoka,
+      ## SIL OFL), so it renders identically without depending on any installed
+      ## font. Cerebro in near-black, Nexus in the amber accent. Kept in its own
+      ## file (www/cerebronexus.svg) rather than inlined as ~10KB of path data.
       HTML(
-        paste0(
-          '<svg class="cerebro-logo" xmlns="http://www.w3.org/2000/svg" ',
-          'viewBox="0 0 210 38" role="img" aria-labelledby="cb-logo-title">',
-          '<title id="cb-logo-title">CerebroNexus</title>',
-          '<text x="0" y="27" fill="currentColor" ',
-          'font-family="var(--font-sans),system-ui,sans-serif" ',
-          'font-size="27" font-weight="650" letter-spacing="-0.6">Cerebro</text>',
-          '<text x="104" y="27" fill="#337ab7" ',
-          'font-family="var(--font-sans),system-ui,sans-serif" ',
-          'font-size="27" font-weight="750" letter-spacing="-0.6">Nexus</text>',
-          '</svg>'
+        paste(
+          readLines(
+            paste0(
+              Cerebro.options[["cerebro_root"]],
+              "/shiny/v1.4/www/cerebronexus.svg"
+            ),
+            warn = FALSE
+          ),
+          collapse = ""
         )
       )
     ),
