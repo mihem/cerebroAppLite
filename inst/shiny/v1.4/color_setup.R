@@ -95,22 +95,17 @@ reactive_colors <- reactive({
     ## if color selection from the "Color management" tab exist, assign those
     ## colors, otherwise assign colors from default colorset
     if (
-      !is.null(input[[paste0(
-        'color_',
+      !is.null(input[[color_input_id(
         group_name,
-        '_',
         getGroupLevels(group_name)[1]
       )]])
     ) {
       for (group_level in getGroupLevels(group_name)) {
-        ## it seems that special characters are not handled well in input/output
-        ## so I replace them with underscores using gsub()
-        colors[[group_name]][group_level] <- input[[paste0(
-          'color_',
-          group_name,
-          '_',
-          gsub(group_level, pattern = '[^[:alnum:]]', replacement = '_')
-        )]]
+        ## input id is the collision-free color_input_id() (X2), matching the
+        ## write side in color_management/server.R
+        colors[[group_name]][group_level] <- input[[
+          color_input_id(group_name, group_level)
+        ]]
       }
     } else {
       colors[[group_name]] <- cerebro_group_colors(
@@ -130,22 +125,13 @@ reactive_colors <- reactive({
       ## if color selection from the "Color management" tab exist, assign those
       ## colors, otherwise assign colors from cell cycle colorset
       if (
-        !is.null(input[[paste0(
-          'color_',
-          column,
-          '_',
-          unique(as.character(meta_data[[column]]))[1]
-        )]])
+        !is.null(input[[
+          color_input_id(column, unique(as.character(meta_data[[column]]))[1])
+        ]])
       ) {
         for (state in unique(as.character(meta_data[[column]]))) {
-          ## it seems that special characters are not handled well in input/output
-          ## so I replace them with underscores using gsub()
-          colors[[column]][state] <- input[[paste0(
-            'color_',
-            column,
-            '_',
-            gsub(state, pattern = '[^[:alnum:]]', replacement = '_')
-          )]]
+          ## input id is the collision-free color_input_id() (X2)
+          colors[[column]][state] <- input[[color_input_id(column, state)]]
         }
       } else {
         colors[[

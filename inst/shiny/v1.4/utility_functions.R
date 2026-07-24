@@ -952,6 +952,24 @@ getGeneSetNames <- function() {
 }
 
 ##----------------------------------------------------------------------------##
+## Collision-free colour input id (X2).
+##
+## The colour pickers used paste0("color_", group, "_",
+## gsub("[^[:alnum:]]", "_", level)). That gsub mapped levels differing only in
+## punctuation ("A-B" / "A B" / "A_B") onto the SAME id, so their colours
+## overwrote each other; the group/level boundary was also ambiguous. Hex-encode
+## the UTF-8 bytes of the group and level instead: unique per string, made only
+## of [0-9a-f] plus a single "_" separator the hex can never contain, so the
+## write side (color_management) and read side (color_setup) always agree.
+##----------------------------------------------------------------------------##
+color_input_id <- function(group, level) {
+  as_hex <- function(x) {
+    paste(as.character(charToRaw(enc2utf8(as.character(x)))), collapse = "")
+  }
+  paste0("color_", as_hex(group), "_", as_hex(level))
+}
+
+##----------------------------------------------------------------------------##
 ## Function to calculate center of groups in projections/trajectories.
 ##----------------------------------------------------------------------------##
 centerOfGroups <- function(coordinates, df, n_dimensions, group) {
