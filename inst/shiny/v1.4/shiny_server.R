@@ -306,19 +306,50 @@ server <- function(input, output, session) {
   data_set <- reactive({
     req(!is.null(available_crb_files$selected))
     dataset_to_load <- available_crb_files$selected
-    if (exists(dataset_to_load)) {
-      print(glue::glue(
-        "[{Sys.time()}] Load data set from variable: {dataset_to_load}"
-      ))
-      data <- get(dataset_to_load)
-    } else {
-      ## Route through the process-level cache defined in utility_functions.R.
-      ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch) and
-      ## then re-attaches external expression backends (bpcells / h5) using
-      ## paths rooted at the crb's parent directory. Cerebro.options can still
-      ## override the matrix path via expression_matrix_BPCells /
-      ## expression_matrix_h5 -- the helper picks that up internally.
-      data <- get_or_load_crb(dataset_to_load)
+    ## S3: an uploaded .crb is untrusted input and read_cerebro_file() is a bare
+    ## readRDS(), so a corrupt or non-Cerebro file would otherwise crash the
+    ## session on the first $print()/slot access below. Load defensively and
+    ## validate the result is a Cerebro object before it reaches the rest of the
+    ## app; on failure, notify the user and block downstream reactives instead.
+    data <- tryCatch(
+      {
+        if (exists(dataset_to_load)) {
+          print(glue::glue(
+            "[{Sys.time()}] Load data set from variable: {dataset_to_load}"
+          ))
+          get(dataset_to_load)
+        } else {
+          ## Route through the process-level cache defined in utility_functions.R.
+          ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch) and
+          ## then re-attaches external expression backends (bpcells / h5) using
+          ## paths rooted at the crb's parent directory. Cerebro.options can still
+          ## override the matrix path via expression_matrix_BPCells /
+          ## expression_matrix_h5 -- the helper picks that up internally.
+          get_or_load_crb(dataset_to_load)
+        }
+      },
+      error = function(e) {
+        showNotification(
+          paste(
+            "Could not read the selected file. It may be corrupt or not a",
+            "Cerebro (.crb) file."
+          ),
+          type = "error",
+          duration = 10
+        )
+        NULL
+      }
+    )
+    ## reject anything that is not a Cerebro object before the app touches it
+    if (!isTRUE(any(grepl("Cerebro", class(data))))) {
+      if (!is.null(data)) {
+        showNotification(
+          "The selected file is not a valid Cerebro (.crb) object.",
+          type = "error",
+          duration = 10
+        )
+      }
+      req(FALSE)
     }
     ## log message
     message(data$print())
