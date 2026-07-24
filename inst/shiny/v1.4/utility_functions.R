@@ -317,7 +317,10 @@ prettifyTable <- function(
     table,
     autoHideNavigation = TRUE,
     class = "stripe table-bordered table-condensed",
-    escape = FALSE,
+    ## Security (XSS): HTML-escape cell content. Cells hold metadata / marker /
+    ## pathway values that, with uploaded data, can carry attacker-controlled
+    ## text. No column here renders intentional HTML, so escaping is safe.
+    escape = TRUE,
     extensions = table_extensions,
     filter = filter,
     rownames = FALSE,
@@ -615,7 +618,7 @@ prepareEmptyTable <- function(table) {
     table,
     autoHideNavigation = TRUE,
     class = "stripe table-bordered table-condensed",
-    escape = FALSE,
+    escape = TRUE, # XSS: HTML-escape cell content (no HTML columns here)
     filter = "none",
     rownames = FALSE,
     selection = "none",
@@ -897,30 +900,55 @@ getGenesForGeneSet <- function(gene_set) {
     species <- "Mus musculus"
   }
 
-  ## - get list of gene set names
-  ## - filter for selected gene set
-  ## - extract genes that belong to the gene set
-  ## - get orthologs for the genes
-  ## - convert gene symbols to vector
-  ## - only keep unique gene symbols
-  ## - sort genes
-  msigdbr:::msigdbr_genesets[, 1:2] %>%
-    dplyr::filter(.data$gs_name == gene_set) %>%
-    dplyr::inner_join(
-      .,
-      msigdbr:::msigdbr_genes,
-      by = "gs_id"
-    ) %>%
-    dplyr::inner_join(
-      .,
-      msigdbr:::msigdbr_orthologs %>%
-        dplyr::filter(.data$species_name == species) %>%
-        dplyr::select(human_entrez_gene, gene_symbol),
-      by = "human_entrez_gene"
-    ) %>%
-    dplyr::pull(gene_symbol) %>%
-    unique() %>%
-    sort()
+  ## R1: use msigdbr's public API instead of internal data objects
+  ## (msigdbr:::msigdbr_genesets/_genes/_orthologs), which newer msigdbr
+  ## releases removed. msigdbr(species = ...) returns gene symbols already
+  ## mapped to the requested species, so the manual ortholog join is gone.
+  ## Guard the call: a missing/incompatible msigdbr must degrade to "no genes"
+  ## rather than crash the enrichment feature.
+  if (!requireNamespace("msigdbr", quietly = TRUE)) {
+    warning("The 'msigdbr' package is required to resolve gene sets.")
+    return(character(0))
+  }
+  tryCatch(
+    msigdbr::msigdbr(species = species) %>%
+      dplyr::filter(.data$gs_name == gene_set) %>%
+      dplyr::pull(.data$gene_symbol) %>%
+      unique() %>%
+      sort(),
+    error = function(e) {
+      warning("MSigDB gene-set query failed: ", conditionMessage(e))
+      character(0)
+    }
+  )
+}
+
+##----------------------------------------------------------------------------##
+## MSigDB gene-set names for the selection dropdown (R1).
+##
+## Uses the public msigdbr() API — the internal msigdbr_genesets object the UI
+## used to read was removed in newer releases — and caches the result for the
+## session, since deriving the multi-thousand-name list from the full table is
+## not free. Gene-set names are identical across species. A missing or
+## incompatible msigdbr degrades to an empty list instead of crashing the UI.
+##----------------------------------------------------------------------------##
+.gene_set_names_cache <- NULL
+getGeneSetNames <- function() {
+  if (!is.null(.gene_set_names_cache)) {
+    return(.gene_set_names_cache)
+  }
+  if (!requireNamespace("msigdbr", quietly = TRUE)) {
+    return(character(0))
+  }
+  names <- tryCatch(
+    sort(unique(msigdbr::msigdbr(species = "Homo sapiens")$gs_name)),
+    error = function(e) {
+      warning("Could not load MSigDB gene-set names: ", conditionMessage(e))
+      character(0)
+    }
+  )
+  .gene_set_names_cache <<- names
+  names
 }
 
 ##----------------------------------------------------------------------------##

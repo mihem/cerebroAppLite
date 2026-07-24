@@ -21,7 +21,7 @@ output[["gene_info"]] <- DT::renderDataTable({
     conversion_table,
     filter = "none",
     selection = "multiple",
-    escape = FALSE,
+    escape = TRUE, # XSS: HTML-escape cell content (gene ID/symbol table is data)
     autoHideNavigation = TRUE,
     rownames = FALSE,
     options = list(
