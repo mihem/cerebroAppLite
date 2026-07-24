@@ -1,4 +1,18 @@
 ##----------------------------------------------------------------------------##
+## Process-level data-loading helpers (A4).
+##
+## Sourced here at the TOP LEVEL (outside server()), so it runs ONCE per R
+## process rather than once per session. That makes .crb_cache genuinely shared
+## across sessions: the first session to open a data set decompresses it, every
+## later session reuses the same read-only object instead of holding its own
+## copy. Cerebro.options is already loaded (by app.R / the generated bundle)
+## before this file is sourced.
+##----------------------------------------------------------------------------##
+source(
+  paste0(Cerebro.options[["cerebro_root"]], "/shiny/v1.4/data_loading.R")
+)
+
+##----------------------------------------------------------------------------##
 ## Server function for Cerebro.
 ##----------------------------------------------------------------------------##
 server <- function(input, output, session) {
@@ -121,6 +135,16 @@ server <- function(input, output, session) {
     names = NULL
   )
 
+  ## Track this session's uploaded files so their entry in the now process-level
+  ## .crb_cache is freed when the session ends (A4). Bundled data sets are left
+  ## cached for other sessions; only the per-session upload is dropped.
+  uploaded_crb_paths <- character(0)
+  session$onSessionEnded(function() {
+    for (p in uploaded_crb_paths) {
+      drop_crb_cache(p)
+    }
+  })
+
   ## listen to selected 'input_file', initialize before UI element is loaded
   observeEvent(input[['input_file']], ignoreNULL = FALSE, {
     path_to_load <- ''
@@ -131,6 +155,7 @@ server <- function(input, output, session) {
         file.exists(input[["input_file"]]$datapath)
     ) {
       path_to_load <- input[["input_file"]]$datapath
+      uploaded_crb_paths <<- unique(c(uploaded_crb_paths, path_to_load))
       ## an uploaded file replaces the pre-configured data sets, so clear the
       ## switcher state — otherwise the dropdown keeps offering the old data
       ## sets, which no longer match what is loaded.

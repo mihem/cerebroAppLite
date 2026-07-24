@@ -211,14 +211,15 @@ test_that("h5 attach is lazy: .attachExternalExpression returns a DelayedMatrix
   skip_if_not_installed("HDF5Array")
 
   ## source the runtime attach helper from inst/ — it's a Shiny utility,
-  ## not part of the package namespace
+  ## not part of the package namespace. It lives in data_loading.R (the
+  ## process-level loading helpers), not utility_functions.R (A4).
   inst_util <- system.file(
-    "shiny/v1.4/utility_functions.R",
+    "shiny/v1.4/data_loading.R",
     package = "CerebroNexus"
   )
   if (!nzchar(inst_util)) {
     inst_util <- testthat::test_path(
-      "../../inst/shiny/v1.4/utility_functions.R"
+      "../../inst/shiny/v1.4/data_loading.R"
     )
   }
   ## load only the symbol we need into a fresh env to avoid namespace pollution
@@ -226,7 +227,7 @@ test_that("h5 attach is lazy: .attachExternalExpression returns a DelayedMatrix
   source(inst_util, local = attach_env, echo = FALSE)
   skip_if_not(
     is.function(attach_env$.attachExternalExpression),
-    ".attachExternalExpression not found in utility_functions.R"
+    ".attachExternalExpression not found in data_loading.R"
   )
 
   out_dir <- file.path(tempdir(), paste0("h5_attach_", as.integer(Sys.time())))
