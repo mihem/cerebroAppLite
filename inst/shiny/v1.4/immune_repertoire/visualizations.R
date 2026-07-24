@@ -1449,6 +1449,10 @@ output$ir_plot_clonalDiversity <- plotly::renderPlotly({
   if (is.na(n_boots) || n_boots < 1) {
     n_boots <- 20
   }
+  ## R5: cap bootstrap iterations. Diversity bootstrapping is O(n_boots) and a
+  ## user-supplied value has no ceiling otherwise, so one request can pin the
+  ## single R worker for minutes and block every other session.
+  n_boots <- min(n_boots, 500L)
   ir_render_ggplotly(
     ir_plot_clonal_diversity(
       data = data,

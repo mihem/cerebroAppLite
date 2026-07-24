@@ -311,33 +311,44 @@ server <- function(input, output, session) {
     ## session on the first $print()/slot access below. Load defensively and
     ## validate the result is a Cerebro object before it reaches the rest of the
     ## app; on failure, notify the user and block downstream reactives instead.
-    data <- tryCatch(
+    ## R2: loading/decompressing a .crb blocks the single R worker for several
+    ## seconds. Show a progress indicator so the UI is not a silent freeze (the
+    ## original author's "opens, waits 5-6s, interface frozen with no feedback"
+    ## complaint). Cached hits flash it only briefly.
+    data <- withProgress(
+      message = "Loading data set…",
+      detail = "Reading and preparing the .crb file.",
+      value = 0.5,
       {
-        if (exists(dataset_to_load)) {
-          print(glue::glue(
-            "[{Sys.time()}] Load data set from variable: {dataset_to_load}"
-          ))
-          get(dataset_to_load)
-        } else {
-          ## Route through the process-level cache defined in utility_functions.R.
-          ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch) and
-          ## then re-attaches external expression backends (bpcells / h5) using
-          ## paths rooted at the crb's parent directory. Cerebro.options can still
-          ## override the matrix path via expression_matrix_BPCells /
-          ## expression_matrix_h5 -- the helper picks that up internally.
-          get_or_load_crb(dataset_to_load)
-        }
-      },
-      error = function(e) {
-        showNotification(
-          paste(
-            "Could not read the selected file. It may be corrupt or not a",
-            "Cerebro (.crb) file."
-          ),
-          type = "error",
-          duration = 10
+        tryCatch(
+          {
+            if (exists(dataset_to_load)) {
+              print(glue::glue(
+                "[{Sys.time()}] Load data set from variable: {dataset_to_load}"
+              ))
+              get(dataset_to_load)
+            } else {
+              ## Route through the process-level cache in utility_functions.R.
+              ## get_or_load_crb() loads via read_cerebro_file() (qs/rds dispatch)
+              ## and re-attaches external expression backends (bpcells / h5) using
+              ## paths rooted at the crb's parent directory. Cerebro.options can
+              ## still override the matrix path via expression_matrix_BPCells /
+              ## expression_matrix_h5 -- the helper picks that up internally.
+              get_or_load_crb(dataset_to_load)
+            }
+          },
+          error = function(e) {
+            showNotification(
+              paste(
+                "Could not read the selected file. It may be corrupt or not a",
+                "Cerebro (.crb) file."
+              ),
+              type = "error",
+              duration = 10
+            )
+            NULL
+          }
         )
-        NULL
       }
     )
     ## reject anything that is not a Cerebro object before the app touches it
