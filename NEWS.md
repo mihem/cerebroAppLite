@@ -10,6 +10,23 @@
   `convertSeuratToCerebro()`.
 - Updated the HLA export metadata field to `CerebroNexus_version`.
 
+## Immune Repertoire without scRepertoire
+
+- **Dropped the `scRepertoire` runtime dependency.** The Immune Repertoire tab
+  no longer loads `scRepertoire`; its clonal metrics and plots are now produced
+  by a self-contained implementation in
+  `inst/shiny/v1.4/immune_repertoire/native_metrics.R` (clonal quant, abundance,
+  proportion, homeostasis, length, compare, overlap, diversity, scatter, size
+  distribution, rarefaction, gene usage, and CDR3 amino-acid composition). This
+  removes a heavy dependency tree from every app launch and cuts startup time.
+- **Slimmed the mandatory dependency tree.** `ape`, `readr`, and `viridis` are
+  no longer used and were removed. `biomaRt`, `future.apply`, `GSVA`, `httr`,
+  `pbapply`, and `qvalue` moved from `Imports` to `Suggests`, so a plain viewer
+  install no longer pulls them. The Nix environment (`create_env.R` /
+  `default.nix`) was updated to match.
+- **Static assets are cached and the projection engine loads once**, reducing
+  redundant work on repeated projection renders.
+
 # Version 2.3.0
 
 ## HLA & TCR Motifs

@@ -62,7 +62,6 @@ rix(
 
     "SeuratObject",
     # runtime deps (CRAN)
-    "ape",
     "biomaRt",
     "colourpicker",
     "dplyr",
@@ -82,7 +81,6 @@ rix(
     "plotly",
     "qvalue",
     "R6",
-    "readr",
     "rlang",
     "scales",
     "shiny",
@@ -94,7 +92,6 @@ rix(
     "tibble",
     "tidyr",
     "tidyselect",
-    "viridis",
     "stringdist",
     "visNetwork"
   ),
