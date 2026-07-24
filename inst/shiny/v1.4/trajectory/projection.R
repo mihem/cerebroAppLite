@@ -68,13 +68,11 @@ output[["trajectory_projection_UI"]] <- renderUI({
             title = tagList(
               boxTitle("Trajectory"),
               cerebroInfoButton("trajectory_projection_info"),
-              shinyFiles::shinySaveButton(
+              downloadButton(
                 "trajectory_projection_export",
                 label = "export to PDF",
-                title = "Export trajectory to PDF file.",
-                filetype = "pdf",
-                viewtype = "icon",
-                class = "btn-xs"
+                class = "btn-xs",
+                title = "Export trajectory to a PDF file (downloaded to your computer)."
               )
             ),
             tagList(

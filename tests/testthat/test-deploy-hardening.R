@@ -52,3 +52,29 @@ test_that("projection code never shuffles with sample(1:n) (empty-filter 1:0 bug
     )
   )
 })
+
+test_that("runtime never writes plots to a server path via shinyFiles (S2)", {
+  shiny_root <- system.file("shiny/v1.4", package = "CerebroNexus")
+  skip_if(shiny_root == "", "package not installed")
+  r_files <- list.files(
+    shiny_root,
+    pattern = "\\.R$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+  offenders <- Filter(
+    function(f) {
+      src <- paste(readLines(f, warn = FALSE), collapse = "\n")
+      # getVolumes() exposes the host filesystem; shinyFileSave()/parseSavePath()
+      # let the browser write a plot to a server-chosen path. Plot export must go
+      # through downloadHandler (browser download), not the server filesystem.
+      grepl("getVolumes|shinyFileSave|parseSavePath", src)
+    },
+    r_files
+  )
+  expect_identical(
+    character(0),
+    sub(paste0(shiny_root, "/"), "", offenders, fixed = TRUE),
+    info = "Export plots via downloadHandler, not shinyFiles server-side saves."
+  )
+})

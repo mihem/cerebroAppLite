@@ -107,12 +107,6 @@ server <- function(input, output, session) {
     )
   )
 
-  ## paths for storing plots
-  available_storage_volumes <- c(
-    Home = "~",
-    shinyFiles::getVolumes()()
-  )
-
   ##--------------------------------------------------------------------------##
   ## Load data set.
   ##--------------------------------------------------------------------------##

@@ -1,33 +1,24 @@
-observeEvent(input[["trajectory_projection_export"]], {
-  ##
-  req(
-    trajectory_selection_ok(),
-    input[["trajectory_point_color"]],
-    input[["trajectory_percentage_cells_to_show"]],
-    input[["trajectory_point_size"]],
-    input[["trajectory_point_opacity"]]
-  )
-
-  ## open dialog to select where plot should be saved and how the file should
-  ## be named
-  shinyFiles::shinyFileSave(
-    input,
-    id = "trajectory_projection_export",
-    roots = available_storage_volumes,
-    session = session,
-    restrictions = system.file(package = "base")
-  )
-
-  ## retrieve info from dialog
-  save_file_input <- shinyFiles::parseSavePath(
-    available_storage_volumes,
-    input[["trajectory_projection_export"]]
-  )
-
-  ## only proceed if a path has been provided
-  if (nrow(save_file_input) > 0) {
-    ## extract specified file path
-    save_file_path <- as.character(save_file_input$datapath[1])
+##----------------------------------------------------------------------------##
+## Export trajectory projection to a downloadable vector PDF.
+##
+## Security (S2): the plot is rendered straight into the download stream (a
+## per-session tempfile Shiny manages) and delivered to the browser, never to a
+## server-side path chosen through a shinyFiles save dialog. Nothing is written
+## to the host filesystem outside the session temp dir, so a generated bundle
+## stays safe to serve to untrusted users.
+##----------------------------------------------------------------------------##
+output[["trajectory_projection_export"]] <- downloadHandler(
+  filename = function() {
+    paste0("trajectory_", format(Sys.Date()), ".pdf")
+  },
+  content = function(file) {
+    req(
+      trajectory_selection_ok(),
+      input[["trajectory_point_color"]],
+      input[["trajectory_percentage_cells_to_show"]],
+      input[["trajectory_point_size"]],
+      input[["trajectory_point_opacity"]]
+    )
 
     ## ggplot2 functions are necessary to create the plot
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -37,7 +28,7 @@ observeEvent(input[["trajectory_projection_export"]], {
         text = "The 'ggplot2' package is required to export trajectory plots.",
         type = "error"
       )
-      return()
+      stop("ggplot2 is required to export trajectory plots.")
     }
 
     trajectory_data <- getTrajectory(
@@ -113,30 +104,8 @@ observeEvent(input[["trajectory_projection_export"]], {
         )
     }
 
-    ## save plot
-    pdf(NULL)
-    ggsave(save_file_path, plot, height = 8, width = 11)
-
-    ## check if file was succesfully saved
-    ## ... successful
-    if (file.exists(save_file_path)) {
-      ## give positive message
-      shinyWidgets::sendSweetAlert(
-        session = session,
-        title = "Success!",
-        text = paste0("Plot saved successfully as: ", save_file_path),
-        type = "success"
-      )
-
-      ## ... failed
-    } else {
-      ## give negative message
-      shinyWidgets::sendSweetAlert(
-        session = session,
-        title = "Error!",
-        text = "Sorry, it seems something went wrong...",
-        type = "error"
-      )
-    }
+    ## render the plot straight into the download stream (device must be set
+    ## explicitly: the tempfile Shiny hands us has no .pdf extension to infer).
+    ggsave(file, plot, height = 8, width = 11, device = "pdf")
   }
-})
+)
