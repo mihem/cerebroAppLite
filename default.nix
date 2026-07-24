@@ -95,7 +95,6 @@ let
       readr
       rlang
       scales
-      scRepertoire
       Seurat
       SeuratObject
       shiny

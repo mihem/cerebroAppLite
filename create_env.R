@@ -85,7 +85,6 @@ rix(
     "readr",
     "rlang",
     "scales",
-    "scRepertoire",
     "shiny",
     "shinycssloaders",
     "shinydashboard",
